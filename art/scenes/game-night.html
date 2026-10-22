@@ -1,0 +1,550 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Game Night</title>
+<script src="../lib/rough.js"></script>
+<script src="../../assets/scenes/scene-kit.js"></script>
+</head>
+<body>
+<script>
+// Home page hero: three friends around a table, about to play. Each is a nod to
+// a character on the hero map: a starry, bearded friend in a floppy knit hat
+// (the wizard), a freckled friend in a red hoodie with a banana patch (the monkey
+// knight) and a friend with a bubble ponytail that curls like a scorpion's tail.
+
+const { TAU, hash, wave, cycle, lerp, clamp, smooth, closed } = SceneKit;
+
+const W = 1400, H = 788, FPS = 24, SECONDS = 12, FRAMES = FPS * SECONDS;
+const BOIL_EVERY = 4;     // frames between redraws of the linework (the hand-drawn "boil")
+const BOIL_VARIANTS = 3;  // FRAMES / BOIL_EVERY must be a multiple of this so the loop is seamless
+
+// Eyes and mouths sit on skin, so they stay dark in both themes.
+const FEATURE = '#2a2620';
+const SKIN = { wizard: '#c68a5c', knight: '#f2c6a0', scorpion: '#8d5b3d' };
+
+const PALETTES = {
+  light: {
+    paper: '#f7f3ea', ink: '#3d3229',
+    wall: '#efe7d6', floorShadow: '#c9b89c',
+    wood: '#d39a62', woodDeep: '#a5703f', woodDark: '#7d5230',
+    sheet: '#fffdf6', sketch: '#6b6357', pencil: '#f2c14e', eraser: '#f19cb0',
+    robe: '#4a59b2', robeDeep: '#36439a', gold: '#f2b632', cream: '#fff5df', beard: '#4a3426',
+    red: '#d6573f', redDeep: '#a9412f', blue: '#4a89aa', banana: '#f5d046', hairBrown: '#7a4a2a', freckle: '#c98a5c',
+    amber: '#d07a3e', amberDeep: '#a95a28', inner: '#3a2a24', hairDark: '#2b1d16', scrunchie: '#e5603a',
+    cardBack: '#c8463d', card: '#ffffff', mug: '#5db8a2', mugDeep: '#2f8a77', steam: '#8a8178',
+    blush: '#e8829a', glow: '#ffd76a', lampAlpha: 0.09, shade: '#5db8a2', cord: '#3d3229',
+    sky: '#cfe7f0', sun: '#ffd76a', cloud: '#ffffff', frame: '#fffdf8', curtain: '#e493ac', curtainDeep: '#c96f8c',
+    leaf: '#62a04f', leafDeep: '#3f7a3c', pot: '#e38b59', spark: '#e3a01f',
+  },
+  dark: {
+    paper: '#1b1a17', ink: '#e9e0cf',
+    wall: '#24221e', floorShadow: '#000000',
+    wood: '#8f5f38', woodDeep: '#6d4426', woodDark: '#4f301b',
+    sheet: '#efe8da', sketch: '#5a5249', pencil: '#e8b640', eraser: '#e07a90',
+    robe: '#5f70d0', robeDeep: '#4a59b2', gold: '#ffd76a', cream: '#e9dcc1', beard: '#3a281c',
+    red: '#d95f45', redDeep: '#a8402f', blue: '#73b4d1', banana: '#f5d046', hairBrown: '#8a5732', freckle: '#c98a5c',
+    amber: '#e09456', amberDeep: '#b0683a', inner: '#2a1e19', hairDark: '#1f1510', scrunchie: '#ff7b45',
+    cardBack: '#d9564b', card: '#f4efe6', mug: '#4fa891', mugDeep: '#2c7a69', steam: '#cfc6b6',
+    blush: '#e8829a', glow: '#ffd76a', lampAlpha: 0.2, shade: '#4fa891', cord: '#e9e0cf',
+    sky: '#1d2a3a', moon: '#f4efd9', star: '#ffe9a8', frame: '#3a362f', curtain: '#a85a7a', curtainDeep: '#80405c',
+    leaf: '#5f9e4f', leafDeep: '#3a6e37', pot: '#b9673f', spark: '#ffd76a',
+  },
+};
+
+// ---------- Layout ----------
+
+const TABLE = { farY: 456, nearY: 648, farL: 236, farR: 1164, nearL: 150, nearR: 1250, edge: 22 };
+const LAMP = { x: 700, top: -30, y: 96 };
+const WINDOW = { x: 84, y: 70, w: 212, h: 226 };
+const PLANT = { x: 1298, y: 744 };
+const SCORP = { x: 392, y: 292 };
+const WIZ = { x: 700, y: 280 };
+const KNIGHT = { x: 1010, y: 292 };
+const MUG = { x: 584, y: 528 };
+const BANANA = { x: 902, y: 556 };
+const SHEET = [[590, 484], [812, 478], [840, 600], [562, 606]];
+
+// ---------- Drawing helpers ----------
+
+function makePen(ctx, P, v) {
+  return { rc: rough.canvas(ctx.canvas), ctx, P, v, sd: (id, boils = true) => hash(id, boils ? v : 0) };
+}
+
+function withAlpha(ctx, a, fn) {
+  ctx.save();
+  ctx.globalAlpha *= a;
+  fn();
+  ctx.restore();
+}
+
+function clipTo(ctx, pts, fn) {
+  ctx.save();
+  ctx.beginPath();
+  pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+  ctx.clip();
+  fn();
+  ctx.restore();
+}
+
+function glowAt(ctx, color, x, y, r, alpha) {
+  const n = parseInt(color.slice(1), 16);
+  const g = ctx.createRadialGradient(x, y, 1, x, y, r);
+  g.addColorStop(0, color);
+  g.addColorStop(1, `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},0)`);
+  withAlpha(ctx, alpha, () => { ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); });
+}
+
+const ink = (P, w = 1.6, extra = {}) => ({ stroke: P.ink, strokeWidth: w, roughness: 0.9, ...extra });
+const fill = (P, color, w = 1.6, extra = {}) => ({ ...ink(P, w), fill: color, fillStyle: 'solid', ...extra });
+
+// A sleeve: a fat inked stroke from shoulder through elbow to hand.
+function limb(pen, pts, color, width, id) {
+  const { rc, sd, P } = pen;
+  rc.curve(pts, { stroke: P.ink, strokeWidth: width + 4, roughness: 0.5, disableMultiStroke: true, seed: sd(id + 'o') });
+  rc.curve(pts, { stroke: color, strokeWidth: width, roughness: 0.5, disableMultiStroke: true, seed: sd(id + 'f') });
+}
+
+function hand(pen, x, y, skin, id, d = 24) {
+  pen.rc.circle(x, y, d, fill(pen.P, skin, 1.4, { seed: pen.sd(id) }));
+}
+
+function twinkle(pen, x, y, s, id) {
+  const o = { stroke: pen.P.spark, strokeWidth: 2.2, roughness: 0.3, seed: pen.sd(id) };
+  pen.rc.line(x - s, y, x + s, y, o);
+  pen.rc.line(x, y - s, x, y + s, o);
+}
+
+function starShape(x, y, r, spin = 0) {
+  return Array.from({ length: 10 }, (_, i) => {
+    const a = spin + (i * Math.PI) / 5 - Math.PI / 2, rr = i % 2 ? r * 0.45 : r;
+    return [x + Math.cos(a) * rr, y + Math.sin(a) * rr];
+  });
+}
+
+// Shoulders and chest, tucked behind the table's far edge.
+function torso(pen, x, top, wTop, wBot, color, shade, id) {
+  const { rc, ctx, P, sd } = pen;
+  const bot = TABLE.farY + 30;
+  const pts = [[x - wBot / 2, bot], [x - wTop / 2 - 10, top + 46], [x - wTop / 2 + 16, top + 6], [x, top],
+    [x + wTop / 2 - 16, top + 6], [x + wTop / 2 + 10, top + 46], [x + wBot / 2, bot]];
+  rc.curve([...pts, pts[0]], fill(P, color, 1.8, { roughness: 0.8, seed: sd(id) }));
+  clipTo(ctx, pts, () => withAlpha(ctx, 0.55, () => rc.rectangle(x + wTop * 0.18, top, wBot, bot - top, {
+    stroke: 'none', fill: shade, fillStyle: 'hachure', hachureGap: 5, hachureAngle: -55, fillWeight: 1.2, roughness: 0.8, seed: sd(id + 'h', false),
+  })));
+}
+
+function headShape(pen, x, y, skin, id, ear = 13) {
+  const { rc, P, sd } = pen;
+  [-1, 1].forEach((s, i) => rc.circle(x + s * 46, y + 6, ear * 2, fill(P, skin, 1.4, { seed: sd(id + 'ear' + i) })));
+  rc.ellipse(x, y, 94, 100, fill(P, skin, 1.8, { seed: sd(id + 'head') }));
+}
+
+function eyes(pen, x, y, gap, shut, id) {
+  const { rc, sd } = pen;
+  [-1, 1].forEach((s, i) => shut
+    ? rc.curve([[x + s * gap - 6, y], [x + s * gap, y + 2], [x + s * gap + 6, y]], { stroke: FEATURE, strokeWidth: 2.4, roughness: 0.3, seed: sd(id + 'shut' + i) })
+    : rc.ellipse(x + s * gap, y, 8, 10, { stroke: 'none', fill: FEATURE, fillStyle: 'solid', roughness: 0.2, seed: sd(id + 'eye' + i, false) }));
+}
+
+function blush(pen, x, y, id) {
+  withAlpha(pen.ctx, 0.35, () => [-1, 1].forEach((s, i) =>
+    pen.rc.ellipse(x + s * 27, y + 16, 18, 10, { stroke: 'none', fill: pen.P.blush, fillStyle: 'solid', roughness: 0.4, seed: pen.sd(id + 'blush' + i, false) })));
+}
+
+// Each friend blinks a few times a loop, at their own moments.
+const blinking = (frame, at) => at.some((f) => frame >= f && frame < f + 3);
+
+function pencil(pen, x, y, angle, len, id) {
+  const { rc, ctx, P, sd } = pen;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(angle);
+  rc.polygon([[0, -3.5], [len - 10, -3.5], [len, 0], [len - 10, 3.5], [0, 3.5]], fill(P, P.pencil, 1.2, { seed: sd(id + 'body') }));
+  rc.polygon([[len - 10, -3.5], [len, 0], [len - 10, 3.5]], fill(P, P.cream, 1, { seed: sd(id + 'tip') }));
+  rc.rectangle(-7, -3.5, 7, 7, fill(P, P.eraser, 1, { seed: sd(id + 'eraser') }));
+  ctx.restore();
+}
+
+// ---------- Static layers ----------
+
+function drawBack(pen) {
+  const { rc, ctx, P, sd } = pen;
+  ctx.fillStyle = P.paper;
+  ctx.fillRect(0, 0, W, H);
+  // A soft hatched shadow on the floor under the table.
+  withAlpha(ctx, 0.35, () => rc.ellipse(700, 760, 1180, 70, {
+    stroke: 'none', fill: P.floorShadow, fillStyle: 'hachure', hachureGap: 7, hachureAngle: -20, fillWeight: 1.2, roughness: 1, seed: sd('floor', false),
+  }));
+  plant(pen);
+}
+
+function plant(pen) {
+  const { rc, P, sd } = pen;
+  const { x, y } = PLANT;
+  const leaves = [[-70, -250, -0.9], [-40, -300, -0.4], [6, -320, 0.05], [48, -290, 0.45], [74, -230, 0.9], [-80, -170, -1.2], [70, -160, 1.15]];
+  leaves.forEach(([dx, dy, lean], i) => {
+    const bx = x, by = y - 96, tx = x + dx, ty = y + dy;
+    rc.curve([[bx, by], [lerp(bx, tx, 0.5) - lean * 10, lerp(by, ty, 0.5)], [tx, ty + 30]], { stroke: P.leafDeep, strokeWidth: 3, roughness: 0.5, seed: sd('stem' + i) });
+    const len = 64, wid = 26, a = Math.atan2(ty - by, tx - bx);
+    const pts = [[0, 0], [len * 0.3, -wid * 0.5], [len * 0.75, -wid * 0.45], [len, 0], [len * 0.75, wid * 0.45], [len * 0.3, wid * 0.5]]
+      .map(([px, py]) => [tx - Math.cos(a) * 34 + Math.cos(a) * px - Math.sin(a) * py, ty + 30 - Math.sin(a) * 34 + Math.sin(a) * px + Math.cos(a) * py]);
+    rc.curve(closed(pts), fill(P, i % 2 ? P.leaf : P.leafDeep, 1.4, { seed: sd('leaf' + i) }));
+    rc.line(pts[0][0], pts[0][1], pts[3][0], pts[3][1], { stroke: P.ink, strokeWidth: 1, roughness: 0.5, seed: sd('vein' + i) });
+  });
+  rc.polygon([[x - 46, y - 100], [x + 46, y - 100], [x + 36, y], [x - 36, y]], fill(P, P.pot, 1.8, { seed: sd('pot') }));
+  rc.rectangle(x - 52, y - 112, 104, 16, fill(P, P.pot, 1.6, { seed: sd('potRim') }));
+}
+
+function drawTable(pen) {
+  const { rc, ctx, P, sd } = pen;
+  const T = TABLE;
+  // Legs, then the edge band, then the top.
+  [[T.nearL + 60, 1], [T.nearR - 60, 1], [T.farL + 40, 0.75], [T.farR - 40, 0.75]].forEach(([x, k], i) =>
+    rc.rectangle(x - 13 * k, T.nearY + T.edge - 4, 26 * k, 160, fill(P, k < 1 ? P.woodDark : P.woodDeep, 1.6, { seed: sd('leg' + i) })));
+  const top = [[T.farL, T.farY], [T.farR, T.farY], [T.nearR, T.nearY], [T.nearL, T.nearY]];
+  rc.polygon([[T.nearL, T.nearY], [T.nearR, T.nearY], [T.nearR, T.nearY + T.edge], [T.nearL, T.nearY + T.edge]], fill(P, P.woodDeep, 1.8, { seed: sd('edge') }));
+  rc.polygon(top, fill(P, P.wood, 2, { roughness: 1, seed: sd('top') }));
+  clipTo(ctx, top, () => withAlpha(ctx, 0.35, () => rc.rectangle(T.nearL, T.farY, T.nearR - T.nearL, T.nearY - T.farY, {
+    stroke: 'none', fill: P.woodDeep, fillStyle: 'hachure', hachureAngle: -4, hachureGap: 14, fillWeight: 1.4, roughness: 1.4, seed: sd('grain', false),
+  })));
+
+  // The big sheet, with the start of a world sketched on it.
+  rc.polygon(SHEET, fill(P, P.sheet, 1.6, { seed: sd('sheet') }));
+  const sk = { stroke: P.sketch, strokeWidth: 1.6, roughness: 1.1 };
+  const isle = Array.from({ length: 14 }, (_, i) => {
+    const a = (i / 14) * TAU, r = 1 + 0.18 * Math.sin(a * 3 + 1) + 0.1 * Math.sin(a * 5);
+    return [700 + Math.cos(a) * 62 * r, 542 + Math.sin(a) * 30 * r];
+  });
+  rc.curve(closed(isle), { ...sk, seed: sd('isle') });
+  rc.curve([[700, 548], [702, 536], [699, 526]], { ...sk, stroke: P.leafDeep, strokeWidth: 2, seed: sd('sprout') });
+  rc.ellipse(693, 524, 12, 6, { ...sk, stroke: P.leafDeep, fill: P.leaf, fillStyle: 'solid', seed: sd('leafL') });
+  rc.ellipse(707, 522, 12, 6, { ...sk, stroke: P.leafDeep, fill: P.leaf, fillStyle: 'solid', seed: sd('leafR') });
+  [[612, 500], [790, 520], [628, 584], [780, 588]].forEach(([x, y], i) =>
+    rc.curve([[x - 9, y + 2], [x - 4, y - 2], [x, y + 1], [x + 4, y - 2], [x + 9, y + 2]], { ...sk, stroke: P.blue, strokeWidth: 1.4, seed: sd('w' + i) }));
+  pencil(pen, 744, 590, -0.35, 64, 'loosePencil');
+
+  // The wizard's mug and the knight's banana.
+  const { x, y } = MUG;
+  rc.curve([[x + 22, y - 26], [x + 38, y - 22], [x + 36, y - 6], [x + 22, y - 6]], { stroke: P.ink, strokeWidth: 6, roughness: 0.5, seed: sd('handleO') });
+  rc.curve([[x + 22, y - 26], [x + 38, y - 22], [x + 36, y - 6], [x + 22, y - 6]], { stroke: P.mug, strokeWidth: 3, roughness: 0.5, seed: sd('handle') });
+  rc.polygon([[x - 24, y - 40], [x + 24, y - 40], [x + 22, y], [x - 22, y]], fill(P, P.mug, 1.8, { seed: sd('mug') }));
+  rc.ellipse(x, y - 40, 48, 12, fill(P, P.mugDeep, 1.4, { seed: sd('mugTop') }));
+  rc.polygon(starShape(x, y - 20, 8), fill(P, P.gold, 1, { seed: sd('mugStar') }));
+  const b = BANANA;
+  rc.curve([[b.x - 34, b.y - 12], [b.x - 18, b.y + 4], [b.x + 12, b.y + 6], [b.x + 34, b.y - 10], [b.x + 14, b.y - 4], [b.x - 16, b.y - 6], [b.x - 34, b.y - 12]],
+    fill(P, P.banana, 1.6, { seed: sd('banana') }));
+  rc.line(b.x - 34, b.y - 12, b.x - 40, b.y - 16, { stroke: P.woodDark, strokeWidth: 3, roughness: 0.3, seed: sd('bananaStem') });
+}
+
+// ---------- Living things ----------
+
+function windowScene(pen, t, theme) {
+  const { rc, ctx, P, sd } = pen;
+  const { x, y, w, h } = WINDOW;
+  const pane = [[x, y], [x + w, y], [x + w, y + h], [x, y + h]];
+  rc.polygon(pane, { stroke: 'none', fill: P.sky, fillStyle: 'solid', roughness: 0.6, seed: sd('sky', false) });
+  clipTo(ctx, pane, () => {
+    if (theme === 'dark') {
+      rc.circle(x + 150, y + 62, 40, { stroke: 'none', fill: P.moon, fillStyle: 'solid', roughness: 0.5, seed: sd('moon') });
+      rc.circle(x + 162, y + 54, 36, { stroke: 'none', fill: P.sky, fillStyle: 'solid', roughness: 0.4, seed: sd('moonBite') });
+      [[40, 40, 0], [80, 120, 0.3], [170, 150, 0.55], [30, 180, 0.75], [120, 30, 0.9], [190, 100, 0.15]].forEach(([dx, dy, ph], i) => {
+        const s = 2 + 3 * Math.max(0, wave(t, 2, ph));
+        twinkle(pen, x + dx, y + dy, s, 'star' + i);
+      });
+    } else {
+      glowAt(ctx, P.sun, x + 150, y + 64, 50, 0.5);
+      rc.circle(x + 150, y + 64, 40, fill(P, P.sun, 1.4, { seed: sd('sun') }));
+      const cx = x + 80 + 26 * wave(t, 1), cy = y + 140;
+      [[-22, 4, 30], [0, -6, 38], [24, 2, 30]].forEach(([dx, dy, d], i) =>
+        rc.circle(cx + dx, cy + dy, d, { stroke: 'none', fill: P.cloud, fillStyle: 'solid', roughness: 0.6, seed: sd('cloud' + i) }));
+    }
+  });
+  // Frame, glazing bars and sill.
+  rc.rectangle(x, y, w, h, { ...ink(P, 3), seed: sd('frame') });
+  rc.line(x + w / 2, y, x + w / 2, y + h, { ...ink(P, 3), seed: sd('barV') });
+  rc.line(x, y + h / 2, x + w, y + h / 2, { ...ink(P, 3), seed: sd('barH') });
+  rc.rectangle(x - 14, y + h, w + 28, 14, fill(P, P.frame, 1.6, { seed: sd('sill') }));
+  // Curtains gathered at the sides.
+  [[x - 20, 1], [x + w + 20, -1]].forEach(([cx, s], i) => {
+    const sway = 3 * wave(t, 1, i * 0.5);
+    const pts = [[cx, y - 16], [cx + s * 46, y - 16], [cx + s * 22 + sway, y + h * 0.45], [cx + s * 34 + sway, y + h + 10], [cx - s * 4, y + h + 10]];
+    rc.curve([...pts, pts[0]], fill(P, P.curtain, 1.6, { seed: sd('curtain' + i) }));
+    rc.line(cx + s * 12, y - 6, cx + s * 10 + sway, y + h, { stroke: P.curtainDeep, strokeWidth: 2, roughness: 0.6, seed: sd('fold' + i) });
+  });
+  rc.line(x - 40, y - 16, x + w + 40, y - 16, { ...ink(P, 4), seed: sd('rail') });
+}
+
+// The scorpion-ish friend: amber jacket, gold hoops, a bubble ponytail that
+// curls up and over like a tail, riffle-shuffling the deck.
+function scorpionFriend(pen, t, frame) {
+  const { rc, ctx, P, sd } = pen;
+  const skin = SKIN.scorpion;
+  const bob = 1.5 * wave(t, 3, 0.4);
+  const x = SCORP.x, y = SCORP.y + bob;
+  torso(pen, x, 344 + bob, 196, 240, P.amber, P.amberDeep, 'scT');
+  rc.polygon([[x - 26, 346 + bob], [x, 400 + bob], [x + 26, 346 + bob]], fill(P, P.inner, 1.4, { seed: sd('scInner') }));
+  [-1, 1].forEach((s, i) => rc.polygon([[x + s * 26, 344 + bob], [x + s * 4, 396 + bob], [x + s * 50, 372 + bob]], fill(P, P.amberDeep, 1.4, { seed: sd('scCollar' + i) })));
+  rc.rectangle(x - 13, y + 36, 26, 30, fill(P, skin, 1.4, { seed: sd('scNeck') }));
+
+  // Ponytail: bubbles of hair curling up and forward, swaying, with a red scrunchie.
+  ctx.save();
+  ctx.translate(x + 4, y - 48);
+  ctx.rotate(0.1 * wave(t, 3) + 0.05 * wave(t, 24) * clamp(shuffleAmount(t) * 2));
+  const beads = [[0, -6, 34], [-8, -34, 32], [-2, -62, 30], [18, -82, 27], [42, -86, 24], [60, -72, 21]];
+  beads.forEach(([bx, by, d], i) => rc.ellipse(bx, by, d, d * 0.92, fill(P, P.hairDark, 1.5, { seed: sd('scBead' + i) })));
+  beads.slice(0, -1).forEach(([bx, by, d], i) => {
+    const [nx, ny] = beads[i + 1];
+    rc.circle((bx + nx) / 2, (by + ny) / 2, 9, fill(P, P.gold, 1, { seed: sd('scTie' + i) }));
+  });
+  rc.circle(66, -58, 16, fill(P, P.scrunchie, 1.4, { seed: sd('scScrunchie') }));
+  rc.polygon([[62, -52], [76, -50], [70, -34], [66, -44]], fill(P, P.hairDark, 1.2, { seed: sd('scTip') }));
+  ctx.restore();
+
+  headShape(pen, x, y, skin, 'sc');
+  rc.curve([[x - 50, y + 4], [x - 52, y - 26], [x - 30, y - 48], [x, y - 54], [x + 30, y - 48], [x + 52, y - 26], [x + 50, y + 4], [x + 40, y - 18],
+    [x + 12, y - 30], [x - 20, y - 26], [x - 42, y - 14], [x - 50, y + 4]], fill(P, P.hairDark, 1.6, { seed: sd('scHair') }));
+  [-1, 1].forEach((s, i) => rc.circle(x + s * 47, y + 26, 15, { stroke: P.gold, strokeWidth: 2.6, roughness: 0.4, seed: sd('scHoop' + i) }));
+  eyes(pen, x, y + 2, 17, blinking(frame, [12, 130, 250]), 'sc');
+  rc.curve([[x - 24, y - 14], [x - 17, y - 17], [x - 10, y - 14]], { stroke: FEATURE, strokeWidth: 2.4, roughness: 0.3, seed: sd('scBrowL') });
+  rc.curve([[x + 9, y - 18], [x + 17, y - 24], [x + 25, y - 19]], { stroke: FEATURE, strokeWidth: 2.4, roughness: 0.3, seed: sd('scBrowR') });
+  rc.curve([[x - 10, y + 24], [x + 4, y + 27], [x + 15, y + 20]], { stroke: FEATURE, strokeWidth: 2.4, roughness: 0.3, seed: sd('scSmirk') });
+  blush(pen, x, y, 'sc');
+}
+
+// Riffle bursts twice a loop: 0 at rest, 1 mid-shuffle.
+const shuffleAmount = (t) => { const p = cycle(t, 2, 0.15); return p < 0.45 ? Math.sin((Math.PI * p) / 0.45) : 0; };
+
+function scorpionHands(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  const x = SCORP.x;
+  const lh = [x - 58, 514], rh = [x + 58, 514];
+  limb(pen, [[x - 92, 380], [x - 104, 452], lh], P.amber, 26, 'scArmL');
+  limb(pen, [[x + 92, 380], [x + 104, 452], rh], P.amber, 26, 'scArmR');
+  const card = (cx, cy, a, id) => {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.rotate(a);
+    rc.rectangle(-15, -20, 30, 40, fill(P, P.card, 1.2, { seed: sd(id) }));
+    rc.rectangle(-11, -16, 22, 32, { stroke: 'none', fill: P.cardBack, fillStyle: 'cross-hatch', hachureGap: 3, fillWeight: 1, roughness: 0.4, seed: sd(id + 'b', false) });
+    ctx.restore();
+  };
+  // Two half decks, then cards arcing from the left hand to the right.
+  [0, 1, 2, 3].forEach((k) => { card(lh[0] + 18 - k, 500 - k * 2, -0.12, 'deckL' + k); card(rh[0] - 18 + k, 500 - k * 2, 0.12, 'deckR' + k); });
+  const p = cycle(t, 2, 0.15);
+  if (p < 0.45) {
+    for (let i = 0; i < 9; i++) {
+      const k = (p - i * 0.035) / 0.12;
+      if (k <= 0 || k >= 1) continue;
+      const e = smooth(k);
+      card(lerp(lh[0] + 18, rh[0] - 18, e), 494 - 46 * Math.sin(Math.PI * e), lerp(-0.12, 0.12, e) + 0.6 * Math.sin(Math.PI * e), 'fly' + i);
+    }
+  }
+  hand(pen, lh[0], lh[1], SKIN.scorpion, 'scHandL');
+  hand(pen, rh[0], rh[1], SKIN.scorpion, 'scHandR');
+}
+
+// The wizard-ish friend: bearded, round glasses, a starry cardigan and a floppy
+// knit hat with a star on the tip. Sips tea and twirls a pencil like a wand.
+function wizardFriend(pen, t, frame) {
+  const { rc, ctx, P, sd } = pen;
+  const skin = SKIN.wizard;
+  const bob = 1.5 * wave(t, 3, 0.1);
+  const x = WIZ.x, y = WIZ.y + bob;
+  torso(pen, x, 342 + bob, 204, 250, P.robe, P.robeDeep, 'wzT');
+  rc.polygon([[x - 24, 344 + bob], [x, 398 + bob], [x + 24, 344 + bob]], fill(P, P.cream, 1.4, { seed: sd('wzShirt') }));
+  [[-62, 380], [58, 372], [-40, 430], [74, 420], [-86, 418]].forEach(([dx, dy], i) =>
+    rc.polygon(starShape(x + dx, dy + bob, 7), { stroke: 'none', fill: P.gold, fillStyle: 'solid', roughness: 0.3, seed: sd('wzDot' + i, false) }));
+  rc.rectangle(x - 13, y + 36, 26, 30, fill(P, skin, 1.4, { seed: sd('wzNeck') }));
+  headShape(pen, x, y, skin, 'wz');
+  // Beard and moustache, with a smile showing through.
+  rc.curve([[x - 46, y + 2], [x - 40, y + 34], [x - 18, y + 58], [x, y + 64], [x + 18, y + 58], [x + 40, y + 34], [x + 46, y + 2],
+    [x + 30, y + 14], [x + 10, y + 16], [x, y + 20], [x - 10, y + 16], [x - 30, y + 14], [x - 46, y + 2]], fill(P, P.beard, 1.6, { seed: sd('wzBeard') }));
+  rc.curve([[x - 12, y + 30], [x, y + 36], [x + 12, y + 30]], { stroke: '#e8a99a', strokeWidth: 3, roughness: 0.3, seed: sd('wzSmile') });
+  rc.curve([[x - 3, y + 2], [x - 6, y + 12], [x + 2, y + 14]], { stroke: FEATURE, strokeWidth: 1.8, roughness: 0.3, seed: sd('wzNose') });
+  eyes(pen, x, y - 4, 18, blinking(frame, [52, 170]), 'wz');
+  // Round glasses, with a glint that sweeps across now and then.
+  [-1, 1].forEach((s, i) => rc.circle(x + s * 18, y - 4, 28, { stroke: FEATURE, strokeWidth: 2.4, roughness: 0.4, seed: sd('wzLens' + i) }));
+  rc.line(x - 4, y - 6, x + 4, y - 6, { stroke: FEATURE, strokeWidth: 2.4, roughness: 0.3, seed: sd('wzBridge') });
+  const glint = cycle(t, 2, 0.6);
+  if (glint < 0.06) withAlpha(ctx, Math.sin((Math.PI * glint) / 0.06), () => [-1, 1].forEach((s, i) =>
+    rc.line(x + s * 18 - 8, y + 2, x + s * 18 + 4, y - 12, { stroke: '#ffffff', strokeWidth: 3, roughness: 0.2, seed: sd('wzGlint' + i) })));
+  // Slouchy knit hat: a tall crown whose tail flops over to one side, a ribbed
+  // band, and a star on the end of the tail that sways.
+  rc.curve([[x - 50, y - 34], [x - 46, y - 70], [x - 24, y - 100], [x + 4, y - 110], [x + 30, y - 96], [x + 48, y - 66], [x + 50, y - 34], [x - 50, y - 34]],
+    fill(P, P.robe, 1.8, { seed: sd('wzHat') }));
+  const flop = wave(t, 2, 0.3);
+  const spine = [[x + 6, y - 100], [x - 20, y - 122 - 2 * flop], [x - 50 + 3 * flop, y - 122 - 4 * flop], [x - 72 + 8 * flop, y - 104 - 2 * flop]];
+  const widths = [26, 20, 14, 9];
+  const side = (sgn) => spine.map(([sx, sy], k) => {
+    const [ax, ay] = spine[Math.max(0, k - 1)], [bx, by] = spine[Math.min(spine.length - 1, k + 1)];
+    const len = Math.hypot(bx - ax, by - ay);
+    return [sx - ((by - ay) / len) * widths[k] / 2 * sgn, sy + ((bx - ax) / len) * widths[k] / 2 * sgn];
+  });
+  const tail = [...side(1), ...side(-1).reverse()];
+  rc.curve([...tail, tail[0]], fill(P, P.robe, 1.6, { seed: sd('wzTail') }));
+  withAlpha(ctx, 0.5, () => rc.curve(spine.slice(0, 3), { stroke: P.robeDeep, strokeWidth: 2, roughness: 0.6, seed: sd('wzTailFold') }));
+  const band = [[x - 54, y - 14], [x - 52, y - 40], [x + 52, y - 40], [x + 54, y - 14]];
+  rc.polygon(band, fill(P, P.robeDeep, 1.8, { seed: sd('wzBand') }));
+  clipTo(ctx, band, () => withAlpha(ctx, 0.6, () =>
+    rc.rectangle(x - 56, y - 42, 112, 30, { stroke: 'none', fill: P.robe, fillStyle: 'hachure', hachureAngle: 90, hachureGap: 7, fillWeight: 2, roughness: 0.6, seed: sd('wzRib', false) })));
+  const tip = spine[spine.length - 1];
+  rc.polygon(starShape(tip[0] - 4, tip[1] + 8, 14, 0.25 * flop), fill(P, P.gold, 1.4, { seed: sd('wzPom') }));
+}
+
+function wizardHands(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  const x = WIZ.x;
+  // Left hand holds the mug.
+  limb(pen, [[x - 96, 382], [x - 112, 456], [MUG.x + 36, 506]], P.robe, 26, 'wzArmL');
+  hand(pen, MUG.x + 38, 506, SKIN.wizard, 'wzHandL');
+  // Right hand twirls a pencil like a wand twice a loop, trailing sparkles.
+  const hx = x + 100, hy = 500;
+  limb(pen, [[x + 96, 382], [x + 120, 452], [hx, hy]], P.robe, 26, 'wzArmR');
+  const p = cycle(t, 2, 0.3), twirling = p < 0.22;
+  const spin = twirling ? smooth(p / 0.22) * TAU * 2 : 0;
+  const angle = -1.1 + spin;
+  if (twirling) for (let i = 1; i <= 6; i++) {
+    const back = -1.1 + smooth(clamp((p - i * 0.012) / 0.22)) * TAU * 2;
+    withAlpha(ctx, 1 - i / 7, () => twinkle(pen, hx + Math.cos(back) * 52, hy + Math.sin(back) * 52, 7 - i * 0.8, 'wzSpark' + i));
+  }
+  pencil(pen, hx - Math.cos(angle) * 14, hy - Math.sin(angle) * 14, angle, 66, 'wzPencil');
+  hand(pen, hx, hy, SKIN.wizard, 'wzHandR');
+  // Steam curling up off the tea.
+  for (let i = 0; i < 3; i++) {
+    const k = cycle(t, 3, i / 3), sx = MUG.x - 12 + i * 12, sy = MUG.y - 48 - k * 60;
+    withAlpha(ctx, 0.7 * Math.sin(Math.PI * k), () => rc.curve([[sx, sy + 18], [sx + 6 * wave(t, 6, i * 0.3), sy + 9], [sx, sy]],
+      { stroke: P.steam, strokeWidth: 2.4, roughness: 0.4, seed: sd('steam' + i) }));
+  }
+}
+
+// The monkey-knight-ish friend: red hoodie with a banana shield patch, big ears,
+// freckles and a big grin. Raises a pencil like a sword twice a loop and bounces.
+const saluteAmount = (t) => { const p = cycle(t, 2, 0.55); return smooth(clamp(p / 0.06)) * (1 - smooth(clamp((p - 0.3) / 0.08))); };
+
+function knightFriend(pen, t, frame) {
+  const { rc, P, sd } = pen;
+  const skin = SKIN.knight;
+  const r = saluteAmount(t);
+  const bob = 1.5 * wave(t, 3, 0.7) - 5 * r * Math.abs(wave(t, 12));
+  const x = KNIGHT.x, y = KNIGHT.y + bob;
+  torso(pen, x, 346 + bob, 200, 246, P.red, P.redDeep, 'knT');
+  rc.curve([[x - 66, 360 + bob], [x - 44, 334 + bob], [x, 328 + bob], [x + 44, 334 + bob], [x + 66, 360 + bob], [x + 40, 370 + bob], [x, 362 + bob], [x - 40, 370 + bob], [x - 66, 360 + bob]],
+    fill(P, P.redDeep, 1.6, { seed: sd('knHood') }));
+  [-1, 1].forEach((s, i) => {
+    rc.line(x + s * 14, 366 + bob, x + s * 16, 410 + bob, { stroke: P.cream, strokeWidth: 2.4, roughness: 0.4, seed: sd('knString' + i) });
+    rc.circle(x + s * 16, 412 + bob, 5, fill(P, P.cream, 1, { seed: sd('knAglet' + i) }));
+  });
+  const px = x - 54, py = 410 + bob;
+  rc.polygon([[px - 16, py - 18], [px + 16, py - 18], [px + 16, py], [px, py + 16], [px - 16, py]], fill(P, P.blue, 1.6, { seed: sd('knPatch') }));
+  rc.curve([[px - 8, py - 10], [px - 5, py + 1], [px + 2, py + 4], [px + 10, py - 8], [px + 4, py - 4], [px - 2, py - 4], [px - 6, py - 10]],
+    { stroke: FEATURE, strokeWidth: 0.8, fill: P.banana, fillStyle: 'solid', roughness: 0.3, seed: sd('knPatchBanana') });
+  rc.rectangle(x - 13, y + 36, 26, 30, fill(P, skin, 1.4, { seed: sd('knNeck') }));
+  headShape(pen, x, y, skin, 'kn', 17);
+  rc.curve([[x - 48, y - 4], [x - 50, y - 30], [x - 38, y - 46], [x - 30, y - 40], [x - 20, y - 58], [x - 8, y - 46], [x + 6, y - 64], [x + 12, y - 50],
+    [x + 28, y - 56], [x + 30, y - 44], [x + 46, y - 36], [x + 48, y - 10], [x + 36, y - 28], [x + 10, y - 34], [x - 14, y - 30], [x - 36, y - 24], [x - 48, y - 4]],
+    fill(P, P.hairBrown, 1.6, { seed: sd('knHair') }));
+  eyes(pen, x, y - 2, 17, blinking(frame, [96, 214]), 'kn');
+  [-1, 1].forEach((s, i) => rc.curve([[x + s * 10, y - 20 - 4 * r], [x + s * 17, y - 25 - 4 * r], [x + s * 25, y - 21 - 4 * r]], { stroke: FEATURE, strokeWidth: 2.4, roughness: 0.3, seed: sd('knBrow' + i) }));
+  [[-26, 10], [-20, 16], [-30, 16], [24, 10], [30, 16], [20, 16]].forEach(([dx, dy], i) =>
+    rc.circle(x + dx, y + dy, 3.2, { stroke: 'none', fill: P.freckle, fillStyle: 'solid', roughness: 0.2, seed: sd('knFreckle' + i, false) }));
+  rc.curve([[x - 18, y + 16], [x, y + 20], [x + 18, y + 16], [x + 12, y + 32], [x, y + 35], [x - 12, y + 32], [x - 18, y + 16]],
+    { stroke: FEATURE, strokeWidth: 1.6, fill: '#9a2f2f', fillStyle: 'solid', roughness: 0.4, seed: sd('knMouth') });
+  rc.polygon([[x - 13, y + 18], [x + 13, y + 18], [x + 11, y + 23], [x - 11, y + 23]], { stroke: 'none', fill: '#ffffff', fillStyle: 'solid', roughness: 0.2, seed: sd('knTeeth', false) });
+}
+
+function knightHands(pen, t) {
+  const { P } = pen;
+  const x = KNIGHT.x, r = saluteAmount(t);
+  const bob = -5 * r * Math.abs(wave(t, 12));
+  // Left hand rests by the banana.
+  limb(pen, [[x - 96, 384], [x - 110, 456], [x - 64, 516]], P.red, 26, 'knArmL');
+  hand(pen, x - 64, 516, SKIN.knight, 'knHandL');
+  // Right hand lifts the pencil from the table up into a salute.
+  const hx = lerp(x + 74, x + 112, r), hy = lerp(514, 246 + bob, r);
+  const ex = lerp(x + 118, x + 132, r), ey = lerp(456, 330 + bob, r);
+  limb(pen, [[x + 96, 384 + bob * 0.5], [ex, ey], [hx, hy]], P.red, 26, 'knArmR');
+  const angle = lerp(2.5, -1.62, r);
+  pencil(pen, hx - Math.cos(angle) * 14, hy - Math.sin(angle) * 14, angle, 70, 'knPencil');
+  hand(pen, hx, hy, SKIN.knight, 'knHandR');
+}
+
+function lamp(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  const sway = 0.02 * wave(t, 1);
+  ctx.save();
+  ctx.translate(LAMP.x, LAMP.top);
+  ctx.rotate(sway);
+  const y = LAMP.y - LAMP.top;
+  rc.line(0, 0, 0, y, { stroke: P.cord, strokeWidth: 2, roughness: 0.4, seed: sd('cord') });
+  rc.polygon([[-20, y], [20, y], [62, y + 46], [-62, y + 46]], fill(P, P.shade, 2, { seed: sd('shade') }));
+  rc.circle(0, y + 50, 22, fill(P, P.glow, 1.4, { seed: sd('bulb') }));
+  ctx.restore();
+}
+
+// Warm light from the lamp falling across the friends and the table.
+function lampLight(pen, t) {
+  const { ctx, P } = pen;
+  const bx = LAMP.x + Math.sin(0.02 * wave(t, 1)) * (LAMP.y - LAMP.top);
+  const n = parseInt(P.glow.slice(1), 16), rgb = `${n >> 16},${(n >> 8) & 255},${n & 255}`;
+  const g = ctx.createLinearGradient(0, LAMP.y + 40, 0, TABLE.nearY);
+  g.addColorStop(0, `rgba(${rgb},${P.lampAlpha * 1.6})`);
+  g.addColorStop(1, `rgba(${rgb},0)`);
+  ctx.save();
+  ctx.fillStyle = g;
+  ctx.beginPath();
+  ctx.moveTo(bx - 60, LAMP.y + 46);
+  ctx.lineTo(bx + 60, LAMP.y + 46);
+  ctx.lineTo(TABLE.nearR - 120, TABLE.nearY);
+  ctx.lineTo(TABLE.nearL + 120, TABLE.nearY);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  glowAt(ctx, P.glow, bx, LAMP.y + 52, 70, 0.5 + 0.08 * wave(t, 2));
+}
+
+// ---------- Frame ----------
+
+const cache = new Map();
+function layers(theme, v) {
+  const key = theme + v;
+  if (!cache.has(key)) {
+    const paint = (fn) => {
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      fn(makePen(c.getContext('2d'), PALETTES[theme], v));
+      return c;
+    };
+    cache.set(key, { back: paint(drawBack), table: paint(drawTable) });
+  }
+  return cache.get(key);
+}
+
+SceneKit.mount({
+  name: 'game-night', width: W, height: H, fps: FPS, frames: FRAMES, poster: 90,
+  backgrounds: { light: PALETTES.light.paper, dark: PALETTES.dark.paper },
+  draw(ctx, frame, theme) {
+    const t = frame / FRAMES;
+    const v = Math.floor(frame / BOIL_EVERY) % BOIL_VARIANTS;
+    const pen = makePen(ctx, PALETTES[theme], v);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    const { back, table } = layers(theme, v);
+    ctx.drawImage(back, 0, 0);
+    windowScene(pen, t, theme);
+    scorpionFriend(pen, t, frame);
+    wizardFriend(pen, t, frame);
+    knightFriend(pen, t, frame);
+    ctx.drawImage(table, 0, 0);
+    scorpionHands(pen, t);
+    wizardHands(pen, t);
+    knightHands(pen, t);
+    lampLight(pen, t);
+    lamp(pen, t);
+  },
+});
+</script>
+</body>
+</html>

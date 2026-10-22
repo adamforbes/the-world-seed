@@ -1,0 +1,656 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Era Cards · The World Seed</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;1,8..60,400&display=swap">
+<link rel="stylesheet" href="assets/style.css">
+<script src="assets/site.js" defer></script>
+<script src="assets/scenes/scene-kit.js" defer></script>
+<script src="assets/scenes/glyph-kit.js" defer></script>
+<script src="assets/scenes/shuffle.js" defer></script>
+</head>
+<body>
+<figure class="hero-banner no-fade" aria-hidden="true" data-scene="shuffle">
+  <picture>
+    <source srcset="assets/media/shuffle-dark.webp" media="(prefers-color-scheme: dark)">
+    <img src="assets/media/shuffle-light.webp" width="2552" height="788" alt="">
+  </picture>
+</figure>
+<div class="layout">
+<nav class="toc" aria-label="On this page"></nav>
+<main class="content">
+
+<header class="page-hero">
+<p class="eyebrow">Rules</p>
+<h1>Era Cards</h1>
+</header>
+
+<p class="callout"><strong>Reminder on Qualities</strong> If a card doesn't say how many Qualities to give, a Named Entity gets one of your choice, plus any the card adds (<em>Ancient</em>, "a positive Quality"). If it does ("two Qualities"), that's the total.</p>
+<p class="callout"><strong>Reminder on Journeys</strong> Short: 2 tasks, 1 outcome. Medium: 3 tasks, 2 outcomes. Long: 4 tasks, 3 outcomes. Epic: 5 tasks, 4 outcomes.</p>
+<p class="callout"><strong>Reminder on ending in Failure</strong> Journeys that end in Failure still get their full number of outcomes; however, at least half the outcomes must be negative (e.g. remove instead of add, negative Quality instead of positive).</p>
+<section class="era era-myth" data-era="myth" data-label="Myth" data-suit="♥">
+<h2 id="era-myth"><span class="suit">♥</span> Era of Myth</h2>
+<div class="card-grid">
+<article class="card era-myth" id="two-of-hearts">
+  <header class="card-head">
+    <span class="card-rank">2♥</span>
+    <h3 class="card-title"><span class="card-name">Two of Hearts</span>Primal Genesis</h3>
+  </header>
+  <div class="card-body">
+<p>The Gods dream, and the dream takes shape. What is born, and who feels it? Choose one:</p>
+<ul>
+  <li>Name a natural Place and give it the Quality <em>Uncharted</em>.</li>
+  <li>Name a God and give it the Quality <em>Awakened</em>.</li>
+  <li>Name a People and give it the Quality <em>Newborn</em>.</li>
+</ul>
+<p>Then Narrate the event.</p>
+  </div>
+</article>
+<article class="card era-myth" id="three-of-hearts">
+  <header class="card-head">
+    <span class="card-rank">3♥</span>
+    <h3 class="card-title"><span class="card-name">Three of Hearts</span>Divine Whispers</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>A God speaks to a People. What do they say?</li>
+  <li>A People prays to a God. What do they ask for?</li>
+</ul>
+<p>Give the People a Relationship to the God (e.g. <em>Worships [God]</em>, <em>Chosen by [God]</em>, <em>Cursed by [God]</em>). Then Narrate what comes of it, or give a Journey that follows from it.</p>
+  </div>
+</article>
+<article class="card era-myth" id="four-of-hearts">
+  <header class="card-head">
+    <span class="card-rank">4♥</span>
+    <h3 class="card-title"><span class="card-name">Four of Hearts</span>A People Remade</h3>
+  </header>
+  <div class="card-body">
+<p>Like rivers, Peoples split apart and flow together. What divides them, or what draws them together? Choose one:</p>
+<ul>
+  <li>A People fractures, and its dissenters become a new People.</li>
+  <li>Two Peoples merge into a new People.</li>
+</ul>
+<p>Name the new People and give it a Relationship to its source (e.g. <em>Split from [People]</em>, <em>Exiled from [People]</em>, <em>Union of [People] and [People]</em>). The source Peoples remain, and each gains or loses a Quality.</p>
+  </div>
+</article>
+<article class="card era-myth" id="five-of-hearts">
+  <header class="card-head">
+    <span class="card-rank">5♥</span>
+    <h3 class="card-title"><span class="card-name">Five of Hearts</span>Scion of the Gods</h3>
+  </header>
+  <div class="card-body">
+<p>An Actor is born to a God. Name an Actor, give them the Relationship <em>Child of [God]</em> and give them two Qualities, one positive and one negative, then describe their relation to their divine parent.</p>
+  </div>
+</article>
+<article class="card era-myth" id="six-of-hearts">
+  <header class="card-head">
+    <span class="card-rank">6♥</span>
+    <h3 class="card-title"><span class="card-name">Six of Hearts</span>Fire of the Gods</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>A God gives a People or Actor a gift. What do they give? Narrate a related event.</li>
+  <li>A People or Actor tries to steal from a God. What do they try to steal? Give a related Journey.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-myth" id="seven-of-hearts">
+  <header class="card-head">
+    <span class="card-rank">7♥</span>
+    <h3 class="card-title"><span class="card-name">Seven of Hearts</span>The One Piece</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>A Place is discovered to be abundant in resources. What is the resource?</li>
+  <li>A God designates a Place as sacred. Which God? Why?</li>
+</ul>
+<p>Name the Place and give it a positive Quality. Give a People a Journey to migrate to the area.</p>
+  </div>
+</article>
+<article class="card era-myth" id="eight-of-hearts">
+  <header class="card-head">
+    <span class="card-rank">8♥</span>
+    <h3 class="card-title"><span class="card-name">Eight of Hearts</span>Tremble!</h3>
+  </header>
+  <div class="card-body">
+<p>A creature of significant presence is born into the world. What does it hunt, guard or seek? Name a creature Actor and give it two Qualities. Choose one:</p>
+<ul>
+  <li>Its arrival reshapes a Place or affects a People. Narrate an event.</li>
+  <li>It has a unique purpose. Give it a Journey to fulfill this goal.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-myth" id="nine-of-hearts">
+  <header class="card-head">
+    <span class="card-rank">9♥</span>
+    <h3 class="card-title"><span class="card-name">Nine of Hearts</span>The Darklord</h3>
+  </header>
+  <div class="card-body">
+<p>A villain rises to terrorize the world. Name or select an Actor and give them two Qualities, both negative.</p>
+  </div>
+</article>
+<article class="card era-myth" id="ten-of-hearts">
+  <header class="card-head">
+    <span class="card-rank">10♥</span>
+    <h3 class="card-title"><span class="card-name">Ten of Hearts</span>Games of the Gods</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>Two Gods declare opposition to one another. What is the source of their conflict (e.g. betrayal, insult, romantic rivalry)? Each God gains the Relationship <em>Rival of [God]</em>. Narrate their first conflict.</li>
+  <li>Two Gods make a wager, with the fate of their followers as the stakes. What are the terms? For each God, give a People who worships it a medium Journey. If a God has no worshippers, a People first gains <em>Worships [God]</em>. The first Journey to complete succeeds, and the other fails.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-myth" id="jack-of-hearts">
+  <header class="card-head">
+    <span class="card-rank">J♥</span>
+    <h3 class="card-title"><span class="card-name">Jack of Hearts</span>The Great Catalyst</h3>
+  </header>
+  <div class="card-body">
+<p>A powerful magic event unfolds in an instant. What is it? Where does it occur? Narrate the event. You make the first response as well as the last.</p>
+  </div>
+</article>
+<article class="card era-myth" id="queen-of-hearts">
+  <header class="card-head">
+    <span class="card-rank">Q♥</span>
+    <h3 class="card-title"><span class="card-name">Queen of Hearts</span>Heaven and Earth</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>A mortal ascends to godhood. How? What People did they come from? Name a God, or turn an existing Actor into a God. It keeps its Qualities and Relationships and gains <em>Ascended</em>.</li>
+  <li>A God descends to become an Actor. Why? What happens to their power? Name an Actor who was once a God, or turn an existing God into an Actor. It keeps its Qualities and Relationships and gains <em>Fallen</em>. Like any Actor, it dies at the end of the Era.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-myth" id="king-of-hearts">
+  <header class="card-head">
+    <span class="card-rank">K♥</span>
+    <h3 class="card-title"><span class="card-name">King of Hearts</span>The First Banner</h3>
+  </header>
+  <div class="card-body">
+<p>A People's first formal government is established. Who rules, and by what right? Who is left out? Name a Nation for that People. Give the Nation the Quality <em>Ancient</em>.</p>
+  </div>
+</article>
+<article class="card era-myth" id="ace-of-hearts">
+  <header class="card-head">
+    <span class="card-rank">A♥</span>
+    <h3 class="card-title"><span class="card-name">Ace of Hearts</span>A World, Alive!</h3>
+  </header>
+  <div class="card-body">
+<p>The canvas of the world unfurls as the Gods shape it to their will. Name three natural Places. Give each a thematically linked Quality or Relationship.</p>
+  </div>
+</article>
+</div>
+</section>
+
+<section class="era era-antiquity" data-era="antiquity" data-label="Antiquity" data-suit="♦">
+<h2 id="era-antiquity"><span class="suit">♦</span> Era of Antiquity</h2>
+<div class="card-grid">
+<article class="card era-antiquity" id="two-of-diamonds">
+  <header class="card-head">
+    <span class="card-rank">2♦</span>
+    <h3 class="card-title"><span class="card-name">Two of Diamonds</span>The Drums of War</h3>
+  </header>
+  <div class="card-body">
+<p>Two Peoples or Nations go to war. Who are they? What are they fighting over? Give them both a medium or longer Journey to win the war. The first Journey to succeed causes the other to end in failure.</p>
+  </div>
+</article>
+<article class="card era-antiquity" id="three-of-diamonds">
+  <header class="card-head">
+    <span class="card-rank">3♦</span>
+    <h3 class="card-title"><span class="card-name">Three of Diamonds</span>The Word of God</h3>
+  </header>
+  <div class="card-body">
+<p>A People's faith in a God is codified into a holy text. Choose one:</p>
+<ul>
+  <li>The text unites the faithful. Name a Nation and give it the Quality <em>Pious</em>, <em>Devout</em>, or <em>Zealous</em>.</li>
+  <li>The text divides the faithful. Choose a devout People: they gain the Quality <em>Orthodox</em>. Then, create a new People from their dissenters, who gain the Quality <em>Heretical</em> and the Relationship <em>Split from [People]</em>.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-antiquity" id="four-of-diamonds">
+  <header class="card-head">
+    <span class="card-rank">4♦</span>
+    <h3 class="card-title"><span class="card-name">Four of Diamonds</span>Dreams of a Better Life</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>A People prosper. Name a Nation populated by the People, then give it the Quality <em>Prosperous</em> and another positive Quality.</li>
+  <li>The lure of a better life draws Peoples to a Nation. Give two Peoples a Journey to migrate to it.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-antiquity" id="five-of-diamonds">
+  <header class="card-head">
+    <span class="card-rank">5♦</span>
+    <h3 class="card-title"><span class="card-name">Five of Diamonds</span>Outlanders</h3>
+  </header>
+  <div class="card-body">
+<p>People from somewhere far away arrive (e.g. another realm, space, hell). How? Was it intentional? Name a People and give them two Qualities, one positive and one negative.</p>
+  </div>
+</article>
+<article class="card era-antiquity" id="six-of-diamonds">
+  <header class="card-head">
+    <span class="card-rank">6♦</span>
+    <h3 class="card-title"><span class="card-name">Six of Diamonds</span>Ancient Bonds</h3>
+  </header>
+  <div class="card-body">
+<p>The ancient world teems with powerful creatures, offering both companionship and new frontiers. Choose one:</p>
+<ul>
+  <li>An Actor or People aim to create a bond with a creature. Name a creature Actor, and give the Actor or People a Journey to forge the bond.</li>
+  <li>A creature seeks to make a new home. Name the creature Actor, and describe the creature's Journey to find or create this home, and how its presence transforms the Place.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-antiquity" id="seven-of-diamonds">
+  <header class="card-head">
+    <span class="card-rank">7♦</span>
+    <h3 class="card-title"><span class="card-name">Seven of Diamonds</span>Strong Winds</h3>
+  </header>
+  <div class="card-body">
+<p>The times are kind and the winds are fair. Choose one:</p>
+<ul>
+  <li>Remove 1 task from all Journeys.</li>
+  <li>Give three Entities a positive Quality.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-antiquity" id="eight-of-diamonds">
+  <header class="card-head">
+    <span class="card-rank">8♦</span>
+    <h3 class="card-title"><span class="card-name">Eight of Diamonds</span>A New World</h3>
+  </header>
+  <div class="card-body">
+<p>A new world is found! Name a large Place and give it two Qualities, one positive and one negative. Then give a People or Nation a medium or longer Journey to claim it.</p>
+  </div>
+</article>
+<article class="card era-antiquity" id="nine-of-diamonds">
+  <header class="card-head">
+    <span class="card-rank">9♦</span>
+    <h3 class="card-title"><span class="card-name">Nine of Diamonds</span>United in Glory</h3>
+  </header>
+  <div class="card-body">
+<p>Two Actors, Peoples, or Nations join forces to accomplish a goal. What is it? Give them each a single medium or longer Journey to accomplish it.</p>
+  </div>
+</article>
+<article class="card era-antiquity" id="ten-of-diamonds">
+  <header class="card-head">
+    <span class="card-rank">10♦</span>
+    <h3 class="card-title"><span class="card-name">Ten of Diamonds</span>Doom</h3>
+  </header>
+  <div class="card-body">
+<p>Give a People or Nation the Quality <em>Doomed</em>. At the end of the Era remove this Entity from the game. All Nations and Places populated with these peoples get the Relationship <em>Former Home of [Entity]</em>. When it is removed, it can leave a Legacy as if it were a departing Actor. This Legacy doesn't count toward any player's Legacy choice.</p>
+  </div>
+</article>
+<article class="card era-antiquity" id="jack-of-diamonds">
+  <header class="card-head">
+    <span class="card-rank">J♦</span>
+    <h3 class="card-title"><span class="card-name">Jack of Diamonds</span>Age of Wonder</h3>
+  </header>
+  <div class="card-body">
+<p>Nations compete to build lasting monuments to their glory. Choose up to three Nations and give them a Journey to construct an architectural wonder.</p>
+  </div>
+</article>
+<article class="card era-antiquity" id="queen-of-diamonds">
+  <header class="card-head">
+    <span class="card-rank">Q♦</span>
+    <h3 class="card-title"><span class="card-name">Queen of Diamonds</span>Micro/Macro History</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>It is a time of great Peoples. Choose two Peoples and Name an Actor from each. Give them each two Qualities, one positive and one negative.</li>
+  <li>It is a time of great Nations. Choose two Peoples and Name a Nation from each. Give them each two Qualities, one positive and one negative.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-antiquity" id="king-of-diamonds">
+  <header class="card-head">
+    <span class="card-rank">K♦</span>
+    <h3 class="card-title"><span class="card-name">King of Diamonds</span>Immortal!</h3>
+  </header>
+  <div class="card-body">
+<p>A great, immortal Actor hero rises. Name or select an Actor and give them the Quality <em>Immortal</em> and a positive Quality. This Actor does not die when the Era changes.</p>
+  </div>
+</article>
+<article class="card era-antiquity" id="ace-of-diamonds">
+  <header class="card-head">
+    <span class="card-rank">A♦</span>
+    <h3 class="card-title"><span class="card-name">Ace of Diamonds</span>Progress For Some</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>It is a time for great Journeys. Give two Journeys whose aim is to discover, invent, or spread peace.</li>
+  <li>Great Journeys are accomplished. Choose two Journeys and immediately complete them successfully.</li>
+</ul>
+  </div>
+</article>
+</div>
+</section>
+
+<section class="era era-ruin" data-era="ruin" data-label="Ruin" data-suit="♣">
+<h2 id="era-ruin"><span class="suit">♣</span> Era of Ruin</h2>
+<div class="card-grid">
+<article class="card era-ruin" id="two-of-clubs">
+  <header class="card-head">
+    <span class="card-rank">2♣</span>
+    <h3 class="card-title"><span class="card-name">Two of Clubs</span>Tarnished Legacy</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>The line of a former hero betrays their legacy. Name an Actor descended from a Myth or Antiquity era Actor with two negative Qualities and the Relationship <em>Descendant of [Actor]</em>.</li>
+  <li>Return any Actor from a prior age. Reverse all of their positive Qualities to negative Qualities. Give them the Quality <em>Returned</em>.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-ruin" id="three-of-clubs">
+  <header class="card-head">
+    <span class="card-rank">3♣</span>
+    <h3 class="card-title"><span class="card-name">Three of Clubs</span>Forsaken</h3>
+  </header>
+  <div class="card-body">
+<p>Abandon all hope. Give a God or People the Quality <em>Forsaken</em>. All Journeys on them end in failure.</p>
+<ul>
+  <li>If a God, the world turns its back on it. Remove all Relationships between the God and other Entities. It cannot affect the world until it gains a new Relationship.</li>
+  <li>If a People, the Nations they live in cast them out. Each of those Nations gains the Relationship <em>Exiled [People]</em>, and the People loses its Relationships to those Nations.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-ruin" id="four-of-clubs">
+  <header class="card-head">
+    <span class="card-rank">4♣</span>
+    <h3 class="card-title"><span class="card-name">Four of Clubs</span>Disaster</h3>
+  </header>
+  <div class="card-body">
+<p>A natural disaster occurs. Choose an existing Place to give two negative Qualities. For each Nation in that location, if it has two or fewer positive Qualities, remove it from play, otherwise remove a positive Quality and add a negative Quality to it.</p>
+  </div>
+</article>
+<article class="card era-ruin" id="five-of-clubs">
+  <header class="card-head">
+    <span class="card-rank">5♣</span>
+    <h3 class="card-title"><span class="card-name">Five of Clubs</span>Martyrdom</h3>
+  </header>
+  <div class="card-body">
+<p>An Actor is martyred for a greater cause. The Actor with the most positive Qualities is removed from play. Every People, Nation, and God aligned with them replaces a negative Quality with positive and any Journeys they have complete successfully. What is the cause? What are they remembered for?</p>
+  </div>
+</article>
+<article class="card era-ruin" id="six-of-clubs">
+  <header class="card-head">
+    <span class="card-rank">6♣</span>
+    <h3 class="card-title"><span class="card-name">Six of Clubs</span>Annexation</h3>
+  </header>
+  <div class="card-body">
+<p>A Nation sets out to conquer its neighbor, and some rise to resist. Give a Nation a medium or longer Journey to conquer another Nation. Name a group Actor with one Quality and the Relationship <em>Enemy of [conquering Nation]</em>. If the Journey succeeds, remove the conquered Nation from play and add its territory to the conqueror, in addition to the other outcomes. The Group endures.</p>
+  </div>
+</article>
+<article class="card era-ruin" id="seven-of-clubs">
+  <header class="card-head">
+    <span class="card-rank">7♣</span>
+    <h3 class="card-title"><span class="card-name">Seven of Clubs</span>Dead Calm</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>The world stalls. Add 2 tasks to every Journey in progress.</li>
+  <li>A Journey ends in catastrophe. Choose a Journey in progress. It completes now in failure, with 1 more outcome than usual, and every outcome must be negative.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-ruin" id="eight-of-clubs">
+  <header class="card-head">
+    <span class="card-rank">8♣</span>
+    <h3 class="card-title"><span class="card-name">Eight of Clubs</span>Insurrection</h3>
+  </header>
+  <div class="card-body">
+<p>A coup is plotted. Why? Either name or select an Actor within a Nation. Give the Nation a negative Quality. Give the Actor the Quality <em>Revolutionary</em> and give them a long or epic Journey to overthrow the Nation. If they succeed, remove the Nation from play at the end of the Journey in addition to other outcomes.</p>
+  </div>
+</article>
+<article class="card era-ruin" id="nine-of-clubs">
+  <header class="card-head">
+    <span class="card-rank">9♣</span>
+    <h3 class="card-title"><span class="card-name">Nine of Clubs</span>Conflict</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>Two Actors go to battle. Why are they fighting? Give both a Journey to defeat the other. Give the winner the Relationship <em>Bested [Actor]</em>. The first Journey to succeed causes the other to end in failure.</li>
+  <li>A Place suddenly becomes hostile. Give it a negative Quality, then Narrate a related event.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-ruin" id="ten-of-clubs">
+  <header class="card-head">
+    <span class="card-rank">10♣</span>
+    <h3 class="card-title"><span class="card-name">Ten of Clubs</span>Collapse</h3>
+  </header>
+  <div class="card-body">
+<p>A great Nation of the world collapses. Give it the quality <em>Collapsed</em> and remove it from play. Narrate an Event about its collapse.</p>
+  </div>
+</article>
+<article class="card era-ruin" id="jack-of-clubs">
+  <header class="card-head">
+    <span class="card-rank">J♣</span>
+    <h3 class="card-title"><span class="card-name">Jack of Clubs</span>Spreading Corruption</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>A hero falters and gives in to darkness. Choose an Actor with more positive Qualities than negatives and replace all of their positives with negatives.</li>
+  <li>A villain realizes their desires. Choose any Actor with more negative Qualities than positives. Choose a related Journey to this Actor and it completes in success. The outcomes must be negative towards other Entities.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-ruin" id="queen-of-clubs">
+  <header class="card-head">
+    <span class="card-rank">Q♣</span>
+    <h3 class="card-title"><span class="card-name">Queen of Clubs</span>Left to the Wolves</h3>
+  </header>
+  <div class="card-body">
+<p>It is a dark time for those without structure. Add two negative Qualities to each People without at least one Nation.</p>
+  </div>
+</article>
+<article class="card era-ruin" id="king-of-clubs">
+  <header class="card-head">
+    <span class="card-rank">K♣</span>
+    <h3 class="card-title"><span class="card-name">King of Clubs</span>Immortal...</h3>
+  </header>
+  <div class="card-body">
+<p>An immortal villain rises. Name or select an Actor and give them the Quality <em>Immortal</em> and a negative Quality. This Actor does not die when the Era changes.</p>
+  </div>
+</article>
+<article class="card era-ruin" id="ace-of-clubs">
+  <header class="card-head">
+    <span class="card-rank">A♣</span>
+    <h3 class="card-title"><span class="card-name">Ace of Clubs</span>Road to Ruin</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>It is a time for dire Journeys. Give two Journeys whose aim is to subjugate, destroy, or spread violence.</li>
+  <li>Great Journeys fail. Choose two Journeys; they immediately end in failure. (At least half the outcomes must be negative.)</li>
+</ul>
+  </div>
+</article>
+</div>
+</section>
+
+<section class="era era-promise" data-era="promise" data-label="Promise" data-suit="♠">
+<h2 id="era-promise"><span class="suit">♠</span> Era of Promise</h2>
+<div class="card-grid">
+<article class="card era-promise" id="two-of-spades">
+  <header class="card-head">
+    <span class="card-rank">2♠</span>
+    <h3 class="card-title"><span class="card-name">Two of Spades</span>Wild Magic</h3>
+  </header>
+  <div class="card-body">
+<p>Magic slips its bounds. Choose a Place or Nation and narrate the strange magical event that happens there. Then give it a Quality that reflects the event.</p>
+  </div>
+</article>
+<article class="card era-promise" id="three-of-spades">
+  <header class="card-head">
+    <span class="card-rank">3♠</span>
+    <h3 class="card-title"><span class="card-name">Three of Spades</span>Call to Adventure</h3>
+  </header>
+  <div class="card-body">
+<p>A Nation calls for heroes. What threatens them, and what reward do they promise? Name or select an Actor who answers the call. Give them the Relationship <em>Champion of [Nation]</em> and a medium or longer Journey to face the threat.</p>
+  </div>
+</article>
+<article class="card era-promise" id="four-of-spades">
+  <header class="card-head">
+    <span class="card-rank">4♠</span>
+    <h3 class="card-title"><span class="card-name">Four of Spades</span>The Faithful</h3>
+  </header>
+  <div class="card-body">
+<p>A God calls out to the world. Which God? What do they promise those who answer? Name or select an Actor or a Nation. Give them a Relationship to this God (e.g. <em>Cult of [God]</em>, <em>Worships [God]</em>, <em>Chosen by [God]</em>). Give them a medium or longer Journey to follow their God's desires.</p>
+  </div>
+</article>
+<article class="card era-promise" id="five-of-spades">
+  <header class="card-head">
+    <span class="card-rank">5♠</span>
+    <h3 class="card-title"><span class="card-name">Five of Spades</span>Magnum Opus</h3>
+  </header>
+  <div class="card-body">
+<p>A work of creative genius sweeps the world with its popularity. What is it? Who made it, and why? Narrate an event it inspires, affecting up to three Entities who are moved by it.</p>
+  </div>
+</article>
+<article class="card era-promise" id="six-of-spades">
+  <header class="card-head">
+    <span class="card-rank">6♠</span>
+    <h3 class="card-title"><span class="card-name">Six of Spades</span>Breakthrough</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>A novel discovery is made in a Nation. What do they discover? Was this the product of effort, or was it an accident? Narrate a related event affecting the Nation and all Peoples and Actors within it.</li>
+  <li>A Nation's economic balance shifts dramatically. What caused this? Who benefits and who loses? Narrate an event that affects the Nation and all Peoples and Actors within it.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-promise" id="seven-of-spades">
+  <header class="card-head">
+    <span class="card-rank">7♠</span>
+    <h3 class="card-title"><span class="card-name">Seven of Spades</span>Bittersweet</h3>
+  </header>
+  <div class="card-body">
+<p>One Journey ends, another loses ground. Choose a Journey to complete immediately, then add 3 tasks to another Journey.</p>
+  </div>
+</article>
+<article class="card era-promise" id="eight-of-spades">
+  <header class="card-head">
+    <span class="card-rank">8♠</span>
+    <h3 class="card-title"><span class="card-name">Eight of Spades</span>Gilded Age</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>Two Nations begin a prosperous trade relationship. What do they trade? Give both Nations the Relationship <em>Trading with [Nation]</em>. Name an Actor who seeks to protect or plunder it.</li>
+  <li>The few grow rich at the expense of the many. Name an Actor within a Nation and give them the Quality <em>Wealthy</em>. Give the Nation the Relationship <em>Extracted by [Actor]</em>.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-promise" id="nine-of-spades">
+  <header class="card-head">
+    <span class="card-rank">9♠</span>
+    <h3 class="card-title"><span class="card-name">Nine of Spades</span>Hunted</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>A Nation turns on a People within its borders. Who do they blame, and for what? Give the People the Relationship <em>Persecuted by [Nation]</em>. Give the Nation a medium or longer Journey to drive the People out. If it succeeds, the People no longer live in the Nation.</li>
+  <li>A large bounty is set. Name or select an Actor and give them the Quality <em>Wanted</em> and a negative Quality. Give another Actor a Journey to slay or capture them.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-promise" id="ten-of-spades">
+  <header class="card-head">
+    <span class="card-rank">10♠</span>
+    <h3 class="card-title"><span class="card-name">Ten of Spades</span>Digging Up the Past</h3>
+  </header>
+  <div class="card-body">
+<p>Someone looks to the past. What are they searching for, and why now? Choose an Actor or Nation to be the seeker, and an Entity from a prior Era or one removed from play. Give the seeker the Relationship <em>Seeking [Entity]</em> and a medium or longer Journey to find it.</p>
+  </div>
+</article>
+<article class="card era-promise" id="jack-of-spades">
+  <header class="card-head">
+    <span class="card-rank">J♠</span>
+    <h3 class="card-title"><span class="card-name">Jack of Spades</span>Guest Right</h3>
+  </header>
+  <div class="card-body">
+<p>Choose one:</p>
+<ul>
+  <li>A Nation becomes open and multicultural. Add two Peoples not currently present in a Nation to that Nation. Give the Nation the Quality <em>Multicultural</em> and a positive Quality. Give each of the Peoples a positive Quality.</li>
+  <li>Old wounds heal. Choose two Entities with a negative Relationship to each other (e.g. <em>Enemy of [Nation]</em>, <em>Rival of [God]</em>, <em>Persecuted by [Nation]</em>). Replace it with a positive Relationship.</li>
+</ul>
+  </div>
+</article>
+<article class="card era-promise" id="queen-of-spades">
+  <header class="card-head">
+    <span class="card-rank">Q♠</span>
+    <h3 class="card-title"><span class="card-name">Queen of Spades</span>Big Talker</h3>
+  </header>
+  <div class="card-body">
+<p>An Actor makes a public vow to do the impossible. What do they swear to achieve, and who heard them? Give them the Quality <em>Daring</em> and an epic Journey to fulfil their vow.</p>
+  </div>
+</article>
+<article class="card era-promise" id="king-of-spades">
+  <header class="card-head">
+    <span class="card-rank">K♠</span>
+    <h3 class="card-title"><span class="card-name">King of Spades</span>The Lost Heir</h3>
+  </header>
+  <div class="card-body">
+<p>An heir to a fallen Nation steps forward. Choose a Nation removed from play. Name or select an Actor and give them the Relationship <em>Heir of [Nation]</em> and a long or epic Journey to reclaim it. If they succeed, return the Nation to play in addition to the other outcomes.</p>
+  </div>
+</article>
+<article class="card era-promise" id="ace-of-spades">
+  <header class="card-head">
+    <span class="card-rank">A♠</span>
+    <h3 class="card-title"><span class="card-name">Ace of Spades</span>Once Upon a Time</h3>
+  </header>
+  <div class="card-body">
+<p>The time of the Tale is beginning! Draw and resolve one more card, then the game ends and the adventure begins. Journeys still in progress do not complete. They become the open threads of your Tale, waiting for heroes to finish them.</p>
+  </div>
+</article>
+</div>
+</section>
+
+<section class="era era-extra" data-era="extra" data-label="Extra Cards" data-suit="★">
+<h2 id="era-extra"><span class="suit">★</span> Extra Cards</h2>
+<p>The following are extra cards that may appear in any Era.</p>
+<div class="card-grid">
+<article class="card era-extra" id="black-joker">
+  <header class="card-head">
+    <span class="card-rank">🃏</span>
+    <h3 class="card-title">Black Joker</h3>
+  </header>
+  <div class="card-body">
+<p>Fate repeats itself. Replay the previously played Era card. If the card presented a choice of options, you must choose the unchosen one.</p>
+  </div>
+</article>
+<article class="card era-extra" id="red-joker">
+  <header class="card-head">
+    <span class="card-rank">🃏</span>
+    <h3 class="card-title">Red Joker</h3>
+  </header>
+  <div class="card-body">
+<p>The winds of fate blow in a random direction. Take another action. You may take an action normally not allowed in this Era.</p>
+  </div>
+</article>
+</div>
+</section>
+
+</main>
+</div>
+</body>
+</html>

@@ -1,0 +1,423 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Strata</title>
+<script src="../../assets/scenes/scene-kit.js"></script>
+<script src="../../assets/scenes/glyph-kit.js"></script>
+</head>
+<body>
+<script>
+// Home page hero: a cross-section of the world through its four Eras, in the
+// same roguelike tiles as glyph-map. The Era of Promise is the surface, with a
+// great tree under the stars. Beneath it lie the Eras of Ruin, Antiquity and
+// Myth, each a band of earth in its Era colour holding what it left behind.
+// The World Seed sits at the bottom. Twice a loop it pulses, and the light
+// climbs its roots through every Era, wakes the relics they touch and comes out
+// in the tree's canopy. Meanwhile a delver with a lantern climbs down a shaft
+// to the bones of something ancient and back up again.
+
+const { TAU, wave, cycle, lerp, clamp, smooth, blob } = SceneKit;
+const { rnd, noise, connector, QUD } = GlyphKit;
+
+const W = 1400, H = 788, FPS = 24, SECONDS = 12, FRAMES = FPS * SECONDS;
+const TICK = 4;                   // frames per animation step (6 Hz, like a game turn)
+const STEPS = FRAMES / TICK;      // 72 steps per loop
+const PULSES = 2, PULSE_STEPS = STEPS / PULSES;
+const COLS = 86, ROWS = 32, OX = 12, OY = 10;
+const { centre, cellOf, put, cellPath } = GlyphKit.grid({ cols: COLS, rows: ROWS, ox: OX, oy: OY });
+
+// The four Era colours are the site's own (--era-* in style.css). Each has a
+// dim partner for the earth's texture and two ground tones.
+const PALETTES = {
+  dark: {
+    ...QUD.dark,
+    myth: '#e07a90', anti: '#e0b155', ruin: '#a7b56f', prom: '#86a6e0',
+    mythD: '#7a3f4c', antiD: '#7d6431', ruinD: '#5a6240',
+    mBg: '#36161f', mBg2: '#3f1a25', aBg: '#33270e', aBg2: '#3c2e11', rBg: '#23281a', rBg2: '#2a301e',
+    sBg: '#1e2a17', shaft: '#121110', bark: '#5e4f35',
+    dark: 0.55,
+  },
+  light: {
+    ...QUD.light,
+    myth: '#b4415a', anti: '#a8741a', ruin: '#5f6b3a', prom: '#3d5f9a',
+    mythD: '#d39aa6', antiD: '#d4b985', ruinD: '#b2b893',
+    mBg: '#f4dade', mBg2: '#eecdd3', aBg: '#f3e5c3', aBg2: '#eedcb2', rBg: '#e8e9d6', rBg2: '#e1e3cb',
+    sBg: '#dde7c9', shaft: '#fdfbf6', bark: '#5c4a2c',
+    dark: 0.58,
+  },
+};
+
+GlyphKit.define({
+  bark:     ['.##d###.', '.#d####.', '.####d#.', '.###d##.', '.##d###.', '.#d####.', '.####d#.', '.###d##.', '.##d###.', '.#d####.', '.####d#.', '.###d##.'],
+  flare:    ['.##d###.', '.#d####.', '.####d#.', '.###d##.', '.##d###.', '.#d####.', '##d####.', '#d#####d', '########', '########', '########', '########'],
+  leaf:     ['........', '.#...#..', '###.###.', '.#...#..', '....#...', '...###..', '....#...', '.#......', '###.....', '.#......', '........', '........'],
+  ladder:   ['.#....#.', '.######.', '.#....#.', '.#....#.', '.######.', '.#....#.', '.#....#.', '.######.', '.#....#.', '.#....#.', '.######.', '.#....#.'],
+  stairs:   ['........', '........', '......##', '......##', '....####', '....####', '..######', '..######', '########', '########', '........', '........'],
+  spade:    ['..ddd...', '...d....', '...d....', '...d....', '...d....', '..###...', '.#####..', '.#####..', '.#####..', '..###...', '...#....', '........'],
+  tent:     ['........', '........', '........', '...#....', '..#d#...', '.#ddd#..', '#ddddd#.', '#######.', '........', '........', '........', '........'],
+  moon:     ['...###..', '..##....', '.##.....', '.##.....', '.##.....', '..##....', '...###..', '........', '........', '........', '........', '........'],
+  pebble:   ['........', '........', '........', '........', '........', '........', '........', '..###...', '.#####..', '..###...', '........', '........'],
+  sed:      ['........', '........', '........', '##.####.', '........', '........', '........', '.###.###', '........', '........', '........', '........'],
+  skull:    ['........', '........', '........', '........', '..#####.', '.#######', '.#..#..#', '.#######', '..#####.', '..#.#.#.', '........', '........'],
+  sword:    ['........', '......##', '.....###', '....###.', '...###..', '.d.##...', '..dd....', '.dddd...', 'dd..d...', 'd.......', '........', '........'],
+  wallb:    ['........', '........', '##......', '###.....', '####.#..', '#.######', '########', '##.#####', '########', '........', '........', '........'],
+  column:   ['........', '########', '.######.', '.#.##.#.', '.#.##.#.', '.#.##.#.', '.#.##.#.', '.#.##.#.', '.#.##.#.', '.######.', '########', '........'],
+  colbroke: ['........', '........', '........', '........', '.#......', '.#.#....', '.#.##.#.', '.#.##.#.', '.#.##.#.', '.######.', '########', '........'],
+  crown:    ['........', '........', '........', '#..#..#.', '##.#.##.', '#######.', '#d#d#d#.', '#######.', '........', '........', '........', '........'],
+  coin:     ['........', '........', '........', '........', '..###...', '.#ddd#..', '.#ddd#..', '..###...', '........', '........', '........', '........'],
+  urn:      ['........', '..####..', '...##...', '..####..', '.######.', '.#dddd#.', '.######.', '..####..', '...##...', '..####..', '........', '........'],
+  eye:      ['........', '........', '........', '..####..', '.#.dd.#.', '#.dddd.#', '.#.dd.#.', '..####..', '........', '........', '........', '........'],
+  heart:    ['........', '........', '.##..##.', '########', '########', '########', '.######.', '..####..', '...##...', '........', '........', '........'],
+  ribs:     ['........', '........', '........', '########', '.#..#..#', '.#..#..#', '#..#..#.', '#..#..#.', '.#..#..#', '........', '........', '........'],
+  dskull:   ['........', '........', '..###...', '.#####..', '##.#####', '########', '#######.', '.#.#.#..', '........', '.#.#.#..', '#######.', '........'],
+  tail:     ['........', '........', '........', '........', '......##', '...#.#..', '#.#.....', '........', '........', '........', '........', '........'],
+});
+
+// ---------- Layout ----------
+
+const GROUND = 11;                       // the surface row; the sky is above it
+const SEED = [43, 28];
+const SHAFT = 68;                        // the delver's shaft runs down this column
+const SHAFT_BOTTOM = 26;
+const line = noise('strata', 5);
+const antTop = (c) => 17 + Math.round((line(c, 0) - 0.5) * 3);
+const mythTop = (c) => 23 + Math.round((line(c, 7) - 0.5) * 3);
+const eraAt = (c, r) => (r <= GROUND ? 'surface' : r < antTop(c) ? 'ruin' : r < mythTop(c) ? 'anti' : 'myth');
+const ERA = {
+  ruin: { fg: 'ruin', dim: 'ruinD', bg: 'rBg' },
+  anti: { fg: 'anti', dim: 'antiD', bg: 'aBg' },
+  myth: { fg: 'myth', dim: 'mythD', bg: 'mBg' },
+};
+
+// The whole piece frays into the page at its rim.
+const PLATE = { cx: W / 2, cy: H / 2, a: 676, b: 382, n: 4 };
+const edgeNoise = noise('edge', 80), tone = noise('tone', 52);
+const edgeAt = (x, y) => {
+  const s = Math.abs((x - PLATE.cx) / PLATE.a) ** PLATE.n + Math.abs((y - PLATE.cy) / PLATE.b) ** PLATE.n + (edgeNoise(x, y) - 0.5) * 0.45;
+  return clamp((1 - s) / 0.45);
+};
+
+// What each Era left behind: [col, row, glyph, fg, detail].
+const RELICS = [
+  [14, 14, 'ruin', 'ruin', 'ruinD'], [15, 14, 'wallb', 'ruin'], [17, 15, 'pebble', 'ruin'],
+  [24, 15, 'skull', 'Y'], [32, 13, 'sword', 'y', 'w'], [52, 15, 'club', 'ruin', 'ruin'],
+  [58, 13, 'wallb', 'ruin'], [74, 14, 'skull', 'Y'], [78, 15, 'sword', 'y', 'w'],
+  [12, 19, 'column', 'anti'], [14, 19, 'column', 'anti'], [16, 19, 'colbroke', 'anti'],
+  [30, 20, 'crown', 'anti', 'R'], [35, 21, 'coin', 'anti', 'antiD'], [36, 21, 'coin', 'anti', 'antiD'],
+  [51, 18, 'urn', 'anti', 'r'], [57, 21, 'crystal', 'anti', 'anti'], [73, 20, 'colbroke', 'anti'],
+  [75, 19, 'column', 'anti'], [79, 21, 'coin', 'anti', 'antiD'],
+  [21, 26, 'eye', 'myth', 'Y'], [14, 29, 'flame', 'myth', 'O'], [30, 29, 'heart', 'myth'], [76, 29, 'eye', 'myth', 'Y'],
+  [56, 26, 'tail', 'Y'], [57, 26, 'ribs', 'Y'], [58, 26, 'ribs', 'Y'], [59, 26, 'ribs', 'Y'], [60, 26, 'ribs', 'Y'],
+  [61, 26, 'ribs', 'Y'], [62, 26, 'ribs', 'Y'], [63, 26, 'dskull', 'Y'],
+];
+
+// The Era of Promise on the surface: [col, row, glyph, fg, detail].
+const SURFACE = [
+  [7, 10, 'fir', 'g', 'w'], [8, 10, 'fir', 'G', 'w'], [10, 10, 'fir', 'g', 'w'], [12, 10, 'hut', 'prom', 'w'],
+  [14, 10, 'hut', 'R', 'w'], [15, 10, 'fir', 'G', 'w'], [17, 10, 'tower', 'prom', 'O'], [19, 10, 'fir', 'g', 'w'],
+  [24, 10, 'hill', 'w'], [25, 10, 'hill', 'w'], [27, 10, 'hill', 'w'], [59, 10, 'hill', 'w'], [60, 10, 'hill', 'w'], [62, 10, 'hill', 'w'],
+  [70, 10, 'spade', 'y', 'w'], [77, 10, 'tent', 'prom', 'prom'], [79, 10, 'tent', 'R', 'R'], [81, 10, 'fir', 'g', 'w'],
+];
+const CAMPFIRE = [74, 10];
+
+// ---------- The root network ----------
+// Roots, trunk and branches are one network of cells, each knowing how many
+// steps it is from the Seed along the network. The pulse travels one cell per
+// step.
+
+const nodes = new Map();
+const key = (c, r) => c + ',' + r;
+// Roots wander: extra points along each leg, nudged off the straight line.
+function meander(points, sway) {
+  const out = [points[0]];
+  for (let i = 1; i < points.length; i++) {
+    const [c0, r0] = points[i - 1], [c1, r1] = points[i];
+    const n = Math.max(1, Math.round(Math.hypot(c1 - c0, r1 - r0) / 3));
+    for (let k = 1; k < n; k++) {
+      out.push([lerp(c0, c1, k / n) + (rnd('mx', c0, r0, i, k) - 0.5) * sway, lerp(r0, r1, k / n) + (rnd('my', c0, r0, i, k) - 0.5) * sway * 1.4]);
+    }
+    out.push(points[i]);
+  }
+  return out;
+}
+// cellPath turns a corner where a root should step diagonally; cut the corners.
+function diagonals(path) {
+  const out = [];
+  for (const cell of path) {
+    const a = out[out.length - 2];
+    if (a && Math.abs(cell[0] - a[0]) === 1 && Math.abs(cell[1] - a[1]) === 1) out.pop();
+    out.push(cell);
+  }
+  return out;
+}
+function grow(points, kind, width, sway = 0) {
+  const path = diagonals(cellPath(meander(points, sway).map(([c, r]) => centre(c, r))));
+  path.forEach(([c, r], i) => {
+    if (!nodes.has(key(c, r))) nodes.set(key(c, r), { c, r, kind, width, dirs: new Set() });
+    const node = nodes.get(key(c, r));
+    for (const j of [i - 1, i + 1]) {
+      if (path[j]) node.dirs.add(GlyphKit.dirTo(path[j][0] - c, path[j][1] - r));
+    }
+  });
+}
+grow([SEED, [43, 6]], 'tap', 4);
+[
+  [[43, 13], [39, 14], [36, 13], [33, 13]],
+  [[36, 13], [28, 14], [18, 14]],
+  [[43, 14], [47, 15], [51, 15]],
+  [[43, 18], [39, 19], [34, 19], [31, 20]],
+  [[34, 19], [26, 18], [17, 19]],
+  [[43, 19], [47, 18], [50, 18]],
+  [[47, 18], [52, 20], [56, 21]],
+  [[43, 24], [37, 25], [30, 26], [22, 26]],
+  [[43, 25], [49, 26], [55, 26]],
+  [[43, 28], [38, 29], [31, 29]],
+  [[43, 28], [48, 30], [53, 30]],
+  [[30, 26], [22, 28], [15, 29]],
+].forEach((pts) => grow(pts, 'root', 2, 1.6));
+[
+  [[43, 7], [38, 5], [33, 4]],
+  [[43, 7], [48, 5], [53, 4]],
+  [[43, 6], [43, 2]],
+  [[38, 5], [32, 7]],
+  [[48, 5], [55, 7]],
+].forEach((pts) => grow(pts, 'branch', 2, 1));
+
+// Distances from the Seed, breadth first along the links.
+{
+  const start = nodes.get(key(...SEED));
+  start.dist = 0;
+  const queue = [start];
+  while (queue.length) {
+    const node = queue.shift();
+    for (const d of node.dirs) {
+      const [dc, dr] = { N: [0, -1], NE: [1, -1], E: [1, 0], SE: [1, 1], S: [0, 1], SW: [-1, 1], W: [-1, 0], NW: [-1, -1] }[d];
+      const next = nodes.get(key(node.c + dc, node.r + dr));
+      if (next && next.dist === undefined) { next.dist = node.dist + 1; queue.push(next); }
+    }
+  }
+}
+const network = [...nodes.values()].filter((n) => !(n.c === SEED[0] && n.r === SEED[1]));
+const glyphOf = (n) => (n.r === GROUND ? 'flare' : n.r < GROUND && n.kind === 'tap' ? 'bark' : connector(n.dirs, n.width));
+
+// How lit a cell is by the pulse that reached it `dist` steps from the Seed:
+// bright as the front passes, then fading. The previous pulse's tail carries
+// over so the loop is seamless.
+function pulseLight(step, dist) {
+  const phase = step % PULSE_STEPS;
+  let v = 0;
+  for (const k of [phase, phase + PULSE_STEPS]) if (k >= dist) v = Math.max(v, Math.exp(-(k - dist) / 4));
+  return v;
+}
+
+// ---------- Cells ----------
+
+const canopy = blob({ cx: centre(43, 0)[0], cy: 124, rx: 236, ry: 92, seed: 3, wobble: 0.14, harmonics: 7, n: 80 });
+const leaves = [];
+const stars = [];
+const earth = [];
+for (let r = 0; r < ROWS; r++) {
+  for (let c = 0; c < COLS; c++) {
+    const [x, y] = centre(c, r);
+    const edge = edgeAt(x, y), q = rnd('cell', c, r);
+    if (edge <= 0 || (r < GROUND && nodes.has(key(c, r)))) continue;
+    if (r < GROUND) {
+      if (canopy.contains(x, y, 6) || (canopy.contains(x, y, -14) && q < 0.5)) {
+        // Each leaf takes its light from the nearest branch.
+        let dist = Infinity;
+        for (const n of network) if (n.kind !== 'root') dist = Math.min(dist, n.dist + Math.hypot(n.c - c, (n.r - r) * 1.5));
+        const fruit = rnd('fruit', c, r) < 0.07;
+        const g = q < 0.45 ? 'club' : q < 0.7 ? 'leaf' : q < 0.88 ? 'shade2' : 'shade1';
+        leaves.push({ c, r, dist: Math.round(dist), fruit, g, fg: rnd('lt', c, r) < 0.4 ? 'G' : 'g' });
+      } else if (r < 10 && q < 0.075 * edge) {
+        stars.push({ c, r, fg: ['prom', 'Y', 'C', 'prom', 'y'][Math.floor(rnd('sc', c, r) * 5)], period: 6 + Math.floor(rnd('sp', c, r) * 4) * 6, phase: Math.floor(rnd('sph', c, r) * 72) });
+      }
+    } else if (r >= GROUND) {
+      earth.push({ c, r, x, y, edge, era: eraAt(c, r), q, root: nodes.has(key(c, r)) });
+    }
+  }
+}
+const relicAt = new Map(RELICS.map(([c, r, g, fg, dt]) => [key(c, r), { g, fg, dt }]));
+const underground = earth.filter((e) => e.r > GROUND);
+
+function earthTile(cell) {
+  const { c, r, x, y, edge, era, q, root } = cell;
+  if (r === GROUND && root) return { bg: 'sBg' };
+  if (r === GROUND) {
+    if (c === SHAFT) return { bg: 'shaft', g: 'stairs', fg: 'w' };
+    if (edge < 0.3) return q < edge * 3 ? { g: 'grass', fg: 'g', alpha: edge * 3 } : null;
+    return { bg: 'sBg', g: q < 0.55 ? 'grass' : q < 0.75 ? 'dot' : null, fg: q < 0.3 ? 'G' : 'g' };
+  }
+  if (c === SHAFT && r <= SHAFT_BOTTOM) return { bg: 'shaft', g: 'ladder', fg: 'w' };
+  const E = ERA[era];
+  if (edge < 0.35) return q < edge * 2.6 ? { g: q < 0.4 ? 'shade1' : 'dot', fg: E.dim, alpha: edge * 2.6 } : null;
+  const bg = tone(x, y) > 0.55 ? E.bg + '2' : E.bg;
+  if (root) return { bg };
+  const relic = relicAt.get(key(c, r));
+  if (relic) return { bg, g: relic.g, fg: relic.fg, dt: relic.dt || relic.fg };
+  const top = era === 'anti' ? r === antTop(c) : era === 'myth' ? r === mythTop(c) : r === GROUND + 1;
+  if (top) return { bg, g: 'sed', fg: E.dim };
+  if (era === 'ruin') return { bg, g: q < 0.12 ? 'pebble' : q < 0.32 ? 'shade1' : null, fg: E.dim };
+  if (era === 'anti') return { bg, g: q < 0.22 ? 'sed' : q < 0.32 ? 'pebble' : null, fg: E.dim };
+  return { bg, g: q < 0.3 ? 'shade1' : q < 0.38 ? 'dot' : null, fg: E.dim };
+}
+
+// ---------- Drawing ----------
+
+// Everything that doesn't move, once per theme.
+const layers = new Map();
+function staticLayer(theme) {
+  if (!layers.has(theme)) {
+    const canvas = document.createElement('canvas');
+    canvas.width = W; canvas.height = H;
+    const ctx = canvas.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    const P = PALETTES[theme];
+    for (const cell of earth) {
+      const tile = earthTile(cell);
+      if (tile) put(ctx, P, cell.c, cell.r, tile);
+    }
+    for (const n of network) put(ctx, P, n.c, n.r, { g: glyphOf(n), fg: 'w', dt: 'bark' });
+    for (const [c, r, g, fg, dt] of SURFACE) put(ctx, P, c, r, { g, fg, dt: dt || fg });
+    put(ctx, P, 72, 1, { g: 'moon', fg: 'Y' });
+    layers.set(theme, canvas);
+  }
+  return layers.get(theme);
+}
+
+function drawStars(ctx, P, step) {
+  for (const s of stars) {
+    const k = (step + s.phase) % s.period;
+    if (k === 0) put(ctx, P, s.c, s.r, { g: 'star', fg: s.fg });
+    else put(ctx, P, s.c, s.r, { g: 'dot', fg: s.fg, alpha: k === 1 ? 0.9 : 0.45 });
+  }
+}
+
+function drawCanopy(ctx, P, step) {
+  for (const l of leaves) {
+    // A breath of wind: now and then a leaf turns over.
+    const turned = rnd('wind', l.c, l.r, step) < 0.04;
+    put(ctx, P, l.c, l.r, { g: turned ? 'leaf' : l.g, fg: turned ? 'G' : l.fg });
+    const lit = pulseLight(step, l.dist);
+    if (l.fruit) put(ctx, P, l.c, l.r, { g: lit > 0.45 ? 'star' : 'dot', fg: lit > 0.45 ? 'O' : 'W' });
+    else if (lit > 0.2) put(ctx, P, l.c, l.r, { g: l.g, fg: 'W', alpha: lit * 0.8 });
+  }
+}
+
+// The delver's row: a pause at the top, the climb down, a pause at the
+// bones, the climb back.
+function delverRow(step) {
+  const span = SHAFT_BOTTOM - (GROUND - 1), hold = 4, move = STEPS / 2 - hold;
+  const s = step % STEPS;
+  if (s < hold) return GROUND - 1;
+  if (s < hold + move) return GROUND - 1 + Math.round(((s - hold) / move) * span);
+  if (s < hold * 2 + move) return SHAFT_BOTTOM;
+  return SHAFT_BOTTOM - Math.round(((s - hold * 2 - move) / move) * span);
+}
+
+// Light underground: a little daylight at the top, the Seed's glow, the
+// delver's lantern and the pulse as it climbs the roots.
+function lighting(step) {
+  const light = new Map();
+  const add = (c, r, v) => light.set(key(c, r), Math.min(1, (light.get(key(c, r)) || 0) + v));
+  const source = (cx, cy, radius, v) => {
+    const rc = Math.ceil(radius / 16), rr = Math.ceil(radius / 24);
+    for (let dr = -rr; dr <= rr; dr++) for (let dc = -rc; dc <= rc; dc++) {
+      const d = Math.hypot(dc * 16, dr * 24);
+      if (d < radius) add(cx + dc, cy + dr, v * (1 - d / radius));
+    }
+  };
+  const seedGlow = pulseLight(step, 0);
+  source(SEED[0], SEED[1], 130, 0.55 + 0.45 * seedGlow);
+  const flicker = 0.9 + 0.1 * (rnd('lantern', step) - 0.5) * 2;
+  source(SHAFT, delverRow(step), 104 * flicker, 1);
+  for (const n of network) {
+    if (n.r <= GROUND) continue;
+    const lit = pulseLight(step, n.dist);
+    if (lit > 0.05) source(n.c, n.r, 56, lit);
+  }
+  return light;
+}
+
+function drawUnderground(ctx, P, step) {
+  const light = lighting(step);
+  for (const cell of underground) {
+    const daylight = cell.r === GROUND + 1 ? 0.35 : cell.r === GROUND + 2 ? 0.15 : 0;
+    const v = Math.min(1, daylight + (light.get(key(cell.c, cell.r)) || 0));
+    if (v < 1) put(ctx, P, cell.c, cell.r, { bg: 'paper', alpha: P.dark * (1 - v) * clamp(cell.edge * 3) });
+  }
+  // The roots glow as the pulse runs up them.
+  for (const n of network) {
+    if (n.r <= GROUND) continue;
+    const lit = pulseLight(step, n.dist);
+    if (lit > 0.1) put(ctx, P, n.c, n.r, { g: glyphOf(n), fg: 'O', alpha: lit });
+  }
+  // Sparks of old magic in the Era of Myth.
+  for (let k = 0; k < 7; k++) {
+    const life = 8, age = (step + k * 3) % life, gen = Math.floor((step + k * 3) / life);
+    const cell = underground[Math.floor(rnd('mote', k, gen % (STEPS / life)) * underground.length)];
+    if (cell.era !== 'myth' || cell.edge < 0.4) continue;
+    put(ctx, P, cell.c, cell.r, { g: age < 3 ? 'star' : 'dot', fg: 'myth', alpha: 1 - age / life });
+  }
+}
+
+function drawSeed(ctx, P, step) {
+  const [c, r] = SEED;
+  const glow = pulseLight(step, 0);
+  for (let dr = -1; dr <= 1; dr++) for (let dc = -2; dc <= 2; dc++) {
+    if (dr || dc) put(ctx, P, c + dc, r + dr, { bg: 'O', alpha: (0.08 + 0.2 * glow) / (Math.abs(dc) + Math.abs(dr)) });
+  }
+  put(ctx, P, c, r, { bg: 'O', alpha: 0.3 + 0.4 * glow });
+  put(ctx, P, c, r, { g: 'seed', fg: 'G', dt: glow > 0.5 ? 'W' : 'O' });
+}
+
+function drawTrunkPulse(ctx, P, step) {
+  for (const n of network) {
+    if (n.r > GROUND) continue;
+    const lit = pulseLight(step, n.dist);
+    if (lit > 0.1) put(ctx, P, n.c, n.r, { g: glyphOf(n), fg: 'O', dt: 'W', alpha: lit });
+  }
+}
+
+function drawCamp(ctx, P, step) {
+  const [c, r] = CAMPFIRE;
+  const f = rnd('fire', step);
+  put(ctx, P, c, r, { bg: 'O', alpha: 0.12 + 0.08 * f });
+  put(ctx, P, c, r, { g: 'flame', fg: f < 0.5 ? 'o' : 'R', dt: f < 0.3 ? 'W' : 'O' });
+  for (let i = 0; i < 3; i++) {
+    const k = cycle(step / STEPS, 6, i / 3);
+    put(ctx, P, c + Math.round(k * 1.4), r - 1 - Math.floor(k * 4), { g: k < 0.3 ? 'shade2' : 'shade1', fg: 'y', alpha: 0.6 * (1 - k) });
+  }
+}
+
+function drawDelver(ctx, P, step) {
+  const r = delverRow(step);
+  put(ctx, P, SHAFT, r, { bg: r > GROUND ? 'shaft' : null, g: 'walker', fg: 'Y', dt: 'o' });
+  put(ctx, P, SHAFT + 1, r, { bg: 'O', alpha: 0.18 });
+  put(ctx, P, SHAFT + 1, r, { g: 'dot', fg: 'W' });
+}
+
+SceneKit.mount({
+  name: 'strata', width: W, height: H, fps: FPS, frames: FRAMES, poster: 120,
+  backgrounds: { light: PALETTES.light.paper, dark: PALETTES.dark.paper },
+  draw(ctx, frame, theme) {
+    const P = PALETTES[theme];
+    const step = Math.floor(frame / TICK);
+    ctx.imageSmoothingEnabled = false;
+    ctx.fillStyle = P.paper;
+    ctx.fillRect(0, 0, W, H);
+    drawStars(ctx, P, step);
+    ctx.drawImage(staticLayer(theme), 0, 0);
+    drawCanopy(ctx, P, step);
+    drawUnderground(ctx, P, step);
+    drawSeed(ctx, P, step);
+    drawTrunkPulse(ctx, P, step);
+    drawCamp(ctx, P, step);
+    drawDelver(ctx, P, step);
+  },
+});
+</script>
+</body>
+</html>

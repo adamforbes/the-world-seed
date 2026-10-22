@@ -1,0 +1,1045 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hero Map</title>
+<script src="../lib/rough.js"></script>
+<script src="../../assets/scenes/scene-kit.js"></script>
+</head>
+<body>
+<script>
+// Home page hero: a whimsical world map with three continents and a living
+// ocean. Greenwood (west), Sunreach (north-east) and Rosemount (south-east)
+// circle a small island where the World Seed sprouts. Ferries shuttle between
+// them, a monkey knight keeps watch in Greenwood, a wizard blinks back and
+// forth between Rosemount and Sunreach, where a scorpion scuttles about and
+// the volcano erupts.
+
+const { TAU, hash, wave, cycle, lerp, clamp, smooth, blob, closed, scatter } = SceneKit;
+
+const W = 1400, H = 788, FPS = 24, SECONDS = 12, FRAMES = FPS * SECONDS;
+const BOIL_EVERY = 4;     // frames between redraws of the linework (the hand-drawn "boil")
+const BOIL_VARIANTS = 3;  // FRAMES / BOIL_EVERY must be a multiple of this so the loop is seamless
+const BOIL_FILLS = false; // true lets hachure fills boil too (livelier, bigger file)
+
+const PALETTES = {
+  light: {
+    paper: '#f7f3ea', ink: '#3d3229',
+    sea: '#d3e7ec', seaShallow: '#e6f2ef', seaDeep: '#9fc8d8', seaLine: '#4a89aa', foam: '#ffffff',
+    green: '#bcdd92', greenDeep: '#79b35e', forest: '#62a04f', forestDark: '#3f7a3c', hill: '#d3eaa6',
+    gold: '#f6da8e', goldDeep: '#e8af4c', dune: '#f0c461', clay: '#e38b59', ember: '#e5603a', stone: '#d2a465',
+    rose: '#f6c7d3', roseDeep: '#e493ac', peak: '#bca5e0', peakDeep: '#8b6fc2', blossom: '#f39cba', blossomLight: '#fde0ea',
+    cactus: '#3f7a3c', snow: '#ffffff', wood: '#946139', roof: '#d6573f', wall: '#fff5df', sail: '#fffdf8',
+    smoke: '#a9a299', cloud: '#ffffff', cloudLine: 'rgba(61,50,41,.55)',
+    serpent: '#5db8a2', serpentDeep: '#2f8a77', whale: '#86a5cc', whaleDeep: '#5b7cab',
+    sprout: '#62c048', glow: '#ffd76a', glowAlpha: 0.35,
+    fur: '#8d5b36', face: '#f0d2a6', steel: '#c7cfd8', robe: '#4a59b2', spark: '#e3a01f',
+    scorpion: '#c0703a', ash: '#8a837a',
+  },
+  dark: {
+    paper: '#1b1a17', ink: '#e9e0cf',
+    sea: '#1c2c33', seaShallow: '#24404a', seaDeep: '#14232a', seaLine: '#73b4d1', foam: '#cfe6ef',
+    green: '#3f6538', greenDeep: '#6f9f5a', forest: '#5f9e4f', forestDark: '#3a6e37', hill: '#55804a',
+    gold: '#86652a', goldDeep: '#c0913d', dune: '#c0943f', clay: '#b9673f', ember: '#ff7b45', stone: '#a07a46',
+    rose: '#6d3c52', roseDeep: '#a85a7a', peak: '#8270b8', peakDeep: '#5d4a96', blossom: '#e57d98', blossomLight: '#f7bfcf',
+    cactus: '#86c46e', snow: '#f4f0e8', wood: '#a97b52', roof: '#d95f45', wall: '#e9dcc1', sail: '#efe8da',
+    smoke: '#8f897f', cloud: '#59636f', cloudLine: 'rgba(233,224,207,.7)',
+    serpent: '#4fa891', serpentDeep: '#2c7a69', whale: '#7393c4', whaleDeep: '#4f6f9e',
+    sprout: '#8ad866', glow: '#ffd76a', glowAlpha: 0.5,
+    fur: '#a87850', face: '#e6c796', steel: '#a3adba', robe: '#7486dc', spark: '#ffd76a',
+    scorpion: '#e09456', ash: '#a39c92',
+  },
+};
+
+// ---------- Geography (shared by both themes) ----------
+
+// The sea is a soft-cornered plate, inset so the frame edge is plain paper.
+const ocean = (() => {
+  const cx = W / 2, cy = H / 2, a = 650, b = 348, n = 5;
+  const r = SceneKit.rng(5);
+  const terms = [2, 3, 5, 7, 9].map((k) => ({ k, a: (r() * 2 - 1) * 9 / Math.sqrt(k), p: r() * TAU }));
+  const at = (th, grow = 0) => {
+    const c = Math.cos(th), s = Math.sin(th);
+    const x = Math.sign(c) * Math.abs(c) ** (2 / n) * a;
+    const y = Math.sign(s) * Math.abs(s) ** (2 / n) * b;
+    let push = grow;
+    for (const t of terms) push += t.a * Math.sin(t.k * th + t.p);
+    const len = Math.hypot(x, y);
+    return [cx + x + (x / len) * push, cy + y + (y / len) * push];
+  };
+  const points = (grow = 0, count = 180) => Array.from({ length: count }, (_, i) => at((i / count) * TAU, grow));
+  const contains = (x, y, margin = 0) =>
+    Math.abs((x - cx) / (a - margin)) ** n + Math.abs((y - cy) / (b - margin)) ** n < 1;
+  return { at, points, contains };
+})();
+
+const west = blob({ cx: 334, cy: 378, rx: 205, ry: 218, seed: 11, wobble: 0.15, harmonics: 9, lobes: [
+  { at: 0.8, amount: 0.3, width: 0.14 },    // south-east hook
+  { at: -0.05, amount: -0.16, width: 0.15 }, // east bay
+  { at: -2.25, amount: 0.2, width: 0.15 },  // north-west cape
+  { at: 2.45, amount: -0.12, width: 0.2 },  // south-west bay
+  { at: -1.35, amount: 0.08, width: 0.2 },
+] });
+const east = blob({ cx: 978, cy: 222, rx: 252, ry: 126, seed: 23, wobble: 0.12, harmonics: 9, lobes: [
+  { at: Math.PI - 0.22, amount: 0.3, width: 0.13 }, // western tail
+  { at: 1.65, amount: -0.2, width: 0.17 },          // southern bay
+  { at: -0.6, amount: 0.16, width: 0.18 },
+] });
+const south = blob({ cx: 1100, cy: 604, rx: 166, ry: 98, seed: 37, wobble: 0.13, harmonics: 9, lobes: [
+  { at: Math.PI - 0.08, amount: 0.24, width: 0.13 }, // western arm towards the World Seed
+  { at: 0.5, amount: 0.14, width: 0.2 },
+  { at: -1.3, amount: -0.14, width: 0.2 },
+] });
+const seedIsle = blob({ cx: 700, cy: 408, rx: 50, ry: 33, seed: 41, wobble: 0.1, n: 48 });
+const islets = [
+  [1290, 118, 30, 17], [1318, 392, 24, 15], [1284, 420, 11, 8],
+  [300, 714, 22, 12], [338, 728, 9, 6], [104, 318, 13, 9],
+].map(([cx, cy, rx, ry], i) => blob({ cx, cy, rx, ry, seed: 60 + i, wobble: 0.16, n: 40 }));
+const continents = [west, east, south];
+const lands = [...continents, seedIsle, ...islets];
+const nearLand = (x, y, gap) => lands.some((l) => l.contains(x, y, -gap));
+
+// Ferries shuttle back and forth between piers: [land, angle of its pier].
+// `bend` bows the crossing sideways (negative = to the left of travel).
+const LANES = [
+  { from: [west, -0.42], to: [east, 2.42], bend: 28, phase: 0, flag: 'roof' },
+  { from: [west, 0.4], to: [south, Math.PI - 0.08], bend: -22, phase: 0.5, flag: 'peakDeep' },
+].map((lane) => {
+  const a = lane.from[0].at(lane.from[1], 30), b = lane.to[0].at(lane.to[1], 30);
+  const len = Math.hypot(b[0] - a[0], b[1] - a[1]);
+  const ctrl = [(a[0] + b[0]) / 2 - ((b[1] - a[1]) / len) * lane.bend, (a[1] + b[1]) / 2 + ((b[0] - a[0]) / len) * lane.bend];
+  return { ...lane, a, b, ctrl };
+});
+
+const COMPASS = { x: 172, y: 668, r: 44 };
+const WHALE = { x: 618, y: 150 };
+const SERPENT = { x: 616, y: 680 };
+const FISH = { x: 1070, y: 432 };
+const BIRDS = { x: 1250, y: 300 };
+const KNIGHT = { x: 206, y: 478 };
+const VOLCANO = { x: 1088, y: 196, w: 100, h: 76 };
+const SCORPION = { x: 1062, y: 268 };
+// Where the wizard appears, in order: Rosemount, then Sunreach.
+const WIZ_STOPS = [{ x: 1104, y: 678 }, { x: 1004, y: 240 }];
+
+// Wave marks across the open sea, kept clear of land and the set pieces.
+const waveMarks = scatter({
+  seed: 7, count: 46, minDist: 58, bounds: [60, 50, W - 60, H - 50],
+  accept: (x, y) => ocean.contains(x, y, 34) && !nearLand(x, y, 30)
+    && Math.hypot(x - COMPASS.x, y - COMPASS.y) > 80
+    && Math.hypot(x - WHALE.x, y - WHALE.y) > 90
+    && Math.hypot(x - SERPENT.x, y - SERPENT.y) > 110,
+});
+
+// ---------- Drawing helpers ----------
+
+function makePen(ctx, P, v) {
+  return {
+    rc: rough.canvas(ctx.canvas), ctx, P, v,
+    // Seed for a shape: boiling shapes change with the boil variant.
+    sd: (id, boils = true) => hash(id, boils ? v : 0),
+  };
+}
+
+function withAlpha(ctx, a, fn) {
+  ctx.save();
+  ctx.globalAlpha *= a;
+  fn();
+  ctx.restore();
+}
+
+function clipTo(ctx, pts, fn) {
+  ctx.save();
+  ctx.beginPath();
+  pts.forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+  ctx.clip();
+  fn();
+  ctx.restore();
+}
+
+// A watercolour-ish land mass: wash, darker pigment at the edge, hachure, ink coast.
+function landMass(pen, land, id, { fill, deep, angle = -41, gap = 10 }) {
+  const { rc, ctx, P, sd } = pen;
+  rc.curve(closed(land.points(0)), { stroke: 'none', fill, fillStyle: 'solid', roughness: 1.3, seed: sd(id + 'wash', false) });
+  withAlpha(ctx, 0.35, () => rc.curve(closed(land.points(-4, 64)), { stroke: deep, strokeWidth: 7, roughness: 1.6, seed: sd(id + 'edge', false) }));
+  withAlpha(ctx, 0.4, () => rc.curve(closed(land.points(-7, 64)), {
+    stroke: 'none', fill: deep, fillStyle: 'hachure', hachureAngle: angle, hachureGap: gap, fillWeight: 1.1,
+    roughness: 1.2, seed: sd(id + 'hatch', BOIL_FILLS),
+  }));
+  rc.curve(closed(land.points(0, 72)), { stroke: P.ink, strokeWidth: 2.2, roughness: 1.1, seed: sd(id + 'coast') });
+}
+
+// ---------- Static layers (cached per theme and boil variant) ----------
+
+function drawSea(pen) {
+  const { rc, ctx, P, sd } = pen;
+  ctx.fillStyle = P.paper;
+  ctx.fillRect(0, 0, W, H);
+
+  rc.curve(closed(ocean.points(0)), { stroke: 'none', fill: P.sea, fillStyle: 'solid', roughness: 1.4, seed: sd('sea', false) });
+  // Deeper water hatched in a band just inside the border.
+  ctx.save();
+  ctx.beginPath();
+  ocean.points(0).forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+  ocean.points(-34).forEach(([x, y], i) => (i ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+  ctx.closePath();
+  ctx.clip('evenodd');
+  withAlpha(ctx, 0.7, () => rc.curve(closed(ocean.points(4)), {
+    stroke: 'none', fill: P.seaDeep, fillStyle: 'hachure', hachureAngle: 52, hachureGap: 7, fillWeight: 1.2,
+    roughness: 1, seed: sd('deep', BOIL_FILLS),
+  }));
+  ctx.restore();
+
+  // Shallows hug every coast.
+  clipTo(ctx, ocean.points(-3), () => lands.forEach((land, i) =>
+    rc.curve(closed(land.points(land.rx > 60 ? 18 : 9, 64)), { stroke: 'none', fill: P.seaShallow, fillStyle: 'solid', roughness: 1.5, seed: sd('shallow' + i, false) })));
+
+  // Plate border: a heavy ink line and a fine inner one.
+  rc.curve(closed(ocean.points(0, 120)), { stroke: P.ink, strokeWidth: 2.6, roughness: 1, seed: sd('border') });
+  withAlpha(ctx, 0.8, () => rc.curve(closed(ocean.points(-10, 120)), { stroke: P.seaLine, strokeWidth: 1.2, roughness: 0.9, seed: sd('border2') }));
+}
+
+function drawLand(pen) {
+  const { rc, ctx, P, sd } = pen;
+  landMass(pen, west, 'west', { fill: P.green, deep: P.greenDeep, angle: -41 });
+  landMass(pen, east, 'east', { fill: P.gold, deep: P.goldDeep, angle: 60 });
+  landMass(pen, south, 'south', { fill: P.rose, deep: P.roseDeep, angle: 20 });
+  // The World Seed's island: a sandy rim around a green crown.
+  rc.curve(closed(seedIsle.points(0)), { stroke: P.ink, strokeWidth: 2, fill: P.gold, fillStyle: 'solid', roughness: 1, seed: sd('seedIsle') });
+  rc.curve(closed(seedIsle.points(-9)), { stroke: 'none', fill: P.green, fillStyle: 'solid', roughness: 1.2, seed: sd('seedIsleGrass', false) });
+  for (const [i, isle] of islets.entries()) {
+    rc.curve(closed(isle.points(0)), { stroke: P.ink, strokeWidth: 1.6, fill: P.gold, fillStyle: 'solid', roughness: 0.9, seed: sd('islet' + i) });
+    if (isle.rx > 18) rc.curve(closed(isle.points(-6)), { stroke: 'none', fill: P.green, fillStyle: 'solid', roughness: 1, seed: sd('isletGrass' + i, false) });
+  }
+
+  // Greenwood: lake and river under the trees.
+  const lake = blob({ cx: 292, cy: 296, rx: 30, ry: 15, seed: 91, wobble: 0.15, n: 40 });
+  // The river meanders from the lake to the sea, its bends easing out at both ends.
+  const source = [300, 310], mouth = west.at(0.62, 8);
+  const rdx = mouth[0] - source[0], rdy = mouth[1] - source[1], rlen = Math.hypot(rdx, rdy);
+  const river = Array.from({ length: 31 }, (_, i) => {
+    const k = i / 30, swing = 24 * Math.sin(k * Math.PI * 6) * Math.sqrt(Math.sin(Math.PI * k));
+    return [lerp(source[0], mouth[0], k) - (rdy / rlen) * swing, lerp(source[1], mouth[1], k) + (rdx / rlen) * swing];
+  });
+  rc.curve(river, { stroke: P.seaLine, strokeWidth: 3.4, roughness: 0.9, seed: sd('river') });
+  rc.curve(closed(lake.points()), { stroke: P.ink, strokeWidth: 1.4, fill: P.sea, fillStyle: 'solid', roughness: 0.9, seed: sd('lake') });
+  const nearRiver = (x, y, d) => river.some(([rx, ry]) => Math.hypot(x - rx, y - ry) < d);
+
+  // Piers where the ferries tie up.
+  LANES.forEach((lane, i) => [lane.from, lane.to].forEach(([land, at], j) => pier(pen, land, at, 'pier' + i + j)));
+  // A clearing for the monkey knight.
+  rc.ellipse(KNIGHT.x + 6, KNIGHT.y, 74, 22, { stroke: 'none', fill: P.hill, fillStyle: 'solid', roughness: 1, seed: sd('clearing', false) });
+
+  const glyphs = []; // [y, draw] painted back to front
+
+  // Greenwood: hills in the north, pines below them, broadleaf forest to the south.
+  [[232, 238, 72, 32], [298, 224, 86, 40], [364, 238, 64, 30], [204, 274, 52, 24], [426, 262, 48, 22]]
+    .forEach(([x, y, w, h], i) => glyphs.push([y, () => hill(pen, x, y, w, h, 'hill' + i)]));
+  scatter({ seed: 12, count: 70, minDist: 19, bounds: [110, 150, 560, 660],
+    accept: (x, y) => west.contains(x, y, 18) && y > 288 && !lake.contains(x, y, -14) && !nearRiver(x, y, 22)
+      && Math.hypot(x - 455, y - 520) > 42 && Math.hypot(x - KNIGHT.x - 6, y - KNIGHT.y + 8) > 44,
+  }).forEach(([x, y, r], i) => {
+    const s = 0.9 + r * 0.35;
+    glyphs.push([y, y < 390 ? () => pine(pen, x, y, s, 'pine' + i) : () => tree(pen, x, y, s, 'tree' + i)]);
+  });
+  [[440, 520], [462, 530], [450, 507]].forEach(([x, y], i) => glyphs.push([y, () => house(pen, x, y, 'house' + i)]));
+
+  // Sunreach: a smoking volcano, a stepped temple, mesas, an oasis and dunes.
+  glyphs.push([VOLCANO.y, () => volcano(pen, VOLCANO.x, VOLCANO.y, VOLCANO.w, VOLCANO.h, 'volcano')]);
+  glyphs.push([186, () => temple(pen, 860, 186, 'temple')]);
+  glyphs.push([292, () => mesa(pen, 1166, 292, 66, 28, 'mesa0')]);
+  glyphs.push([270, () => mesa(pen, 788, 270, 44, 20, 'mesa1')]);
+  glyphs.push([296, () => oasis(pen, 970, 296, 'oasis')]);
+  scatter({ seed: 24, count: 11, minDist: 58, bounds: [740, 120, 1210, 340],
+    accept: (x, y) => east.contains(x, y, 26)
+      && Math.hypot(x - 1088, y - 175) > 78 && Math.hypot(x - 860, y - 170) > 52
+      && Math.hypot(x - 1166, y - 285) > 50 && Math.hypot(x - 970, y - 290) > 50 && Math.hypot(x - 788, y - 262) > 40
+      && !(Math.abs(x - WIZ_STOPS[1].x) < 62 && y > WIZ_STOPS[1].y - 70 && y < WIZ_STOPS[1].y + 40)
+      && !(Math.abs(x - SCORPION.x) < 74 && Math.abs(y - SCORPION.y) < 36),
+  }).forEach(([x, y, r], i) => glyphs.push([y, r < 0.72 ? () => dune(pen, x, y, 48 + r * 36, 'dune' + i) : () => cactus(pen, x, y, 'cactus' + i)]));
+
+  // Rosemount: a lilac range with snow caps, blossom groves and a tower.
+  const peaks = [[1016, 612, 42, 34], [1052, 600, 58, 50], [1096, 592, 70, 64], [1140, 600, 56, 46], [1180, 614, 42, 34]];
+  peaks.forEach(([x, y, w, h], i) => glyphs.push([y, () => mountain(pen, x, y, w, h, 'peak' + i)]));
+  glyphs.push([664, () => tower(pen, 1214, 664, 'tower')]);
+  glyphs.push([636, () => crystals(pen, 966, 636, 'crystals')]);
+  scatter({ seed: 38, count: 18, minDist: 22, bounds: [880, 480, 1280, 720],
+    accept: (x, y) => south.contains(x, y, 16) && (y > 626 || x < 990) && Math.hypot(x - 1214, y - 648) > 32
+      && Math.hypot(x - 966, y - 626) > 28 && !(Math.abs(x - WIZ_STOPS[0].x) < 30 && y > WIZ_STOPS[0].y - 78 && y < WIZ_STOPS[0].y + 26),
+  }).forEach(([x, y, r], i) => glyphs.push([y, () => blossom(pen, x, y, 0.85 + r * 0.3, 'blossom' + i)]));
+
+  // A palm on the big north-east islet.
+  glyphs.push([116, () => palm(pen, 1292, 116, 0.8, 'isletPalm')]);
+
+  glyphs.sort((a, b) => a[0] - b[0]).forEach(([, draw]) => draw());
+}
+
+// ---------- Glyphs ----------
+
+const ink = (P, w = 1.4, extra = {}) => ({ stroke: P.ink, strokeWidth: w, roughness: 0.9, ...extra });
+
+function hill(pen, x, y, w, h, id) {
+  const { rc, ctx, P, sd } = pen;
+  const pts = Array.from({ length: 13 }, (_, i) => { const a = Math.PI + (i / 12) * Math.PI; return [x + Math.cos(a) * w / 2, y + Math.sin(a) * h]; });
+  rc.polygon(pts, { stroke: 'none', fill: P.hill, fillStyle: 'solid', roughness: 0.6, seed: sd(id + 'f', false) });
+  clipTo(ctx, pts, () => rc.rectangle(x + w * 0.08, y - h, w / 2, h, { stroke: 'none', fill: P.greenDeep, fillStyle: 'hachure', hachureGap: 3.4, hachureAngle: -60, fillWeight: 1, roughness: 0.8, seed: sd(id + 'h', BOIL_FILLS) }));
+  rc.curve(pts, ink(P, 1.7, { seed: sd(id + 'o') }));
+}
+
+function tree(pen, x, y, s, id) {
+  const { rc, ctx, P, sd } = pen;
+  rc.line(x, y, x, y - 8 * s, { stroke: P.wood, strokeWidth: 2.2, roughness: 0.6, seed: sd(id + 't') });
+  const cy = y - 14 * s, d = 17 * s;
+  rc.circle(x, cy, d, { stroke: 'none', fill: P.forest, fillStyle: 'solid', roughness: 0.8, seed: sd(id + 'f', false) });
+  ctx.save(); ctx.beginPath(); ctx.arc(x, cy, d / 2, 0, TAU); ctx.clip();
+  rc.rectangle(x - d * 0.05, cy - d * 0.1, d, d, { stroke: 'none', fill: P.forestDark, fillStyle: 'hachure', hachureGap: 2.6, hachureAngle: -45, fillWeight: 0.9, roughness: 0.6, seed: sd(id + 'h', BOIL_FILLS) });
+  ctx.restore();
+  rc.circle(x, cy, d, ink(P, 1.3, { seed: sd(id + 'o') }));
+}
+
+function pine(pen, x, y, s, id) {
+  const { rc, P, sd } = pen;
+  rc.line(x, y, x, y - 6 * s, { stroke: P.wood, strokeWidth: 2.2, roughness: 0.6, seed: sd(id + 't') });
+  const tri = (by, w, h) => [[x - w / 2, by], [x, by - h], [x + w / 2, by]];
+  rc.polygon(tri(y - 4 * s, 16 * s, 15 * s), { ...ink(P, 1.2), fill: P.forestDark, fillStyle: 'solid', seed: sd(id + 'a') });
+  rc.polygon(tri(y - 12 * s, 12 * s, 13 * s), { ...ink(P, 1.2), fill: P.forest, fillStyle: 'solid', seed: sd(id + 'b') });
+}
+
+function house(pen, x, y, id) {
+  const { rc, P, sd } = pen;
+  rc.rectangle(x - 7, y - 10, 14, 10, { ...ink(P, 1.2), fill: P.wall, fillStyle: 'solid', seed: sd(id + 'w') });
+  rc.polygon([[x - 9, y - 10], [x, y - 19], [x + 9, y - 10]], { ...ink(P, 1.2), fill: P.roof, fillStyle: 'solid', seed: sd(id + 'r') });
+  rc.line(x, y, x, y - 5, { stroke: P.ink, strokeWidth: 2, roughness: 0.3, seed: sd(id + 'd') });
+}
+
+function volcano(pen, x, y, w, h, id) {
+  const { rc, ctx, P, sd } = pen;
+  const pts = [[x - w / 2, y], [x - w * 0.13, y - h], [x + w * 0.13, y - h], [x + w / 2, y]];
+  rc.polygon(pts, { stroke: 'none', fill: P.clay, fillStyle: 'solid', roughness: 0.7, seed: sd(id + 'f', false) });
+  clipTo(ctx, pts, () => rc.rectangle(x + 4, y - h, w / 2, h, { stroke: 'none', fill: P.ink, fillStyle: 'hachure', hachureGap: 4, hachureAngle: -55, fillWeight: 0.9, roughness: 0.8, seed: sd(id + 'h', BOIL_FILLS) }));
+  rc.curve([[x - 3, y - h + 2], [x - 8, y - h * 0.65], [x - 2, y - h * 0.4], [x - 10, y - h * 0.12]], { stroke: P.ember, strokeWidth: 4, roughness: 0.8, seed: sd(id + 'lava') });
+  rc.ellipse(x, y - h, w * 0.26, 8, { ...ink(P, 1.4), fill: P.ember, fillStyle: 'solid', seed: sd(id + 'crater') });
+  rc.linearPath(pts, ink(P, 1.8, { seed: sd(id + 'o') }));
+}
+
+function temple(pen, x, y, id) {
+  const { rc, P, sd } = pen;
+  [[60, 14], [44, 13], [28, 12]].reduce((by, [w, h], i) => {
+    rc.rectangle(x - w / 2, by - h, w, h, { ...ink(P, 1.4), fill: i % 2 ? P.stone : P.dune, fillStyle: 'solid', seed: sd(id + i) });
+    return by - h;
+  }, y);
+  rc.rectangle(x - 4, y - 10, 8, 10, { stroke: 'none', fill: P.ink, fillStyle: 'solid', roughness: 0.3, seed: sd(id + 'door') });
+  rc.circle(x, y - 45, 8, { ...ink(P, 1.2), fill: P.ember, fillStyle: 'solid', seed: sd(id + 'sun') });
+}
+
+function mesa(pen, x, y, w, h, id) {
+  const { rc, ctx, P, sd } = pen;
+  const pts = [[x - w / 2, y], [x - w * 0.36, y - h], [x + w * 0.36, y - h], [x + w / 2, y]];
+  rc.polygon(pts, { stroke: 'none', fill: P.clay, fillStyle: 'solid', roughness: 0.6, seed: sd(id + 'f', false) });
+  clipTo(ctx, pts, () => [0.35, 0.65].forEach((k, i) => rc.line(x - w / 2, y - h * k, x + w / 2, y - h * k, { stroke: P.stone, strokeWidth: 2.2, roughness: 0.8, seed: sd(id + 'b' + i) })));
+  rc.linearPath(pts, ink(P, 1.6, { seed: sd(id + 'o') }));
+}
+
+function dune(pen, x, y, w, id, back = true) {
+  const { rc, ctx, P, sd } = pen;
+  if (back) dune(pen, x - w * 0.3, y - w * 0.16, w * 0.7, id + 'b', false);
+  const h = w * 0.26;
+  const crest = [[x - w / 2, y], [x - w * 0.2, y - h * 0.8], [x + w * 0.08, y - h], [x + w * 0.3, y - h * 0.6], [x + w / 2, y]];
+  rc.curve([...crest, [x - w / 2, y]], { stroke: 'none', fill: P.dune, fillStyle: 'solid', roughness: 0.5, seed: sd(id + 'f', false) });
+  clipTo(ctx, [[x + w * 0.08, y - h], [x + w * 0.3, y - h * 0.6], [x + w / 2, y], [x - w * 0.02, y]], () =>
+    rc.rectangle(x - w * 0.05, y - h, w * 0.6, h, { stroke: 'none', fill: P.goldDeep, fillStyle: 'hachure', hachureGap: 2.6, hachureAngle: 70, fillWeight: 1, roughness: 0.7, seed: sd(id + 'h', BOIL_FILLS) }));
+  rc.curve(crest, ink(P, 1.5, { seed: sd(id + 'o') }));
+}
+
+function cactus(pen, x, y, id) {
+  const { rc, P, sd } = pen;
+  const o = { stroke: P.cactus, strokeWidth: 4, roughness: 0.5 };
+  rc.line(x, y, x, y - 20, { ...o, seed: sd(id + 'a') });
+  rc.linearPath([[x, y - 9], [x - 6, y - 9], [x - 6, y - 15]], { ...o, strokeWidth: 3, seed: sd(id + 'b') });
+  rc.linearPath([[x, y - 12], [x + 6, y - 12], [x + 6, y - 18]], { ...o, strokeWidth: 3, seed: sd(id + 'c') });
+}
+
+function palm(pen, x, y, s, id) {
+  const { rc, P, sd } = pen;
+  rc.curve([[x, y], [x + 3 * s, y - 14 * s], [x + 2 * s, y - 28 * s]], { stroke: P.wood, strokeWidth: 3, roughness: 0.6, seed: sd(id + 't') });
+  const top = [x + 2 * s, y - 28 * s];
+  [[-16, 6], [-12, -6], [14, -5], [16, 7], [2, -14]].forEach(([dx, dy], i) =>
+    rc.curve([top, [top[0] + dx * 0.5 * s, top[1] + (dy - 6) * 0.6 * s], [top[0] + dx * s, top[1] + dy * s]], { stroke: P.forest, strokeWidth: 3, roughness: 0.6, seed: sd(id + 'f' + i) }));
+}
+
+function oasis(pen, x, y, id) {
+  const { rc, P, sd } = pen;
+  rc.ellipse(x, y, 48, 18, { ...ink(P, 1.3), fill: P.sea, fillStyle: 'solid', seed: sd(id + 'pool') });
+  palm(pen, x - 26, y + 2, 0.9, id + 'p1');
+  palm(pen, x + 24, y + 4, 0.75, id + 'p2');
+}
+
+function mountain(pen, x, y, w, h, id) {
+  const { rc, ctx, P, sd } = pen;
+  const peak = [x + w * 0.04, y - h], L = [x - w / 2, y], R = [x + w / 2, y];
+  rc.polygon([L, peak, R], { stroke: 'none', fill: P.peak, fillStyle: 'solid', roughness: 0.5, seed: sd(id + 'f', false) });
+  clipTo(ctx, [peak, R, [x + w * 0.1, y]], () => rc.rectangle(x, y - h, w / 2, h, { stroke: 'none', fill: P.peakDeep, fillStyle: 'hachure', hachureGap: 3.2, hachureAngle: -50, fillWeight: 1.1, roughness: 0.8, seed: sd(id + 'h', BOIL_FILLS) }));
+  const k = 0.32, a = [lerp(peak[0], L[0], k), lerp(peak[1], L[1], k)], b = [lerp(peak[0], R[0], k), lerp(peak[1], R[1], k)];
+  const cap = [peak, b, [lerp(a[0], b[0], 0.72), b[1] - h * 0.08], [lerp(a[0], b[0], 0.45), a[1] + h * 0.04], [lerp(a[0], b[0], 0.2), a[1] - h * 0.06], a];
+  rc.polygon(cap, { stroke: 'none', fill: P.snow, fillStyle: 'solid', roughness: 0.5, seed: sd(id + 'snow', false) });
+  rc.linearPath([L, peak, R], ink(P, 1.8, { seed: sd(id + 'o') }));
+}
+
+function blossom(pen, x, y, s, id) {
+  const { rc, P, sd } = pen;
+  rc.line(x, y, x, y - 8 * s, { stroke: P.wood, strokeWidth: 2.2, roughness: 0.6, seed: sd(id + 't') });
+  [[-5, -13, 12], [5, -13, 12], [0, -19, 13]].forEach(([dx, dy, d], i) =>
+    rc.circle(x + dx * s, y + dy * s, d * s, { ...ink(P, 1.1), fill: P.blossom, fillStyle: 'solid', seed: sd(id + 'c' + i) }));
+  [[-4, -15], [3, -18], [5, -12]].forEach(([dx, dy], i) =>
+    rc.circle(x + dx * s, y + dy * s, 2.6, { stroke: 'none', fill: P.blossomLight, fillStyle: 'solid', roughness: 0.3, seed: sd(id + 'd' + i, false) }));
+}
+
+function tower(pen, x, y, id) {
+  const { rc, P, sd } = pen;
+  rc.rectangle(x - 8, y - 40, 16, 40, { ...ink(P, 1.4), fill: P.wall, fillStyle: 'solid', seed: sd(id + 'w') });
+  rc.polygon([[x - 12, y - 40], [x, y - 64], [x + 12, y - 40]], { ...ink(P, 1.4), fill: P.peakDeep, fillStyle: 'solid', seed: sd(id + 'r') });
+  rc.rectangle(x - 3, y - 30, 6, 8, { stroke: 'none', fill: P.glow, fillStyle: 'solid', roughness: 0.3, seed: sd(id + 'win') });
+  rc.line(x, y - 64, x, y - 76, ink(P, 1.2, { seed: sd(id + 'pole') }));
+  rc.polygon([[x, y - 76], [x + 11, y - 73], [x, y - 70]], { ...ink(P, 1), fill: P.blossom, fillStyle: 'solid', seed: sd(id + 'flag') });
+}
+
+function crystals(pen, x, y, id) {
+  const { rc, P, sd } = pen;
+  [[-10, 0, 9, 24, -0.25], [0, 2, 11, 34, 0], [11, 0, 8, 20, 0.3]].forEach(([dx, dy, w, h, lean], i) => {
+    const bx = x + dx, by = y + dy, tx = bx + lean * h;
+    rc.polygon([[bx - w / 2, by], [tx - w / 2, by - h * 0.75], [tx, by - h], [tx + w / 2, by - h * 0.75], [bx + w / 2, by]],
+      { ...ink(P, 1.2), fill: P.peak, fillStyle: 'hachure', hachureGap: 2.4, fillWeight: 1, hachureAngle: 80, seed: sd(id + i) });
+  });
+}
+
+function pier(pen, land, at, id) {
+  const { rc, P, sd } = pen;
+  const [x0, y0] = land.at(at, -6), [x1, y1] = land.at(at, 18);
+  rc.line(x0, y0, x1, y1, { stroke: P.ink, strokeWidth: 8, roughness: 0.5, seed: sd(id + 'o') });
+  rc.line(x0, y0, x1, y1, { stroke: P.wood, strokeWidth: 5, roughness: 0.5, seed: sd(id + 'd') });
+  rc.circle(x1, y1, 5, { ...ink(P, 1), fill: P.wood, fillStyle: 'solid', seed: sd(id + 'post') });
+}
+
+// ---------- Living things (drawn every frame) ----------
+
+function tideRings(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  [...continents, seedIsle].forEach((land, li) => {
+    for (let k = 0; k < 3; k++) {
+      const p = cycle(t, 2, k / 3 + li * 0.11);
+      const grow = (land.rx > 60 ? 16 : 8) + p * (land.rx > 60 ? 34 : 22);
+      withAlpha(ctx, 0.6 * Math.sin(Math.PI * p), () =>
+        rc.curve(closed(land.points(grow, 64)), { stroke: P.seaLine, strokeWidth: 1.3, roughness: 0.7, seed: sd('ring' + li + k) }));
+    }
+  });
+}
+
+function waveMarksDraw(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  waveMarks.forEach(([x, y, r], i) => {
+    const s = 1 + r * 0.5;
+    const bx = x + 4 * wave(t, 1, r), by = y + 3 * wave(t, 2, r * 3);
+    const pts = [[-12, 2], [-6, -3], [0, 1], [6, -3], [12, 2]].map(([dx, dy]) => [bx + dx * s, by + dy * s]);
+    withAlpha(ctx, 0.55 + 0.35 * (0.5 + 0.5 * wave(t, 1, r * 7)), () =>
+      rc.curve(pts, { stroke: P.seaLine, strokeWidth: 1.8, roughness: 0.6, seed: sd('wave' + i) }));
+  });
+}
+
+function compass(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  const { x, y, r } = COMPASS;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(0.06 * wave(t, 1));
+  rc.circle(0, 0, r * 2, ink(P, 1.4, { seed: sd('cmpRing') }));
+  rc.circle(0, 0, r * 1.5, ink(P, 1, { seed: sd('cmpRing2') }));
+  const points = [];
+  for (let i = 0; i < 8; i++) points.push([i * TAU / 8 - Math.PI / 2, i % 2 ? r * 0.55 : r * 0.98]);
+  points.forEach(([a, len], i) => {
+    const tip = [Math.cos(a) * len, Math.sin(a) * len], w = i % 2 ? 6 : 9;
+    const l = [Math.cos(a - Math.PI / 2) * w, Math.sin(a - Math.PI / 2) * w], rr = [-l[0], -l[1]];
+    const north = i === 0;
+    rc.polygon([[0, 0], l, tip], { ...ink(P, 1.1), fill: north ? P.roseDeep : P.paper, fillStyle: 'solid', seed: sd('cmpA' + i) });
+    rc.polygon([[0, 0], rr, tip], { ...ink(P, 1.1), fill: north ? P.blossom : P.seaLine, fillStyle: 'solid', seed: sd('cmpB' + i) });
+  });
+  rc.circle(0, 0, 9, { ...ink(P, 1.2), fill: P.glow, fillStyle: 'solid', seed: sd('cmpHub') });
+  ctx.restore();
+}
+
+function whale(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  const x = WHALE.x, y = WHALE.y + 2 * wave(t, 2);
+  // Tail fluke behind, rising and dipping.
+  const lift = 0.5 + 0.5 * wave(t, 2, 0.25);
+  const tx = x - 64, ty = y - 4 - lift * 10;
+  rc.curve([[tx + 8, y + 1], [tx + 2, ty + 6], [tx, ty]], { stroke: P.whaleDeep, strokeWidth: 5, roughness: 0.6, seed: sd('whTail') });
+  rc.polygon([[tx, ty], [tx - 12, ty - 9], [tx - 4, ty - 2], [tx + 4, ty - 2], [tx + 11, ty - 10]], { ...ink(P, 1.2), fill: P.whaleDeep, fillStyle: 'solid', seed: sd('whFluke') });
+  // Back and head.
+  const back = [[x - 50, y], [x - 34, y - 13], [x - 6, y - 21], [x + 24, y - 18], [x + 40, y - 8], [x + 44, y]];
+  rc.curve([...back, [x - 50, y]], { stroke: 'none', fill: P.whale, fillStyle: 'solid', roughness: 0.7, seed: sd('whBody', false) });
+  rc.curve(back, ink(P, 1.8, { seed: sd('whBack') }));
+  rc.curve([[x - 30, y - 4], [x - 6, y - 8], [x + 20, y - 6]], { stroke: P.whaleDeep, strokeWidth: 1.4, roughness: 0.8, seed: sd('whStripe') });
+  rc.circle(x + 30, y - 9, 3.4, { stroke: 'none', fill: P.ink, fillStyle: 'solid', roughness: 0.2, seed: sd('whEye', false) });
+  rc.curve([[x + 34, y - 3], [x + 38, y - 1], [x + 42, y - 4]], ink(P, 1.1, { seed: sd('whSmile') }));
+  waterline(pen, x, y, 60, 'wh');
+
+  // Spout twice per loop: a jet that opens into a fountain and falls away.
+  const p = cycle(t, 2, 0.1);
+  if (p < 0.45) {
+    const k = p / 0.45, hx = x + 16, hy = y - 21;
+    const rise = Math.min(1, k / 0.35), fall = clamp((k - 0.35) / 0.65);
+    const top = hy - 40 * Math.sin((Math.PI / 2) * rise) + 8 * fall;
+    withAlpha(ctx, 1 - fall, () => {
+      rc.curve([[hx, hy], [hx - 2, (hy + top) / 2], [hx, top]], { stroke: P.seaLine, strokeWidth: 3.2, roughness: 0.5, seed: sd('whJet') });
+      if (rise >= 1) [-1, -0.45, 0.45, 1].forEach((dir, i) => {
+        const reach = 10 + 16 * Math.abs(dir), spread = 0.4 + 0.6 * fall;
+        const end = [hx + dir * reach * spread * 1.4, top + 4 + fall * 26 * Math.abs(dir)];
+        rc.curve([[hx, top], [hx + dir * reach * spread * 0.7, top - 7], end], { stroke: P.seaLine, strokeWidth: 2, roughness: 0.5, seed: sd('whArc' + i) });
+        rc.circle(end[0], end[1] + 5, 4, { stroke: P.seaLine, strokeWidth: 1, fill: P.foam, fillStyle: 'solid', roughness: 0.3, seed: sd('whDrop' + i) });
+      });
+    });
+  }
+}
+
+// Two fish leap across the strait, one after the other, twice per loop.
+function fish(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  [[0, 0, P.blossom], [0.07, 26, P.dune]].forEach(([lag, dx], i) => {
+    const p = cycle(t, 2, 0.55 - lag);
+    if (p > 0.32) return;
+    const k = p / 0.32, x0 = FISH.x - 40 + dx, x1 = FISH.x + 34 + dx, y0 = FISH.y + i * 6;
+    const x = lerp(x0, x1, k), y = y0 - 46 * 4 * k * (1 - k);
+    const angle = Math.atan2(-46 * 4 * (1 - 2 * k), x1 - x0);
+    if (k > 0.04 && k < 0.96) {
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle);
+      rc.polygon([[-11, 0], [-19, -6], [-17, 0], [-19, 6]], { ...ink(P, 1), fill: P.serpentDeep, fillStyle: 'solid', seed: sd('fishTail' + i) });
+      rc.ellipse(0, 0, 24, 11, { ...ink(P, 1.2), fill: i ? P.dune : P.blossom, fillStyle: 'solid', seed: sd('fish' + i) });
+      rc.circle(6, -1.5, 2.6, { stroke: 'none', fill: P.ink, fillStyle: 'solid', roughness: 0.2, seed: sd('fishEye' + i, false) });
+      ctx.restore();
+    }
+    // Splash rings where it leaves and re-enters the water.
+    [[x0, k], [x1, k - 0.75]].forEach(([sx, age], j) => {
+      if (age < 0 || age > 0.45) return;
+      const r = 6 + age * 40;
+      withAlpha(ctx, 1 - age / 0.45, () => rc.ellipse(sx, y0 + 2, r * 2, r * 0.6, { stroke: P.seaLine, strokeWidth: 1.4, roughness: 0.6, seed: sd('splash' + i + j) }));
+    });
+  });
+}
+
+// A little broken line of water across the bottom of a swimmer.
+function waterline(pen, x, y, w, id) {
+  const { rc, P, sd } = pen;
+  rc.curve([[x - w, y + 1], [x - w * 0.4, y + 3], [x, y], [x + w * 0.4, y + 3], [x + w * 0.85, y + 1]], { stroke: P.seaLine, strokeWidth: 1.8, roughness: 0.7, seed: sd(id + 'wl') });
+  rc.curve([[x - w * 0.6, y + 7], [x - w * 0.1, y + 9], [x + w * 0.5, y + 7]], { stroke: P.seaLine, strokeWidth: 1.2, roughness: 0.7, seed: sd(id + 'wl2') });
+}
+
+function serpent(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  const ox = SERPENT.x - 80 + 10 * wave(t, 1), oy = SERPENT.y + 2 * wave(t, 2, 0.3);
+  const len = 180, lambda = 78, A = 26, sink = 6;
+  const phase = cycle(t, 3);
+  const cy = (s) => -(A * Math.sin(TAU * (s / lambda + phase)) - sink);
+  const thick = (s) => lerp(5, 18, clamp(s / len));
+  const N = 48, top = [], bot = [];
+  for (let i = 0; i <= N; i++) {
+    const s = (i / N) * len, y = cy(s), dy = (cy(s + 1) - cy(s - 1)) / 2;
+    const nl = Math.hypot(1, dy), nx = -dy / nl, ny = 1 / nl, h = thick(s) / 2;
+    top.push([ox + s - nx * h, oy + y - ny * h]);
+    bot.push([ox + s + nx * h, oy + y + ny * h]);
+  }
+  const body = [...top, ...bot.reverse()];
+  // Everything above the waterline shows; the rest is under the sea.
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(0, 0, W, oy + 1);
+  ctx.clip();
+  rc.polygon(body, { stroke: 'none', fill: P.serpent, fillStyle: 'solid', roughness: 0.4, seed: sd('srBody', false) });
+  withAlpha(ctx, 0.6, () => rc.polygon(body, { stroke: 'none', fill: P.serpentDeep, fillStyle: 'hachure', hachureGap: 4, hachureAngle: 0, fillWeight: 1.2, roughness: 0.5, seed: sd('srHatch') }));
+  // Spines along each hump.
+  for (let i = 4; i < N - 2; i += 4) {
+    const [x1, y1] = top[i], [x2, y2] = top[i + 2];
+    const mx = (x1 + x2) / 2, my = (y1 + y2) / 2 - 7;
+    rc.polygon([[x1, y1], [mx, my], [x2, y2]], { ...ink(P, 1), fill: P.roseDeep, fillStyle: 'solid', seed: sd('srSpine' + i) });
+  }
+  rc.curve(top, ink(P, 1.6, { seed: sd('srTop') }));
+  rc.curve(bot.reverse(), ink(P, 1.4, { seed: sd('srBot') }));
+  ctx.restore();
+  // Ripples where the humps break the surface.
+  for (let i = 1; i <= N; i++) {
+    const s0 = ((i - 1) / N) * len, s1 = (i / N) * len;
+    if ((cy(s0) < 0) !== (cy(s1) < 0)) rc.curve([[ox + s1 - 11, oy + 3], [ox + s1, oy - 1], [ox + s1 + 11, oy + 3]], { stroke: P.seaLine, strokeWidth: 1.6, roughness: 0.6, seed: sd('srRip' + i) });
+  }
+  // Neck and head rising at the front, bobbing.
+  const bob = 4 * wave(t, 2, 0.15), hx = ox + len + 34, hy = oy - 52 + bob;
+  const neckTop = [[ox + len + 2, oy], [ox + len + 14, oy - 26 + bob * 0.4], [hx - 4, hy + 6]];
+  const neck = [[ox + len - 10, oy + 1], ...neckTop, [hx + 6, hy + 12], [ox + len + 26, oy - 22 + bob * 0.4], [ox + len + 18, oy + 1]];
+  rc.curve(neck, { ...ink(P, 1.6), fill: P.serpent, fillStyle: 'solid', seed: sd('srNeck') });
+  const head = [[hx - 8, hy + 6], [hx - 6, hy - 6], [hx + 6, hy - 10], [hx + 22, hy - 4], [hx + 26, hy + 3], [hx + 10, hy + 9], [hx - 8, hy + 6]];
+  rc.curve(head, { ...ink(P, 1.6), fill: P.serpent, fillStyle: 'solid', seed: sd('srHead') });
+  rc.polygon([[hx - 6, hy - 4], [hx - 18, hy - 14], [hx - 4, hy - 10], [hx - 12, hy - 22], [hx + 2, hy - 9]], { ...ink(P, 1.1), fill: P.roseDeep, fillStyle: 'solid', seed: sd('srFrill') });
+  rc.circle(hx + 8, hy - 3, 4.5, { stroke: 'none', fill: P.paper, fillStyle: 'solid', roughness: 0.2, seed: sd('srEyeW', false) });
+  rc.circle(hx + 9, hy - 3, 2.4, { stroke: 'none', fill: P.ink, fillStyle: 'solid', roughness: 0.2, seed: sd('srEye', false) });
+  waterline(pen, ox + len + 14, oy, 22, 'srNeck');
+  // Tail tip flicking up at the back.
+  const flick = 0.5 + 0.5 * wave(t, 3, 0.4);
+  rc.polygon([[ox - 4, oy], [ox - 18, oy - 10 - flick * 8], [ox - 8, oy - 4], [ox - 20, oy - 2 + flick * 2], [ox - 2, oy + 1]], { ...ink(P, 1.2), fill: P.serpentDeep, fillStyle: 'solid', seed: sd('srTail') });
+}
+
+function ship(pen, x, y, facing, tilt, wake, id, flag) {
+  const { rc, ctx, P, sd } = pen;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.rotate(tilt);
+  ctx.scale(facing, 1);
+  withAlpha(ctx, wake, () => {
+    rc.curve([[-19, 3], [-30, 1], [-42, 4]], { stroke: P.seaLine, strokeWidth: 1.4, roughness: 0.6, seed: sd(id + 'wk1') });
+    rc.curve([[-17, 6], [-27, 9], [-36, 8]], { stroke: P.seaLine, strokeWidth: 1.1, roughness: 0.6, seed: sd(id + 'wk2') });
+  });
+  rc.polygon([[-18, -5], [19, -5], [14, 5], [-13, 5]], { ...ink(P, 1.4), fill: P.wood, fillStyle: 'solid', seed: sd(id + 'hull') });
+  rc.line(0, -5, 0, -42, ink(P, 1.6, { roughness: 0.4, seed: sd(id + 'mast') }));
+  rc.polygon([[2, -38], [2, -10], [18, -11], [14, -25]], { ...ink(P, 1.2), fill: P.sail, fillStyle: 'solid', seed: sd(id + 'sail') });
+  rc.line(3, -24, 15, -23, { stroke: flag, strokeWidth: 3, roughness: 0.4, seed: sd(id + 'stripe') });
+  rc.polygon([[-2, -35], [-2, -10], [-15, -10]], { ...ink(P, 1.2), fill: P.sail, fillStyle: 'solid', seed: sd(id + 'jib') });
+  rc.polygon([[0, -42], [11, -39], [0, -36]], { ...ink(P, 1), fill: flag, fillStyle: 'solid', seed: sd(id + 'flag') });
+  ctx.restore();
+}
+
+// Each ferry crosses, eases into the far pier, turns about and sails home.
+function ships(pen, t) {
+  const { P } = pen;
+  const q = (a, c, b, e) => (1 - e) * (1 - e) * a + 2 * (1 - e) * e * c + e * e * b;
+  LANES.forEach((lane, i) => {
+    const p = cycle(t, 1, lane.phase);
+    const k = p < 0.5 ? p * 2 : 2 - p * 2;
+    const e = smooth(k), speed = 4 * k * (1 - k);
+    const { a, b, ctrl } = lane;
+    const x = q(a[0], ctrl[0], b[0], e), y = q(a[1], ctrl[1], b[1], e);
+    const heading = Math.sign((b[0] - a[0]) * (p < 0.5 ? 1 : -1));
+    // Squashes through zero at each pier, which reads as turning about.
+    const facing = heading * Math.max(0.05, clamp(speed / 0.35));
+    ship(pen, x, y + 1.5 * wave(t, 6, i * 0.3), facing, 0.07 * wave(t, 4, i * 0.5), clamp(speed * 1.5), 'ship' + i, P[lane.flag]);
+  });
+}
+
+// Twice a loop the volcano rumbles, then blows: a flash, lava bombs, an ash
+// column and lava running down its flanks.
+const ERUPT_CYCLES = 2, ERUPT_PHASE = -0.45, ERUPT_LENGTH = 0.4, RUMBLE = 0.18;
+const LAVA_FLOWS = [
+  [[-6, 2], [-12, 18], [-8, 34], [-18, 52], [-22, 72]],
+  [[7, 2], [14, 20], [11, 38], [22, 56], [30, 72]],
+  [[0, 3], [3, 22], [-2, 40], [4, 60]],
+];
+const BOMB_G = 340;
+const BOMBS = Array.from({ length: 13 }, (_, i) => {
+  const r = SceneKit.rng(300 + i);
+  const b = { angle: (i / 12 - 0.5) * 1.3 + (r() - 0.5) * 0.15, speed: 180 + r() * 70, size: 5 + r() * 5, delay: r() * 0.06 };
+  b.vx = Math.sin(b.angle) * b.speed;
+  b.vy = -Math.cos(b.angle) * b.speed;
+  // Where and when it comes down on the slopes below the crater.
+  for (b.land = 0.02; ; b.land += 0.01) {
+    const x = b.vx * b.land, y = -4 + b.vy * b.land + 0.5 * BOMB_G * b.land ** 2;
+    if (y > 40 + Math.abs(x) * 0.2) { b.lx = x; b.ly = y; break; }
+  }
+  return b;
+});
+
+function eruption(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  const cx = VOLCANO.x, cy = VOLCANO.y - VOLCANO.h;
+  const p = cycle(t, ERUPT_CYCLES, ERUPT_PHASE);
+  const secs = SECONDS / ERUPT_CYCLES; // length of one eruption cycle
+
+  // Rumble: the crater glows and shake marks jitter beside the cone.
+  if (p > 1 - RUMBLE) {
+    const k = (p - 1 + RUMBLE) / RUMBLE, jig = 1.5 * wave(t, 72);
+    glowAt(ctx, P.ember, cx, cy, 20 + 10 * k, 0.4 + 0.4 * k);
+    withAlpha(ctx, Math.min(1, k * 2), () => [-1, 1].forEach((side, i) => {
+      const x = cx + side * (VOLCANO.w * 0.36) + jig, y = cy + 34;
+      rc.curve([[x, y - 10], [x + side * 4, y - 3], [x, y + 4]], ink(P, 1.5, { seed: sd('rumbleA' + i) }));
+      rc.curve([[x + side * 7, y - 7], [x + side * 10, y - 2], [x + side * 7, y + 3]], ink(P, 1.2, { seed: sd('rumbleB' + i) }));
+    }));
+    return;
+  }
+  if (p > ERUPT_LENGTH) return;
+  const k = p / ERUPT_LENGTH, tau = p * secs;
+
+  // Lava pours over the rim and down the flanks, then cools away.
+  const pour = clamp((k - 0.05) / 0.35), cool = clamp((1 - k) / 0.35);
+  glowAt(ctx, P.ember, cx, cy, 34, 0.7 * cool);
+  LAVA_FLOWS.forEach((flow, i) => {
+    const reach = pour * (flow.length - 1);
+    if (reach < 0.2) return;
+    const n = Math.floor(reach), f = reach - n;
+    const pts = flow.slice(0, n + 1).map(([dx, dy]) => [cx + dx, cy + dy]);
+    if (f > 0 && n + 1 < flow.length) pts.push([cx + lerp(flow[n][0], flow[n + 1][0], f), cy + lerp(flow[n][1], flow[n + 1][1], f)]);
+    if (pts.length < 2) return;
+    withAlpha(ctx, cool, () => {
+      rc.curve(pts, { stroke: P.ember, strokeWidth: 5, roughness: 0.5, seed: sd('flow' + i) });
+      rc.curve(pts, { stroke: P.glow, strokeWidth: 2, roughness: 0.4, seed: sd('flowCore' + i) });
+    });
+  });
+
+  // Shockwave ring rolling out across the desert.
+  if (k < 0.3) {
+    const b = k / 0.3;
+    withAlpha(ctx, 0.8 * (1 - b), () => rc.ellipse(cx, VOLCANO.y - 6, 60 + 200 * b, 18 + 60 * b, ink(P, 1.6, { seed: sd('shock') })));
+  }
+
+  // Ash column: puffs that billow up and spread.
+  for (let i = 0; i < 8; i++) {
+    const ki = clamp((k - i * 0.04) / 0.85);
+    if (ki <= 0 || ki >= 1) continue;
+    const rise = 1 - (1 - ki) ** 2;
+    const x = cx + (i % 2 ? 1 : -1) * (4 + 20 * ki) + 12 * ki, y = cy - 14 - (52 + (i % 3) * 8) * rise;
+    withAlpha(ctx, 0.9 * (1 - ki ** 2), () =>
+      rc.circle(x, y, 16 + 28 * ki, { ...ink(P, 1.1), fill: P.ash, fillStyle: 'solid', seed: sd('ash' + i) }));
+  }
+
+  // Lava bombs arc out, trailing sparks, and splat glowing on the slopes.
+  BOMBS.forEach((b, i) => {
+    const s = tau - b.delay;
+    if (s <= 0) return;
+    if (s >= b.land) {
+      const fade = 1 - (s - b.land) / 0.8;
+      if (fade > 0 && !east.contains(cx + b.lx, cy + b.ly)) {
+        const r = 6 + 22 * (1 - fade);
+        withAlpha(ctx, fade, () => rc.ellipse(cx + b.lx, cy + b.ly, r * 2, r * 0.6, { stroke: P.seaLine, strokeWidth: 1.6, roughness: 0.6, seed: sd('hiss' + i) }));
+      } else if (fade > 0) withAlpha(ctx, fade, () => {
+        glowAt(ctx, P.ember, cx + b.lx, cy + b.ly, 10, 0.6);
+        rc.ellipse(cx + b.lx, cy + b.ly, b.size + 4, (b.size + 4) * 0.45, { stroke: 'none', fill: P.ember, fillStyle: 'solid', roughness: 0.6, seed: sd('splat' + i) });
+      });
+      return;
+    }
+    const pos = (u) => [cx + b.vx * u, cy - 4 + b.vy * u + 0.5 * BOMB_G * u * u];
+    const [x, y] = pos(s), [px, py] = pos(Math.max(0, s - 0.06));
+    withAlpha(ctx, 0.85, () => rc.line(px, py, x, y, { stroke: P.glow, strokeWidth: 2.4, roughness: 0.3, seed: sd('trail' + i) }));
+    rc.circle(x, y, b.size, { ...ink(P, 1), fill: P.ember, fillStyle: 'solid', seed: sd('bomb' + i) });
+  });
+
+  // The blast itself: a flash and a jagged burst at the crater.
+  if (k < 0.18) {
+    const b = k / 0.18;
+    glowAt(ctx, P.glow, cx, cy - 8, 60 + 70 * b, 0.95 * (1 - b));
+    const burst = Array.from({ length: 18 }, (_, i) => {
+      const a = (i / 18) * TAU, r = (i % 2 ? 16 : 42) * (0.55 + 0.75 * b);
+      return [cx + Math.cos(a) * r, cy - 14 + Math.sin(a) * r * 0.8];
+    });
+    withAlpha(ctx, 1 - b * b, () => rc.polygon(burst, { stroke: P.ember, strokeWidth: 2.4, fill: P.glow, fillStyle: 'solid', roughness: 0.9, seed: sd('burst') }));
+  }
+}
+
+// A scorpion scuttles between spots on Sunreach, pausing to snap its claws.
+const SCORP_PATH = [[0, 0], [26, 3], [10, 10], [-22, 5], [-32, -4], [-6, -6]];
+
+function scorpion(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  const n = SCORP_PATH.length;
+  const u = cycle(t) * n, i = Math.floor(u), local = u - i;
+  const prev = SCORP_PATH[(i - 1 + n) % n], a = SCORP_PATH[i], b = SCORP_PATH[(i + 1) % n];
+  const moving = local < 0.45, m = smooth(clamp(local / 0.45));
+  const x = SCORPION.x + lerp(a[0], b[0], m), y = SCORPION.y + lerp(a[1], b[1], m);
+  // Turns about with a quick squash when it changes direction.
+  const was = Math.sign(a[0] - prev[0]) || 1, dir = Math.sign(b[0] - a[0]) || 1;
+  let facing = local < 0.08 ? lerp(was, dir, local / 0.08) : dir;
+  if (Math.abs(facing) < 0.1) facing = Math.sign(facing || dir) * 0.1;
+  const busy = moving ? Math.sin(Math.PI * clamp(local / 0.45)) : 0;
+  const snap = moving ? 0.2 : Math.max(0, wave(t, 24));
+
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1.25 * facing, 1.25);
+  withAlpha(ctx, 0.35, () => rc.ellipse(0, 1, 30, 5, { stroke: 'none', fill: P.goldDeep, fillStyle: 'solid', roughness: 0.4, seed: sd('scShadow', false) }));
+  if (busy > 0.2) [0, 1].forEach((j) => withAlpha(ctx, 0.6 * busy, () =>
+    rc.circle(-15 - j * 6, -1 - j * 2, 4 - j, { stroke: 'none', fill: P.stone, fillStyle: 'solid', roughness: 0.3, seed: sd('scDust' + j) })));
+  for (let j = 0; j < 4; j++) {
+    const lx = -6 + j * 4, w = 1.8 * busy * wave(t, 72, j * 0.25);
+    rc.linearPath([[lx, -4], [lx + 2 + w, -8], [lx + 4 + w, 0]], ink(P, 1.1, { roughness: 0.3, seed: sd('scLeg' + j) }));
+  }
+  // Tail curling over the back, swaying, with a red stinger.
+  ctx.save();
+  ctx.translate(-9, -6);
+  ctx.rotate(0.12 * wave(t, 6) + (moving ? 0.05 : -0.08));
+  [[0, 0, 6], [-5, -5, 5.6], [-6, -12, 5.2], [-3, -18, 4.8], [2, -21, 4.4]].forEach(([sx, sy, d], j) =>
+    rc.circle(sx, sy, d, { ...ink(P, 1), fill: P.scorpion, fillStyle: 'solid', seed: sd('scTail' + j) }));
+  rc.polygon([[4, -23], [10, -20], [6, -16], [5, -19]], { ...ink(P, 1), fill: P.ember, fillStyle: 'solid', seed: sd('scSting') });
+  ctx.restore();
+  rc.ellipse(-1, -6, 20, 9, { ...ink(P, 1.2), fill: P.scorpion, fillStyle: 'solid', seed: sd('scBody') });
+  [-5, 0].forEach((sx, j) => rc.line(sx, -10, sx + 1, -2, { stroke: P.ink, strokeWidth: 0.8, roughness: 0.3, seed: sd('scBand' + j) }));
+  rc.ellipse(9, -6, 9, 7, { ...ink(P, 1.1), fill: P.scorpion, fillStyle: 'solid', seed: sd('scHead') });
+  rc.circle(11, -8, 2, { stroke: 'none', fill: P.ink, fillStyle: 'solid', roughness: 0.2, seed: sd('scEye', false) });
+  // Pincers, the far one a touch higher, snapping while it waits.
+  [[-2.5, 0.6], [0, 1]].forEach(([oy, alpha], j) => withAlpha(ctx, alpha, () => {
+    rc.linearPath([[12, -5 + oy], [16, -3 + oy], [19, -6 + oy]], ink(P, 1.6, { roughness: 0.3, seed: sd('scArm' + j) }));
+    ctx.save();
+    ctx.translate(20, -6 + oy);
+    rc.ellipse(1.5, 0, 6, 4.5, { ...ink(P, 1), fill: P.scorpion, fillStyle: 'solid', seed: sd('scClaw' + j) });
+    const open = 0.5 + 3.5 * snap;
+    rc.line(3, -1, 8, -1.5 - open, ink(P, 1.4, { roughness: 0.2, seed: sd('scJawA' + j) }));
+    rc.line(3, 1, 8, 1.5 + open * 0.6, ink(P, 1.4, { roughness: 0.2, seed: sd('scJawB' + j) }));
+    ctx.restore();
+  }));
+  ctx.restore();
+}
+
+function smoke(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  const cx = VOLCANO.x, cy = VOLCANO.y - VOLCANO.h - 2;
+  for (let i = 5; i >= 0; i--) {
+    const p = cycle(t, 2, i / 6);
+    const x = cx + p * 34 + 5 * Math.sin(p * 5 + i), y = cy - p * 72, d = 10 + p * 24;
+    withAlpha(ctx, 0.85 * Math.sin(Math.PI * Math.min(1, p * 1.25)), () =>
+      rc.circle(x, y, d, { stroke: P.ink, strokeWidth: 1, fill: P.smoke, fillStyle: 'solid', roughness: 0.9, seed: sd('smoke' + i) }));
+  }
+}
+
+function sprout(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  const x = 702, y = 404;
+  const pulse = 0.5 + 0.5 * wave(t, 2);
+  const g = ctx.createRadialGradient(x, y - 20, 2, x, y - 20, 58);
+  g.addColorStop(0, P.glow);
+  g.addColorStop(1, 'rgba(255,215,106,0)');
+  withAlpha(ctx, P.glowAlpha * (0.7 + 0.3 * pulse), () => { ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y - 20, 58, 0, TAU); ctx.fill(); });
+  rc.ellipse(x, y + 2, 20, 9, { ...ink(P, 1.2), fill: P.wood, fillStyle: 'solid', seed: sd('seedHusk') });
+  const sway = 0.12 * wave(t, 2, 0.2);
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1.25, 1.25);
+  ctx.rotate(sway);
+  rc.curve([[0, 0], [2, -12], [-1, -24], [0, -34]], { stroke: P.forestDark, strokeWidth: 3, roughness: 0.5, seed: sd('stem') });
+  [[-1, -0.6], [1, 0.5]].forEach(([side, tilt], i) => {
+    ctx.save();
+    ctx.translate(0, -30 + i * 6);
+    ctx.rotate(tilt + 0.15 * wave(t, 2, i * 0.5));
+    const leaf = [[0, 0], [side * 8, -8], [side * 20, -6], [side * 26, 0], [side * 14, 5], [0, 0]];
+    rc.curve(leaf, { ...ink(P, 1.2), fill: P.sprout, fillStyle: 'solid', seed: sd('leaf' + i) });
+    rc.line(0, 0, side * 22, -1, { stroke: P.forestDark, strokeWidth: 1, roughness: 0.4, seed: sd('vein' + i) });
+    ctx.restore();
+  });
+  ctx.restore();
+  // Twinkles around the seed.
+  [[-32, -40, 0], [30, -46, 0.3], [40, -14, 0.55], [-40, -12, 0.8], [6, -64, 0.15]].forEach(([dx, dy, ph], i) => {
+    const s = Math.max(0, wave(t, 2, ph)) ** 2 * 7;
+    if (s < 0.6) return;
+    const o = { stroke: P.glow, strokeWidth: 2, roughness: 0.3, seed: sd('tw' + i) };
+    rc.line(x + dx - s, y + dy, x + dx + s, y + dy, o);
+    rc.line(x + dx, y + dy - s, x + dx, y + dy + s, o);
+  });
+}
+
+// A monkey in armour with a banana on his shield, saluting with his sword.
+function monkeyKnight(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  ctx.save();
+  ctx.translate(KNIGHT.x, KNIGHT.y);
+  ctx.scale(1.2, 1.2);
+  // Pennant planted beside him.
+  const f = 2.5 * wave(t, 6);
+  rc.line(25, 2, 25, -46, { stroke: P.wood, strokeWidth: 2, roughness: 0.4, seed: sd('knPole') });
+  rc.curve([[25, -46], [32, -45 + f], [40, -42 - f * 0.5], [33, -39 + f * 0.5], [25, -36], [25, -46]], { ...ink(P, 1), fill: P.roof, fillStyle: 'solid', seed: sd('knPennant') });
+  // Tail curling out behind.
+  ctx.save();
+  ctx.translate(-4, -12);
+  ctx.rotate(0.22 * wave(t, 3, 0.2));
+  rc.curve([[0, 0], [-10, 2], [-17, -5], [-15, -14], [-9, -13]], { stroke: P.fur, strokeWidth: 3.4, roughness: 0.5, seed: sd('knTail') });
+  ctx.restore();
+  // Legs and boots.
+  rc.line(-4, -12, -5, -2, { stroke: P.fur, strokeWidth: 4.5, roughness: 0.4, seed: sd('knLegL') });
+  rc.line(4, -12, 5, -2, { stroke: P.fur, strokeWidth: 4.5, roughness: 0.4, seed: sd('knLegR') });
+  rc.ellipse(-6, -1, 10, 5, { ...ink(P, 1), fill: P.steel, fillStyle: 'solid', seed: sd('knBootL') });
+  rc.ellipse(6, -1, 10, 5, { ...ink(P, 1), fill: P.steel, fillStyle: 'solid', seed: sd('knBootR') });
+  // Breastplate and tabard.
+  rc.ellipse(0, -20, 21, 21, { ...ink(P, 1.3), fill: P.steel, fillStyle: 'solid', seed: sd('knChest') });
+  rc.polygon([[-6, -27], [6, -27], [6, -13], [0, -10], [-6, -13]], { ...ink(P, 1), fill: P.roof, fillStyle: 'solid', seed: sd('knTabard') });
+  // Shield with a banana on it.
+  rc.polygon([[5, -28], [19, -28], [19, -19], [12, -10], [5, -19]], { ...ink(P, 1.3), fill: P.seaLine, fillStyle: 'solid', seed: sd('knShield') });
+  rc.curve([[8, -24.5], [9.5, -19], [13, -16.5], [17, -21], [14.5, -20], [11.5, -21], [10, -24.5]], { stroke: '#2a2620', strokeWidth: 0.8, roughness: 0.3, fill: P.glow, fillStyle: 'solid', seed: sd('knBanana') });
+  rc.line(8.5, -24.5, 8, -26.5, { stroke: P.wood, strokeWidth: 1.6, roughness: 0.2, seed: sd('knStem') });
+  // Sword arm, raised in a salute twice a loop.
+  ctx.save();
+  ctx.translate(-8, -25);
+  ctx.rotate(-0.15 - 0.45 * smooth(Math.max(0, wave(t, 2, 0.1))));
+  rc.line(0, 0, -5, -9, { stroke: P.fur, strokeWidth: 3.6, roughness: 0.4, seed: sd('knArm') });
+  rc.polygon([[-4.5, -12], [-7.5, -12], [-9, -38], [-6.5, -40], [-4.5, -38]], { ...ink(P, 1), fill: P.steel, fillStyle: 'solid', seed: sd('knBlade') });
+  rc.line(-11, -12, -1, -12, { stroke: P.stone, strokeWidth: 3, roughness: 0.3, seed: sd('knGuard') });
+  rc.circle(-6, -9, 5, { ...ink(P, 1), fill: P.fur, fillStyle: 'solid', seed: sd('knHand') });
+  ctx.restore();
+  // Head: ears, fur, face, helmet and plume.
+  [-9, 9].forEach((ex, i) => rc.circle(ex, -36, 8, { ...ink(P, 1.1), fill: P.face, fillStyle: 'solid', seed: sd('knEar' + i) }));
+  rc.circle(0, -36, 18, { ...ink(P, 1.3), fill: P.fur, fillStyle: 'solid', seed: sd('knHead') });
+  rc.ellipse(0, -33, 13, 10, { stroke: 'none', fill: P.face, fillStyle: 'solid', roughness: 0.4, seed: sd('knFace', false) });
+  [-2.6, 2.6].forEach((ex, i) => rc.circle(ex, -35.5, 2.4, { stroke: 'none', fill: '#2a2620', fillStyle: 'solid', roughness: 0.2, seed: sd('knEye' + i, false) }));
+  rc.curve([[-2.5, -31], [0, -29.5], [2.5, -31]], { stroke: '#2a2620', strokeWidth: 1, roughness: 0.3, seed: sd('knSmile') });
+  rc.curve([[-9.5, -39], [-8, -46], [0, -50], [8, -46], [9.5, -39], [-9.5, -39]], { ...ink(P, 1.2), fill: P.steel, fillStyle: 'solid', seed: sd('knHelm') });
+  const bob = 1.5 * wave(t, 4);
+  rc.curve([[0, -50], [-4, -57 + bob], [-11, -58 + bob], [-15, -53 + bob]], { stroke: P.roof, strokeWidth: 4, roughness: 0.4, seed: sd('knPlume') });
+  ctx.restore();
+}
+
+// The wizard blinks out in a burst of sparkles, streaks across the sea as a
+// star and blinks in at the next stop. Timings are in loop fractions.
+const F = 1 / FRAMES;
+const WIZ_IN = 6 * F, WIZ_OUT = 6 * F, WIZ_FLY = 8 * F, WIZ_BURST = 12 * F;
+const WIZ_STAY = 1 / WIZ_STOPS.length - WIZ_FLY; // from blinking in to finishing blinking out
+
+function wizard(pen, t) {
+  WIZ_STOPS.forEach((spot, i) => {
+    const next = WIZ_STOPS[(i + 1) % WIZ_STOPS.length];
+    const since = cycle(t, 1, -i / WIZ_STOPS.length); // time since he arrived here
+    sparkleBurst(pen, spot, since / WIZ_BURST, 'in' + i);
+    sparkleBurst(pen, spot, (since - WIZ_STAY + WIZ_OUT) / WIZ_BURST, 'out' + i);
+    const fly = (since - WIZ_STAY + WIZ_OUT / 2) / (WIZ_FLY + WIZ_OUT / 2);
+    if (fly >= 0 && fly < 1) wizardStar(pen, spot, next, fly, i);
+    if (since < WIZ_STAY) wizardAt(pen, t, spot, since, i);
+  });
+}
+
+function glowAt(ctx, color, x, y, r, alpha) {
+  const n = parseInt(color.slice(1), 16);
+  const g = ctx.createRadialGradient(x, y, 1, x, y, r);
+  g.addColorStop(0, color);
+  g.addColorStop(1, `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},0)`);
+  withAlpha(ctx, alpha, () => { ctx.fillStyle = g; ctx.beginPath(); ctx.arc(x, y, r, 0, TAU); ctx.fill(); });
+}
+
+function twinkle(pen, x, y, s, id) {
+  const { rc, P, sd } = pen;
+  const o = { stroke: P.spark, strokeWidth: 2.2, roughness: 0.3, seed: sd(id) };
+  rc.line(x - s, y, x + s, y, o);
+  rc.line(x, y - s, x, y + s, o);
+}
+
+function sparkleBurst(pen, { x, y }, k, id) {
+  if (k < 0 || k >= 1) return;
+  glowAt(pen.ctx, pen.P.glow, x, y - 30, 30 + 30 * k, 0.8 * (1 - k));
+  for (let i = 0; i < 9; i++) {
+    const a = (i / 9) * TAU + 0.3, d = 12 + 42 * smooth(k);
+    twinkle(pen, x + Math.cos(a) * d, y - 30 + Math.sin(a) * d * 0.8, 6 * (1 - k), 'wzSpark' + id + i);
+  }
+}
+
+// A shooting star with a sparkly tail, arcing from one stop to the next.
+function wizardStar(pen, from, to, k, id) {
+  const ax = from.x, ay = from.y - 30, bx = to.x, by = to.y - 30;
+  const len = Math.hypot(bx - ax, by - ay);
+  const cx = (ax + bx) / 2 - ((by - ay) / len) * 90, cy = (ay + by) / 2 + ((bx - ax) / len) * 90;
+  const at = (e) => [(1 - e) * (1 - e) * ax + 2 * (1 - e) * e * cx + e * e * bx, (1 - e) * (1 - e) * ay + 2 * (1 - e) * e * cy + e * e * by];
+  const e = smooth(k);
+  for (let j = 5; j >= 0; j--) {
+    const ej = e - j * 0.07;
+    if (ej < 0) continue;
+    const [x, y] = at(ej);
+    if (j === 0) {
+      glowAt(pen.ctx, pen.P.glow, x, y, 20, 0.9);
+      const spin = k * TAU;
+      const star = Array.from({ length: 10 }, (_, i) => { const a = spin + (i * Math.PI) / 5 - Math.PI / 2, r = i % 2 ? 4 : 10; return [x + Math.cos(a) * r, y + Math.sin(a) * r]; });
+      pen.rc.polygon(star, { ...ink(pen.P, 1.2), fill: pen.P.glow, fillStyle: 'solid', seed: pen.sd('wzStarHead' + id) });
+    } else withAlpha(pen.ctx, 1 - j / 6, () => twinkle(pen, x, y, 7 - j, 'wzTail' + id + j));
+  }
+}
+
+function wizardAt(pen, t, { x, y }, since, id) {
+  const { rc, ctx, P, sd } = pen;
+  const kIn = clamp(since / WIZ_IN), kOut = clamp((since - WIZ_STAY + WIZ_OUT) / WIZ_OUT);
+  // Glowing circle on the ground while he's here.
+  withAlpha(ctx, 0.75 * Math.min(kIn, 1 - kOut), () => rc.ellipse(x, y, 44, 12, { stroke: P.glow, strokeWidth: 2, roughness: 0.6, seed: sd('wzRing' + id) }));
+  // Pops in tall and thin, settles, then stretches away to nothing.
+  const arriving = since < WIZ_IN;
+  const sx = arriving ? smooth(kIn) * (1 + 0.25 * Math.sin(Math.PI * kIn)) : 1 - smooth(kOut);
+  const sy = arriving ? lerp(1.6, 1, smooth(kIn)) : lerp(1, 1.7, smooth(kOut));
+  if (sx < 0.03) return;
+  ctx.save();
+  ctx.translate(x, y);
+  ctx.scale(1.15 * sx, 1.15 * sy);
+  rc.line(12, 1, 13, -44, { stroke: P.wood, strokeWidth: 2.4, roughness: 0.4, seed: sd('wzStaff') });
+  rc.polygon([[-5, -28], [5, -28], [12, 0], [-12, 0]], { ...ink(P, 1.3), fill: P.robe, fillStyle: 'solid', seed: sd('wzRobe') });
+  [[-5, -9, 2.6], [5, -15, 2.2], [1, -4, 2], [-2, -19, 1.8]].forEach(([dx, dy, d], i) =>
+    rc.circle(dx, dy, d, { stroke: 'none', fill: P.glow, fillStyle: 'solid', roughness: 0.2, seed: sd('wzStar' + i, false) }));
+  rc.polygon([[3, -25], [12, -21], [12, -16], [4, -19]], { ...ink(P, 1.1), fill: P.robe, fillStyle: 'solid', seed: sd('wzSleeve') });
+  rc.circle(12.5, -19, 4.5, { ...ink(P, 1), fill: P.face, fillStyle: 'solid', seed: sd('wzHand') });
+  rc.circle(0, -32, 11, { ...ink(P, 1.2), fill: P.face, fillStyle: 'solid', seed: sd('wzHead') });
+  [-2.2, 2.2].forEach((ex, i) => rc.circle(ex, -33, 1.8, { stroke: 'none', fill: '#2a2620', fillStyle: 'solid', roughness: 0.2, seed: sd('wzEye' + i, false) }));
+  rc.polygon([[-5.5, -30], [0, -13], [5.5, -30]], { ...ink(P, 1.1), fill: P.snow, fillStyle: 'solid', seed: sd('wzBeard') });
+  rc.ellipse(0, -36, 24, 6, { ...ink(P, 1.2), fill: P.robe, fillStyle: 'solid', seed: sd('wzBrim') });
+  rc.polygon([[-7, -37], [-2, -52], [7, -62], [3, -50], [7, -37]], { ...ink(P, 1.2), fill: P.robe, fillStyle: 'solid', seed: sd('wzHat') });
+  rc.circle(1, -45, 3.4, { stroke: 'none', fill: P.glow, fillStyle: 'solid', roughness: 0.2, seed: sd('wzHatStar', false) });
+  // Orb on the staff, pulsing.
+  glowAt(ctx, P.glow, 13, -48, 14, 0.5 + 0.4 * (0.5 + 0.5 * wave(t, 4)));
+  rc.circle(13, -48, 8, { ...ink(P, 1.1), fill: P.glow, fillStyle: 'solid', seed: sd('wzOrb') });
+  ctx.restore();
+}
+
+function birds(pen, t) {
+  const { rc, P, sd } = pen;
+  for (let i = 0; i < 3; i++) {
+    const a = TAU * (t + i / 3);
+    const x = BIRDS.x + Math.cos(a) * 46 + i * 8, y = BIRDS.y + Math.sin(a) * 16 - i * 14;
+    const f = 5 * wave(t, 18, i * 0.3);
+    rc.curve([[x - 13, y - 2 + f], [x - 6, y - 6 + f * 0.4], [x, y], [x + 6, y - 6 + f * 0.4], [x + 13, y - 2 + f]], ink(P, 1.8, { roughness: 0.5, seed: sd('bird' + i) }));
+  }
+}
+
+function clouds(pen, t) {
+  const { rc, ctx, P, sd } = pen;
+  [[1200, 94, 0.9, 0], [446, 96, 0.8, 0.4], [1236, 708, 0.9, 0.7]].forEach(([cx, cy, s, ph], i) => {
+    const x = cx + 14 * wave(t, 1, ph), y = cy;
+    const puffs = [[-30, 4, 30], [-12, -8, 38], [12, -6, 34], [30, 4, 28], [0, 6, 40]].map(([dx, dy, d]) => [x + dx * s, y + dy * s, d * s]);
+    puffs.forEach(([px, py, d], j) => rc.circle(px, py, d, { stroke: P.cloudLine, strokeWidth: 1.6, roughness: 0.9, seed: sd('cl' + i + j) }));
+    puffs.forEach(([px, py, d], j) => rc.circle(px, py, d - 3, { stroke: 'none', fill: P.cloud, fillStyle: 'solid', roughness: 0.6, seed: sd('cf' + i + j, false) }));
+  });
+}
+
+// ---------- Frame ----------
+
+const cache = new Map();
+function layers(theme, v) {
+  const key = theme + v;
+  if (!cache.has(key)) {
+    const paint = (fn) => {
+      const c = document.createElement('canvas');
+      c.width = W; c.height = H;
+      fn(makePen(c.getContext('2d'), PALETTES[theme], v));
+      return c;
+    };
+    cache.set(key, { sea: paint(drawSea), land: paint(drawLand) });
+  }
+  return cache.get(key);
+}
+
+SceneKit.mount({
+  name: 'hero-map', width: W, height: H, fps: FPS, frames: FRAMES, poster: 30,
+  backgrounds: { light: PALETTES.light.paper, dark: PALETTES.dark.paper },
+  draw(ctx, frame, theme) {
+    const t = frame / FRAMES;
+    const v = Math.floor(frame / BOIL_EVERY) % BOIL_VARIANTS;
+    const pen = makePen(ctx, PALETTES[theme], v);
+    const { sea, land } = layers(theme, v);
+    ctx.drawImage(sea, 0, 0);
+    clipTo(ctx, ocean.points(-4), () => {
+      tideRings(pen, t);
+      waveMarksDraw(pen, t);
+    });
+    fish(pen, t);
+    compass(pen, t);
+    whale(pen, t);
+    serpent(pen, t);
+    ctx.drawImage(land, 0, 0);
+    ships(pen, t);
+    scorpion(pen, t);
+    smoke(pen, t);
+    eruption(pen, t);
+    sprout(pen, t);
+    monkeyKnight(pen, t);
+    wizard(pen, t);
+    birds(pen, t);
+    clouds(pen, t);
+  },
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,939 @@
+```metadata
+title: Once Upon A Time
+description: >-
+  A collaborative worldbuilding ruleset for roleplaying in any rule system,
+  based on The Quiet Year.
+tags: ''
+systems:
+  - 5e
+  - 4e
+  - 3.5e
+  - Pathfinder
+renderer: legacy
+theme: 5ePHB
+
+```
+
+```css
+/*=======---  Example CSS styling  ---=======*/
+/* Any CSS here will apply to your document! */
+
+.myExampleClass {
+	color: black;
+}
+
+.box-shadow {
+  background-color: #F0ECD5;
+  text-align: center;
+  position: relative;
+	border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 10px;
+	margin-left:auto;
+	margin-right:auto;
+}
+
+
+.box-shadow p {
+	line-height: 0;
+	padding: 0px;
+}
+
+.box-shadow::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  box-shadow: inset 0px 0px 5px 5px #F0ECD5;
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+```
+
+<style>
+  .phb#p1{ text-align:center; }
+  .phb#p1:after{ display:none; }
+	body {
+		counter-set: phb-page-numbers -2;
+	}
+</style>
+
+
+</style>
+
+<!-- <img src='https://i.pinimg.com/originals/fe/8b/e2/fe8be2a6218a7d10f11a7a703317a2a4.jpg' 
+  style='position:absolute; top:0px; left:-60px; width:1000px' /> -->
+	
+<img src="https://i.pinimg.com/originals/13/1f/48/131f486c06864945df7de77a3aedfe23.jpg"
+		 style="position:absolute; top:0px; left:0px; width:818px">
+
+
+<div style='margin-top:450px;'></div>
+
+<div class="phb wide" style="
+	width:700px;
+	padding:30px;
+	height: 205px;
+	margin-top:0px;
+	margin-bottom:0px;
+  border-radius:20px;
+  border-color:#58180D; border-style:solid; border-width:4px; 
+  line-height:1.5">
+# Once Upon A Time
+
+##### A collaborative worldbuilding ruleset for roleplaying in any rule system, based on [The Quiet Year](https://buriedwithoutceremony.com/the-quiet-year).
+<div style='margin-top:20px'></div>
+</div>
+
+<div style="position:absolute; top:445px; left:130px; z-index:100; font-family:MrJeeves;">
+Ruleset by Michael Patashnik - Version 1.2, Updated 2022.06.10
+</div>
+
+
+\page
+
+# Introduction
+While there are many, many components to a successful roleplaying campaign, the very best campaigns begin with a deep and varied world in which to set the story. Stories told in these worlds grip us because we feel a part of them. When we truly feel a part of the setting we traverse, we are no longer simple game players rolling dice and tallying numbers. We become more, a very part of that world. Every round of battle rests on a blade's edge as the fate of this shared narrative hangs in the balance. The people, places, and things are no longer simply a backdrop, it is _our world_; what a delight it is to adventure within!
+
+## The Traditional Method
+In most roleplaying settings, the responsibility of worldbuilding fales squarely upon the DM (or equivalent)'s shoulders. As part of volunteering to run the game, this glutton for homework has agreed not only to adjudicate the nittiest of the gritty and to swap accents four times a conversation, but most commonly to also personally create the world in which the story takes place. Putting aside all of the direct challenges that come with this particular responsibility, there is one final difficulty in this method: Introducing the players to the world. After weeks of worldbuilding, it is very tempting to slam players with page upon page of geography, history, religion and politics.
+
+<br>
+*This all but ensures they will not read any of it.*
+<br>
+<br>
+Aside from the DM's inevitable disappointment, this also sets up a quiet but more serious issue. Confronted with a pile of information, players are likely to view the world as a dense and inpenetrable wall, one they decidedly exist outside of. Making the world immersive is now an uphill battle, one that usually ends up taking a backseat to the more mundane tasks of running a roleplay session.
+
+## A New Proposal
+
+Instead of worldbuilding being a top-down, DM-out effort, this guide details a way to make it a collaborative experience. All of the players together create the world in a session 0, before the adventure begins. After this point the DM becomes less the world's sole author and more its steward. They retain the right and ability to change it as necessary for the campaign, but in doing so should honor the world everyone built together.
+
+When done correctly, players will enter the very first session of the actual game with as in-depth knowledge of the world as the DM. Rather than stepping onto a stage to do a blind read of a script, players will show up as their characters with full access to common knowledge, history, geography, and belief systems.
+
+<br>
+Having played in such a campaign, the difference is night and day.
+
+```
+```
+
+### Beyond The Quiet Year
+This guide is heavily based on **[The Quiet Year](https://buriedwithoutceremony.com/the-quiet-year)**, an excellent worldbuilding game in its own right. In The Quiet Year, players take turn narrating an ever-expanding world, filled with conflict, belief and discovery. In broad strokes, *Once Upon a Time* is the same. Together with your fellow players you will flesh out the world, raising mountains and carving seas as nations rise and fall. The specific mechanics of *Once Upon a Time* are also similar to *The Quiet Year*.
+
+So how do the two differ? *The Quiet Year* is designed to be a complete storytelling experience, freely mixing world-definition with the thoughts and conversations of individual members of a single society. In contrast *Once Upon a Time* knows itself to be only the preamble to the true story, the campaign. This allows us to focus on broad and sweeping worldbuilding efforts like creating continents and naming gods while putting off more narrow concerts like individual city politics until the campaign begins.
+
+Further, *The Quiet Year* nominally takes place over the scope of a single year. This limits and narrows its scope, allowing a story to take place. In contrast, *Once Upon a Time* takes place over four distinct Eras, each stretching for many centuries or even millenia.
+
+Finally, *Once Upon a Time* suggests specifically tracking named **Entities** that are created as part of playing the game such as peoples, nations, and gods. Doing so gives the DM natural paths of extension, allowing them to more fully flesh out the jointly-created world while remaining true to its initial conception.
+
+<div class="box-shadow" style="width:100%">
+<img src="https://i.pinimg.com/originals/4f/17/63/4f176303e509321bb7c665fe9d730faf.jpg"
+		 style="width:100%">
+</div>
+
+<div class='pageNumber auto'>Intro-duction</div>
+\page
+
+# The Four Eras
+O*nce Upon a Time* Takes place over Four Eras. These eras represent the ages of the world and recorded history. Thoughout each Era, peoples rise and fall, mortals accomplish great deeds, and even the world is irrecovably changed as the very land itself shifts underfoot.
+
+### Past and Present
+The first three Eras of *Once Upon a Time* take place in the past; no one alive (or at least very, very few) will have personally lived through these eras. The final Era of *Once Upong a Time* is the current Era and the chronological setting of the campaign.
+
+While the Eras occur in order, they should not be interpreted as having a strictly even-paced timeline. Years may ebb and flow within an era and there may be an unspecified amount of time between Eras.
+
+### Fact and Fiction
+The contents of all Eras within *Once Upon a Time* should not be interpreted as authoritative and complete records. Rather, these are tales and knowledge that have made it to public recognition in the modern Era. As the campaign progresses characters may discover new truths, ones that clarify, challenge, or even contradict the histories they knew. For the three Eras in the past, the truth may have been lost to time or warped by biased actors. For the final Era in the present, the truth may yet be hidden, not yet known by the characters or the world at large.
+
+## Era of Myth
+The first Era is the *Era of Myth*, a time of mystical uncertainty and infinite possibility. This ancient historical Era details the origins of the world we find outselves in. Peoples and Gods take their first tentative steps to explore this new and strange world they find themselves in. Technology and civilization are limited, while magic is instictive and primal. While there may have been many named mortal heroes and villians, a very select few are still remembered today. Those that are are remembered as the very first champions who accomplished stupendous feats of strength and will.
+
+## Era of Antiquity
+The second Era is the *Era of Antiquity*, a time of lofty idealism and burgeoning progress. In this Era, civilization expands at a rapid rate. Peoples organize themselves into cities and cities into nations. The first grand wars are fought under brightly colored banners for higher ideals. Gods are still present but now may intervene less actively and less destructively. Economic systems begin to blossom, funneling resources into all kinds of progress. Leveraging these systems, individual mortals may attempt world-shattering feats such as contacting another plane or briefly stopping the flow of time.
+
+<!-- <div class="box-shadow" style="width:100%">
+<img src="https://i.pinimg.com/originals/de/6d/33/de6d3353e6ea9de4c49a708ddd13c980.jpg" style="width:100%">	
+</div>
+ -->
+ 
+## Era of Ruin
+The third Era is the *Era of Ruin*, a time of decaying promise and infectious distrust. The rampant growth of the Era of Antiquity is still present, but malicious actors begin to appear to prey upon the shared progress. Nations collapse under the weight of their corrupt leaders as despotic empires spread their dominion with an iron fist. Wars are no longer fought between respected equals, but now between good and evil, with each side beliving its victory to be critical to preserving civilization as they know it. Mortals undertake ever more dangerous quests, some failing with dire concequences.
+
+While this is the Era immediately before the quest, large portions of the history of this Era may yet be forgotten: Every library burned in the conquest of a city robs the modern world of a piece of its past.
+
+## Era of Promise
+The fourth and final Era is the *Era of Promise*, a time of hard-fought rebirth and discovery anew. As the world reconciles with its immediate past, adventurers pluder the relics of the past to rediscover history lost. The world is at a crossroads: Can a higher ideal again be realized? Or is the relief from the darkness only a brief respite, doomed to end all too soon?
+
+It is in this Era that our adventure takes place. This Era will end at a randomized time, signaling the end of *Once Upon a Time* and the beginning of the campaign.
+
+<div class="box-shadow">
+<img src="https://i.pinimg.com/originals/f3/c2/ec/f3c2ec13fc3eff535de145f34dab24de.jpg"
+		 style="width:100%">
+</div>
+
+<div class='pageNumber auto'>Eras</div>
+\page
+
+# Entities
+Throughout *Once Upon a Time*, you will be asked to create and keep track of a number of *Entities*. These are named people, places, and things that form the bedrock of the story.
+
+Consider keeping track of Entities using a stack of index cards or post-it notes and a pencil. Whenever you are asked to create a new Entity, write the name (and any other information) on the card. If you are asked to make a change to the Entity, make sure to do so such that the original information is not lost.
+
+## Types of Entities
+There are five types of Entities in *Once Upon a Time*: Terrain, Gods, Peoples, Mortals, and Nations.
+
+### Terrain
+Terrain is the land, sea, and sky upon which the story unfolds. When you are asked to name a new Terrain, it may be a pre-existing biome that is only now discovered by a mortal race. Alternatively, it could be a modification to an existing Terrain, creating a newly named location within a pre-existing area.
+
+Terrain can be of any size, from as small as a specific tree to as large as an entire ocean or a moon. So long as it can be ascribed a single name, it is a valid Terrain.
+
+Terrain may be entirely mundane or inherently magical. If the latter, the sky's the limit! Do not feel the need to explain _why_ or _how_ the terrain is magical; this may be as much a mystery to the modern world as it is to you!
+
+### Gods
+The playwrites behind the stage, the Gods are powerful entities that leave lasting mark on the world. Regardless of the exact rules of divinity in the world, it is generally useful to start with the following basic guidelines.
+
+
+Gods have a particular domain or domains. These are areas that they are particularly connected to and may be particularly powerful within. This may be as physical as "Fire" to as idealistic as "Truth."
+
+Gods are exceptionally powerful but not omnipotent; there may be deeds beyond their abilities.
+
+Gods have varying levels of knowledge but are rarely omniscient. They have some level of immortality, at least in terms of not aging, but may be vulnerable to attack.
+
+### Peoples
+Before civilizations and notable individuals, the world is populated by a number of Peoples. While these may initially begin with standard fantasy-setting races (e.g. Elves, Dwarves, etc), further Peoples may split off and deviate from their parent branch. For example, a sect of elves may move underground and, over the millenia, become Drow.
+
+When creating a new People, no explanation is needed as to where or how they come into being. They simply appear on the stage of the story. While there's no limit to the peoples you could imagine, make sure you get DM permission before introducing a completely custom race.
+
+When branching a People, consider explaining which People they branched from and how/why. Which divides those who stayed with the existing cultural branch from those who took a new direction?
+
+Once established, a People will likely begin to spread across the world. At this point, a people may have multiple locations they inhabit while at the same time sharing a common underlying culture.
+
+### Great Mortals
+Springing from humble beginnings into the crucibles of fate, great mortals of ages past exert an ever-increasing influence on history as the centuries pass.
+
+"Great" is used here in the general sense - a great mortal may as likely be a divine hero sent to protect the innocent as a dastardly villian, infamous for the carnage they scored into the land during their years.
+
+Note that a mortal need not be a member of a playable race. Other options such as beasts and monsters are also allowed.
+
+In their initial naming, consider also what loyalties a Mortal has. Do they owe allegiance to a particular god or nation, or to their people? Or are they are recluse out only for their own gain?
+
+### Nations
+Once civilization progresses to the point of cities, nations spring up like mushrooms after rain. While some early nations are ethnic enclaves of a single people, later ones are more likely to be founded upon ideals and systems, populated by a diverse citizenry.
+
+Even moreso than a people, nations have and project a belief system. When creating a nation, consider what type of government will be used. Do all citizens have equal standing? Is a particular faith or belief system paramount? Of course, all of these may additionally change over time.
+
+A nation includes a varying number of cities. Outside of a particular capital, other smaller population centers within its borders need not be tracked.
+
+## Qualities
+Throughout *Once Upon a Time*, you may be asked to assign an Entity a *Quality*. A Quality is a short adjective describing the overall behavior of the Entity in question. For example, a Terrain may be *lush*, a People may be *honorable*, a Nation may be *austere*.
+
+Qualities are not permanent: An event may cause an Entity to change its qualities. For example, a magical winter may rob a rainforest of its ecosystem, removing its *Lush* quality. That said, when handling Qualities, make sure to keep a record. Even if the quality is lost, history still remembers that the Entity once had that quality. (The Rainforest is remembered as once being *lush*, even if it is no longer.)
+
+Many effects may request that you give an Entity a *positive* or *negative* quality. What qualifies as each is entirely up to your juristiction.
+
+<div class='pageNumber auto'>Entities</div>
+\page
+
+# The Game
+Now that we have laid out all of the mechanics you will interact with, It's time to play *Once Upon a Time*! *Once Upon a Time* can be played with any number of players but is best with three to eight. The game takes approximately 5 hours to play to completion but can be split by Era to allow play over separate chunks of time. 
+
+### Preparing the Game
+To set up the game, perform the following steps:
+
+- Lay out a markable surface such as a whiteboard or a large sheet of paper and give each player a differently colored marker.
+- Also procure a stack of moveable smaller writing surfaces, such as index cards. These will be used to track Entities and their Qualities as they change through the game.
+- Each player prepares three Entities: A continent _Terrain_, a _People_, and a _God_, each with one quality.
+- Separate a deck of standard playing cards by suit. These will form the four Era decks: Myth (Hearts), Antiquity (Diamonds), Ruin (Clubs), and Promise (Spades).
+- Remove one card from each Era face down, then:
+ - In a five player game, add the Red Joker to the the Era of Antiquity and the Black Joker to the Era of Ruin decks. 
+ - In a seven player game, add the Red Joker to the Era of Myth deck.
+ - In the Era of Promise, ensure that the _Ace of Spades_ is not removed and is in the bottom half after shuffling.
+
+You are now ready to play!
+
+### The Game Board
+Throughout the game, players will perform actions, Name Entities, and Narrate Events. Whenever a player does any of these, they draw on the board a depection of their change. At the end of the game, the resulting tapestry is four Eras of history in pictoral form.
+
+Generally, nothing is ever erased from the board. If an effect tells you to remove an Entity from the board, draw its removal on the board.
+
+### Playing The Game
+The game consists of the four named Eras, in order. Within each Era, perform the following steps:
+- _Start the Era_: Players add new Entities to the game according to [Starting an Era](#p5).
+- _Playing the Era_: Players take turns in a clockwise circle around the table as described in [Turn Mechanics](#p5). Continue until the Era deck is empty. In the next Era, play continues with the next player in turn order.
+- _End the Era_: Players resolve Journies and remove Mortals according to [Ending an Era](#p6).
+
+## Starting an Era
+At the start of each Era, players add Entities to the game.
+
+In the first Era, players add their prepared _Terrain_, _People_, and _God_ entities with one quality each to the game. Draw the continent _Terrain_ on the board, taking up appropriate space.
+
+At the start of each following Era, players add a _Mortal_ with one quality to the game.
+
+Players add entities in turn order, starting with the player who will take the first turn within the Era.
+
+## Turn Mechanics
+On your turn, do the following things:
+1. Take any _Action_. If you took a _Free Action_, you may take a second _Action_.
+2. Draw an _Era Card_. Read the associated text aloud from the card list and follow its instructions.
+
+### Action
+During your action, you may take either the *Naming*, *Journey*, or *Narration* action. These options are detailed below.
+
+#### Naming
+You name a new Entity into the game. The following Entities can be named in their listed Eras below.
+
+As part of the naming, describe the Entity in one to two sentences, then add the additional information listed in the associated Entity section and give the Entity one quality.
+
+##### Naming Options
+| Entity | Applicable Eras |
+|:----:|:-------------|:-------|
+| Mortal | Any |
+| God  | Myth or Antiquity |
+| Terrain | Myth, Antiquity, or Ruin |
+| People | Myth, Antiquity, or Ruin |
+| Nation | Antiquity, Ruin, or Promise |
+
+<div class="box-shadow" style="width:26%; position:absolute; right:115px">
+<img src="https://i.pinimg.com/originals/18/95/3c/18953cfa74ea8235f5f7eee188d5b25f.png" style="width:100%">	
+</div>
+
+<div class='pageNumber auto'>The Game</div>
+\page
+
+#### Journey
+You give an existing Entity an undertaking to accomplish. A Journey may be anything, provided it takes a nontrivial amount of time to accomplish and that it has a chance of failure. For example:
+
+- A People migrate to a new location
+- A Mortal goes on a Quest
+- A Nation undertakes a project
+
+When you give a Journey, pick a journey size from the table below. Note the journey size and number of tasks required.
+
+##### Journey Duration
+| Duration | Tasks | Outcomes |
+|:----:|:-------------|:-----| 
+| Short  | 2 | 1 |
+| Medium  | 3 |2 |
+| Long | 4 |3 |
+| Very Long  | 5 | 4 |
+
+At the end of each subsequent turn, roll a d20 for each Journey, then update the remaining number of tasks by the modifier below. All players with Journies can roll their dice at the same time, for speed of gameplay.
+
+##### Journey Tasks
+| d20 | Tasks |
+|:---:|:------|
+|1 | +1
+| 2 - 9 | +0 |
+| 10 - 18 | -1 |
+| 19 | -2 |
+| 20 | -4 |
+
+When the remaining tasks reach zero, the journey completes: Choose from the following outcomes, up to the outcome count by duration. You can choose the same option more than once.
+
+- Add or remove a single quality to a related Entity.
+- Add or remove a relationship between that Entity and another related Entity. (For example, devotion to a God or membership in a Nation.)
+- Add or remove a task to/from another Journey (Costs 2 outcomes.)
+- Remove a single Entity from play or Name a new Entity (Costs 2 outcomes.)
+
+When an effect ends a Journey, it may specifically end it successfully or in failure. When this occurs, at least half of the related outcomes must be positive (if successful) or negative (if failure).
+
+If two Journies complete on the same turn, the one that was given first completes first.
+
+<!-- <div class="box-shadow"  style="width:32%;position:absolute;left:90px" >
+<img src="https://i.etsystatic.com/9387349/r/il/5cb00a/1806770004/il_570xN.1806770004_8ekr.jpg" style="width:100%">	
+</div>  -->
+
+```
+```
+#### Narration
+You Narrate an event that occurs in the world. An event may be anything, provided it occurs over a short period of time and is something that "happened" rather than a goal that was worked towards. When narrating, include what happens and who it affects.
+
+In response to hearing the narration, each other player in turn order starting with the next player and ending with you may choose one affected Entity. If they do, they perform one of the following, relating to the narration:
+
+- Add or remove a single quality to that Entity.
+- Add or remove a relationship between that Entity and another related Entity. (For example, devotion to a God or membership in a Nation.)
+- Increase or decrease a related Journey's remaining task count by 1.
+- Remove a single Entity from play or Name a new Entity (only if all players agree).
+
+Once a player chooses an affected entity for a Narration, further players cannot choose the same entity. If a player has nothing further to add for a given Narration, they can pass.
+
+<br>
+**_Note_:** While narration is key to binding the world together, it can also take much longer than other actions. Players responding to narration should try to keep their responses short to keep the game moving!
+
+#### Free Action
+In each Era, some actions happen more frequently than others. When a player takes the listed _Free Action_ as their action, they may then take another Action. The second Action may be the same as the Free Action. This only allows a max of two actions in a turn.
+
+##### Free Action by Era
+| Era | Action |
+|:----:|:-------------|
+| Myth  | Naming (Terrain) |
+| Antiquity  | Naming (Terrain or Mortal) |
+| Ruin | Naming (Nation or Mortal) |
+| Promise | Naming (Mortal) |
+
+### Draw a Card
+After taking one or two Free Actions, take the second half of your turn by drawing an *Era Card*. Draw the top card of the Era deck and reveal it, then follow the instructions. 
+
+## Ending an Era
+At the end of all but the final Era, an undefined amount of time passes. All Journies in progress complete in increasing order of remaining duration. If they had three or fewer turns remaining, they complete normally. If they had four or more turns remaining, they complete in failure.
+
+Any mortals die, unless specifically specified otherwise. Keep the entity cards for these mortals, but remove them from play. They may be referenced or even changed later; Even though these mortals are no longer alive, knowledge of them is not lost.
+
+<div class='pageNumber auto'>The Game</div>
+\page
+
+## Era Cards
+The cards for each of the four eras are defined in the next sections.
+
+### Era of Myth Cards
+The following are the cards for the *Era of Myth*.
+
+##### Two of Hearts
+Choose one:
+- A powerful magical event causes a new God to be born. Name a God, then Narrate the event.
+- A powerful magical event creates a new Terrain. Name a Terrain, then Narrate the event. 
+
+##### Three of Hearts
+Choose one:
+- A God speaks to a people. What do they say? Narrate an event or give a Journey.
+- A People prays to a god. What do they ask for? Do they receive it? Narrate an event or give a Journey.
+
+##### Four of Hearts
+Choose one:
+- A people split in half. What caused the split? How do the two halves differ? Split their qualities among them. If either half has no qualities, give them a quality.
+- Two unrelated peoples join. What caused the join? How do the two halves mix? Combine their qualities.
+
+##### Five of Hearts
+A Mortal is born to a God. Create a Mortal and give them two qualities, one positive and one negative, then discribe their relation to their divine parent.
+
+##### Six of Hearts
+Choose one:
+- A God gives a Mortal or People a gift. What do they give? Narrate a related event.
+- A Mortal or People tries to steal from a god. What do they try to steal? Give a related Journey.
+
+##### Seven of Hearts
+Choose one:
+- A location is discovered to be abundant in resources. What is the resource?
+- A God designates a location as sacred. Which God? Why? 
+
+Name a Terrain and give it a positive quality. Give a People a Journey to claim the area.
+
+##### Eight of Hearts
+A People disappears. Remove them from play, then choose one:
+- Return them to play at the start of the last Era. When they return, give them three qualities, one positive and two negative.
+- Narrate an event about their disappearance.
+
+```
+```
+
+##### Nine of Hearts
+A great villian rises to terrorize the world. Name a Mortal and give them and two qualities, both negative.
+
+##### Ten of Hearts
+Choose One:
+- The Gods have kept a secret from the peoples of the multiverse. What is it? Narrate an event where a people discovers this secret.
+- A people discovers a truth of the multiverse even the Gods didn't know. What is it?  Narrate an event where a God discovers this truth.
+
+##### Jack of Hearts
+A powerful magical event happens. What is it? Narrate an event that affects every terrain, people, nation and mortal.
+
+##### Queen of Hearts
+Choose one:
+- A new God ascends to godhood. How? What People did they come from? Name a God or transform a Mortal into a God. If the latter, they retain their qualities.
+- A God descends to become Mortal. Why? What happens to their power? Transform the God into a Mortal.
+
+<div class="box-shadow" style="width:100%">
+<img src="https://www.mtgnexus.com/img/gallery/1168-oko-thief-of-crowns.jpg" style="width:100%">
+</div>
+
+##### King of Hearts
+The first ruler is crowned. Name a Nation for a specific people. Give the nation two qualities, one positive and one negative.
+
+##### Ace of Hearts
+The canvas of the world unfurls as the Gods shape it to their will. Name three Terrains.
+
+<div class='pageNumber auto'>Era of Myth</div>
+\page
+
+
+### Era of Antiquity Cards
+The following are the cards for the *Era of Antiquity*.
+
+##### Two of Diamonds
+Two Peoples or Nations go to war. Who are they? What are they fighting over? Give them both a Medium or longer Journey to win the war.
+
+##### Three of Diamonds
+Choose One:
+- A Mortal discovers the remains of a Mythic site. Name a Mortal and give them two qualities, one positive and one negative. What did they discover?
+- A mysterious area is swallowing up explorers. Name a Terrain and give it two negative qualities, then give a Mortal a Journey to explore it.
+
+##### Four of Diamonds
+Choose One:
+- A People prosper. Name a Nation populated by the People, then give it two positive qualities.
+- The lure of a better life draws people to a Nation. Give two Peoples a Journey to migrate to it.
+
+##### Five of Diamonds
+People from another plane arrive. How? Was it intentional? Name an offworld People and give them and two qualities, one positive and one negative.
+
+<div class="box-shadow" style="width:100">
+<img src="https://i.pinimg.com/originals/36/29/34/3629340593209d68e605a1fa1788172d.jpg" style="width:100%">	
+</div>
+
+##### Six of Diamonds
+A People or Nation try to contact another plane. Why? Give them a Medium or longer Journey.
+
+##### Seven of Diamonds
+The times are kind and the winds are fair: Remove 1 task from all Journeys. If there are no Journeys, give any Entity a positive quality instead.
+
+##### Eight of Diamonds
+A new world is found! Name a large Terrain and give it two qualities, one positive and one negative. Then give a People or Nation a Medium or longer Journey to claim it.
+
+##### Nine of Diamonds
+Two great Mortals, Peoples, or Nations join forces to accomplish a goal. What is it? Give them a single Medium or longer Journey to accomplish it.
+
+##### Ten of Diamonds
+A cataclysmic prophecy is discovered. What is it? Give an Very Long Journey to prevent it to a Mortal, People, or Nation. If it is not finished before the end of the Era, it fails. If it fails, in addition to the normal concequences, Narrate an event that affects the whole world.
+
+##### Jack of Diamonds
+Choose one:
+- A great Mortal rises. Name a Mortal and give three qualities in any combination of positive and negative.
+- A great Mortal has a change of heart. For each of their qualities, switch it between positive and negative. How and why does this happen?
+
+##### Queen of Diamonds
+A great, immortal Mortal hero rises. Name a Mortal and give them three qualities, two positive and one negative. This Mortal does not die when the Era changes.
+
+##### King of Diamonds
+Choose one: 
+- It is a time of great people. Choose two Peoples and Name a Mortal from each. Give them each two qualities, one positive and one negative.
+- It is a time of great nations. Choose two Peoples and Name a Nation from each. Give them each two qualities, one positive and one negative.
+
+##### Ace of Diamonds
+Choose one:
+- It is a time for great journies. Give two Journies whose aim is to discover, invent, or spread peace.
+- Great journeys are accomplished. Choose two Journies and immediately complete them successfully.
+
+<div class='pageNumber auto'>Era of Antiquity</div>
+\page
+
+
+### Era of Ruin Cards
+The following are the cards for the *Era of Ruin*.
+
+##### Two of Clubs
+Choose one:
+- The line of a former hero betrays their legacy. Name a Mortal descended from a Myth or Antiquity era Mortal with two negative qualities. 
+- A dark truth is discovered about a former hero. Change a positive quality of a Myth or Antiquity era Mortal to negative.
+
+##### Three of Clubs
+A God is forsaken. Remove all followers from the God. They cannot affect the world until they have followers again.
+
+##### Four of Clubs
+A natural disaster occurs. Choose an existing Terrain to give two negative qualities. For each Nation in that location, if it has two or fewer positive qualities, remove it from play, otherwise remove a positive quality and add a negative quality to it.
+
+##### Five of Clubs
+A great hero is martyred for a greater cause. The Mortal with the most positive qualities is removed from play. Every People, Nation, and God aligned with them replaces a negative qualitiy with positive and any Journies they have complete successfully. What is the cause? What are they remembered for? 
+
+##### Six of Clubs
+A Nation seeks to conquer another. Give it a medium or longer Journey to swallow up the other Nation. If it succeeds, remove the conquered Nation from play and add its territory to the conqueror.
+
+##### Seven of Clubs
+Choose one:
+- Journies are delayed. For each journey, increase its count by 2 tasks.
+- A journey ends in catastrophic failure. All rewards must be negative. Increase the number of Rewards by 1. 
+
+##### Eight of Clubs
+An coup is plotted. Why? What government are they seeking? Give a Journey to a People to overthrow the government of a Nation they are within.
+
+##### Nine of Clubs
+Choose One: 
+- Two great Mortals go to battle. Why are they fighting? Give both a Journey to defeat the other.
+- A Terrain suddenly becomes hostile. Give it a negative quality, then Narrate a related event.
+
+##### Ten of Clubs
+A great Nation of the world collapses. Remove it from play. Narrate an Event about its collapse.
+
+##### Jack of Clubs
+Choose one:
+- A great hero falters and gives in to darkenss. Choose a Mortal with more positive qualities than negatives and replace all of their positives with negatives.
+- A great villan realises their desires. Choose a Mortal with more negative qualities than positives and narrate an event where they accomplish their ultimate aims.
+
+##### Queen of Clubs
+It is a dark time for those without structure. Add two negative qualities to each People without at least one Nation.
+
+##### King of Clubs
+A great, immortal villian rises. Create a Mortal and give them three qualities, one positive and two negative. This Mortal does not die when the Era changes.
+
+##### Ace of Clubs
+Choose one:
+- It is a time for dire Journies. Give two Journies whose aim is to subjugate, destroy, or spread violence.
+- Great Journeys fail. Choose two Journies and immediately complete them unsuccessfully. (At least half the rewards must be negative.)
+
+
+<div class="wide" style="padding-top:10px">
+<div class="box-shadow" style="width:85%">
+<img src="https://i.pinimg.com/originals/9b/08/14/9b0814220fd9a1b339c5d109d4acdd07.png" style="width:100%">
+</div>
+</div>
+
+<div class='pageNumber auto'>Era of Ruin</div>
+\page
+
+### Era of Promise
+The following are the cards for the *Era of Promise*.
+
+##### Two of Spades
+A magical anomaly occurs. Narrate a magical event occurs that a particular location.
+
+##### Three of Spades
+Choose One:
+- A Nation holds a great event, hoping to attract new heroes. What kind of event? Give the Nation a Medium or longer Journey to find a new hero.
+- A Mortal disappears. Why? Where do they go, what are they hoping to accomplish. Give them a Medium or longer Journey to accomplish their goals.
+
+##### Four of Spades
+Choose one:
+- A God speaks to their followers. What do they say? Give the followers a Medium or longer Journey to follow the desires of their god.
+- A new cult is founded. Add a People as a new followers to a God. What are they hoping to gain?  Give the followers a Medium or longer Journey to follow the desires of their God.
+
+##### Five of Spades
+A work of literature, art, or music sweeps the world with its popularity. What is it? Who wrote it and why? Narrate a related event affecting all nations and peoples and mortals within those nations.
+
+##### Six of Spades
+Choose One:
+- An novel discovery is made in a nation. What do they discover? Was this the product of effort, or was it an accident? Narrate a related event affecting the Nation and all Peoples and Mortals within it.
+- A Nation's economic balance shifts dramatically. What caused this? Who benefits and who loses? Narrate an event that affects the Nation and all Peoples and Mortals within it.
+
+##### Seven of Spades
+One Journey ends, another loses progress: Choose a Journey to complete immediately, then choose another Journey and increase its count by 3 tasks.
+
+##### Eight of Spades
+Choose One:
+- A large bounty is put on a criminal: Name a Mortal and give them two negative qualities.
+- A request for heroes to slay a beast is circulated: Name a non-playable Mortal to slay and give them two negative qualities.
+
+##### Nine of Spades
+A Nation begins to persecute a people. Why? Give the People and the Nation a negative quality related to the persecution.
+
+```
+```
+
+##### Ten of Spades
+A Nation funds an expedition to explore a missing corner of history. Give a Nation a Journey to investigate a prior-era Mortal or something removed from the game.
+
+##### Jack of Spades
+Choose One:
+- A Nation becomes open and multicultural. Add two Peoples not currently present in a Nation to that Nation, then add a positive quality to them and the Nation. 
+- A revolution overtakes a Nation to restructure it. Give all of the people in a Nation a Journey to overthrow their nation.
+
+##### Queen of Spades
+A Mortal leaves a public message saying they are journeying across the multiverse to accomplish a great goal. What are they aiming to do and why? Give them an Very Long Journey to accomplish their goals.
+
+##### King of Spades
+Choose One:
+- A Nation amasses arms to prepare for war on a neighbor. What do they hope to gain? Does their neighbor know? Give them a Long or longer Journey to prepare.
+- Two nations sign an alliance. Why? What are the terms?
+
+##### Ace of Spades
+
+The time of the Tale is beginning! Play the next card, then the game ends and the adventure beings. Any remaining Journies are left uncompleted.
+
+<div class="box-shadow" style="width:90%">
+<img src="https://i.pinimg.com/originals/a0/dd/fa/a0ddfa089bf0a40336cb0ce30e345fdd.jpg" style="width:100%">	
+</div>
+
+### Extra Cards
+The following are extra cards that may appear in any Era.
+
+##### Black Joker
+Fate repeats itself. Replay the previously played Era card. If the card presented a choice of options, you must choose the unchosen one.
+
+##### Red Joker
+The winds of fate blow in a random direction. Take another action. You may take an action normally not allowed in this Era.
+
+<div class='pageNumber auto'>Era of Promise</div>
+\page
+
+## Even More Eras
+For a new twist on Once Upon a Time, try some of the following Eras! Eras can be swapped in for others freely, according to the specified changes. Keep the _Ace of Spades_ rules from the _Era of Promise_ in whichever Era is placed last.
+
+### Era of Cataclysm
+In times of Cataclysm, the world's worst possibilities come to pass. Entire continents disappear as the very world is torn asunder. Include the _Era of Cataclysm_ as your second or third Era to give the world a buried past, or even as your final era for a mid-apocalypse campaign!
+
+**Naming Options:** Mortal, God, Terrain (Negative)
+
+**Free Action:** Narration (Negative)
+
+#### Special 
+At the start of the _Era of Cataclysm_, name the cataclysm. Give the world a Journey with 12 tasks to prevent the Cataclysm. At the end of the Era or when the Journey ends, remove an non-Mortal Entity from the game for each remaining task.
+
+##### Two
+A great disease sweeps the world. What is it? Give all Peoples a negative quality, then give a Nation or Mortal a Medium or longer Journey to cure the disease. If they succeed, remove the negative quality.
+
+##### Three
+A God is killed. Remove a God from the game, then Narrate an event that affects the whole world.
+
+##### Four
+Choose One:
+
+- A Nation moves to steel its defenses. Give a Nation a Medium or longer Journey to protect itself from cataclysm.
+- A Nation crumbles in the face of cataclysm. Remove a Nation from the game.
+
+##### Five
+
+Life expands even in the darkest of days. Name a People well adapted to Cataclysm and give them a positive and negative quality.
+
+##### Six
+
+Cataclysm renders a region of the world unlivable. How? Give the affected Terrain a negative quality. Until the quality is removed, no people or nations can live there.
+
+##### Seven
+
+Knowledge crumbles to dust. Narrate an event that removes qualities from Entities.
+
+##### Eight
+
+A world council is founded to see the world through the Cataclysm. Name a Nation encompasing the world, then give it a Long or longer Journey to bring other Nations together. 
+
+##### Nine
+
+Choose One:
+ - A dark God from beyond the veil escapes their prison. Name a God of a dark or evil domain and give them two negative qualities.
+ - A Mortal or God accepts power from a dark source. Why? Remove a positive quality and add a negative quality.
+
+##### Ten
+
+Choose One:
+- A people seek to escape the Cataclysm. Give them a Long or longer Journey to escape to safety.
+- A mortal sacrifices themselves to forestall the Cataclysm. Remove a mortal from the game, remove 1 task from the Cataclysm, and Narrate an event.
+
+##### Jack
+
+A great villian seeks to capitalize on disaster. Name a Mortal, give them a negative quality, then give them a Medium or longer Journey to benefit from the downfall of a Mortal, People, or Nation.
+
+##### Queen
+
+In the darkest hour, a savior appears. Name a Mortal and give them two positive qualities.
+
+##### King
+
+Disaster eradicates the rule of a Nation. Remove a Nation from the game.
+
+##### Ace
+
+The Cataclysm may yet be survived! Remove 2 tasks from the Cataclysm and Narrate an Event.
+
+<div class="wide">
+<div class="box-shadow" style="width:75%">
+<img src="https://inteng-storage.s3.amazonaws.com/img/iea/ZKwJr5p5wM/sizes/asteroid-impact-earth_resize_md.jpg" style="width:100%">
+</div>
+</div>
+
+<div class='pageNumber auto'>Era of Cataclysm</div>
+\page
+
+### Era of Industry
+With war quieted and resources ripe for the taking, Industry bursts onto the world stage. The spirit of the _Era of Antiquity_ fuses with the ruthlessness of the _Era of Ruin_ to upend the natrual order, making kings of beggars and beggars of kings. End with the _Era of Industry_ for a 19th-century style campaign or follow it with the _Era of Ruin_ or _Era of Cataclysm_ for a post-industry collapse.
+
+**Naming Options:** Mortal, Nation
+
+**Free Action:** Naming (Mortal)
+
+##### Two
+
+A genius new technology is discovered. What is it? Name a Mortal who made the discovery and give them a positive quality.
+
+##### Three
+
+Choose one:
+- A God's influence wanes in the face of new technology. Which one? Remove two qualities and two followers from them.
+- New technology gives rise to a new, modern God. Name a God and give them two qualities, one positive and one negative.
+
+##### Four
+
+Choose one:
+- Technology draws the world closer. What is it? Narrate an event about the invention of a new form of transportation.
+- Technology creates new wealth. What is it? How does it change power structures? Narrate an event about a new commodity.
+
+##### Five
+
+Choose one:
+
+- A Nation grows wealthy on the toil of its citizens. Give a Nation a positive quality and give all Peoples in that Nation a negative quality.
+- A People exploit another People for gain. Give each a positive and negative quality.
+
+##### Six
+
+New inventions enable terrible war. Give a Nation a Medium or longer Journey to conqueror another Nation. If the Journey succeeds, remove the other Nation from the game.
+
+##### Seven
+
+A natural resource is found to be vital to a new technological process. What is it? Give a Terrain a positive quality and give a Nation a Medium or larger Journey to claim it.
+
+##### Eight
+
+Choose one:
+- New inventions change the world of battle. Name a new melee weapon and a new ranged weapon.
+- New inventions change the world of magic. Name a new school of magic.
+
+
+<div class="box-shadow" style="width:100%">
+<img src="https://cdnb.artstation.com/p/assets/images/images/017/933/675/large/tarmo-juhola-industrial-maantaso-kopio.jpg?1557904061" style="width:100%">
+</div>
+
+##### Nine
+
+A Terrain or People is changed by the introduction of industry. Give them three qualities, one positive and two negative.
+
+##### Ten
+
+Technology gives birth to an artificial race! Name a people descendent from technology and give thm a positive and negative quality.
+
+##### Jack
+
+Choose One:
+- Two Mortals join forces to make a breakthrough. Give them both a Medium or longer Journey to push the boundaries of invention.
+- A Mortal claims credit for another's invention. Narrate an event that affects two Mortals.
+
+##### Queen
+
+A Nation undergoes rapid societal change. Narrate an event affecting the Nation and change its name.
+
+##### King
+
+Choose one:
+- A City emerges as the capital of the world. Name a Terrain (City) within an exising Nation and give it six qualities, three positive and three negative.
+- Nations appear all over the world. Name three Nations and give each two qualities, one positive and one negative.
+
+
+##### Ace
+
+Choose one:
+
+- It is a time for inventive Journies. Give two Journies whose aim is to discover, create, or gain mastery over the multiverse.
+- Great Journeys yield even more questions. Choose two Journies and immediately complete them with unexpected, unpredicted results.
+
+<div class='pageNumber auto'>Era of Industry</div>
+\page
+
+### Era of Convergence
+Leylines cross, stars align, and the sky fades to perpetual twilight as the planes converge. In the _Era of Convergence_ the barrier between planes is exceptionally thin, leading extraplanar entities to cross the border into the Material Plane. Substitue the _Era of Convergence_ for the _Era of Myth_ for a story with fewer Gods and more other entities, or use it for a later era to introduce a distinctly otherworldly influence.
+
+**Naming Options:** Mortal, God, Terrain, People
+
+**Free Action:** Naming (Mortal), Naming (People - Off-plane)
+
+##### Two
+
+Choose one:
+
+- A "God" is actually a powerful immortal entity from another Plane. Who is it? Give them a positive and negative quality.
+- A God journies to another plane. Why? Give them a Long or longer Journey. If the Jounrey fails, they do not return to the Material Plane.
+
+##### Three
+
+An area becomes linked to another Plane. Name a new Terrain and give it two qualities, one positive and one negative.
+
+##### Four
+
+Choose one:
+- A people from off-plane emigrates to the Material Plane. Why? Give them a Long or longer Journey to emigrate.
+- A people from the Material Plane leaves to go off-plane. Why? Give them a Long or longer Journey to emigrate.
+
+##### Five
+
+A pair of rivaling Planes briefly overlap in the Material Plane (Good/Evil, Chaos/Law). Narrate an event affecting the whole world.
+
+##### Six
+
+##### Seven
+
+##### Eight
+
+##### Nine
+
+##### Ten
+
+##### Jack
+
+##### Queen
+
+##### King
+
+A great, immortal trickster rises. Create a Mortal and give them four qualities, two positive and two negative. This Mortal does not die when the Era changes.
+
+##### Ace
+
+Choose one:
+
+- It is a time for otherworldly Journies. Give two Journies whose aim is to explore, manipulate, or communicate.
+- Great Journies have unexpected concequences. Choose two Journies and immediately complete them. For each, one outcome must reference an entity who was not related to the Journey.
+
+<div class='pageNumber auto'>Era of Convergence</div>
+\page
+
+### Era of Titans
+The land tremples as great beasts tread its surface. The sky and seas part for immense wings and gargantuan bodies. In the _Era of Titans_, impossibly large creatures make the world their home. Substitue the _Era of Titans_ for the _Era of Myth_ for a true Prehistoric age, or use it for as the final Era to allow your players to walk amongst the dinosaurs.
+
+**Free Action:** Naming (People - Dinosaur)
+
+##### Two
+
+##### Three
+
+##### Four
+
+##### Five
+
+##### Six
+
+##### Seven
+
+##### Eight
+
+##### Nine
+
+##### Ten
+
+##### Jack
+
+##### Queen
+
+##### King
+
+##### Ace
+
+\page
+
+### Era of Heroism
+In a time of great crisis, a band of unlikely adventurers came together to beat back Hell itself. The stories say they first fought together in a Tavern, having met only minutes before. The _Era of Heroism_ details a roleplaying campaign of the past: Did the adventurers succeed in beating back evil? Or did fall, or worse,  succumb? Substitue the _Era of Heroism_ for the _Era of Ruin_ for a "Campaign after the Campaign," or use it as the final era to give your party some competition.
+
+**Naming Options:** Mortal, Terrain (Discovered), Nation
+
+**Free Action:** Naming(Mortal - Adventurer), Journey
+
+##### Two
+
+##### Three
+
+##### Four
+
+##### Five
+
+##### Six
+
+##### Seven
+
+##### Eight
+
+##### Nine
+
+##### Ten
+
+##### Jack
+
+##### Queen
+
+##### King
+
+##### Ace

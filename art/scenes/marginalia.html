@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Margin Figures</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Serif+4:ital,opsz,wght@0,8..60,400;1,8..60,400&display=swap">
+<link rel="stylesheet" href="../../assets/style.css">
+<style>
+  /* The drolleries live in assets/scenes/marginalia.js and the Era mascots in
+     mascots.js. This page shows them all at their real size. T flips the
+     theme, Z doubles the size. */
+  .sheet { max-width: 72rem; margin: 0 auto; padding: 2.5rem 1rem 5rem; }
+  .sheet > p { color: var(--muted); max-width: 40rem; }
+  .cast { display: grid; grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr)); gap: 3rem 2.5rem; margin-top: 2.5rem; }
+  .cast figure { margin: 0 0 0.75rem; width: 160px; }
+  .zoom .cast figure { width: 320px; }
+  .cast canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; -webkit-tap-highlight-color: transparent; user-select: none; }
+  .cast h2 { font-size: 1.15rem; margin: 0 0 0.35rem; }
+  .cast dl { display: grid; grid-template-columns: 3.5rem 1fr; gap: 0.15rem 0.5rem; margin: 0; font-size: 0.85rem; line-height: 1.4; }
+  .cast dt { font-family: var(--font-mono); font-size: 0.7rem; color: var(--muted); padding-top: 0.15rem; }
+  .cast dd { margin: 0; }
+  .part { margin-top: 3.5rem; }
+  .keys { font-family: var(--font-mono); font-size: 0.75rem; }
+  .keys button { font: inherit; padding: 0.2rem 0.6rem; border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface); color: var(--ink); cursor: pointer; }
+</style>
+</head>
+<body>
+<main class="sheet">
+  <h1>Margin Figures</h1>
+  <p>Every figure at its real size, as it would sit in the rules page's margin. Hover, click, and scroll one out of view to reset it.</p>
+  <p class="keys"><button data-theme-toggle>Theme (T)</button> <button data-zoom>Zoom 2× (Z)</button></p>
+
+  <h2 class="part">Era Mascots</h2>
+  <p>One for each Era, beside its heading, built on its suit.</p>
+
+  <div class="cast">
+    <article>
+      <figure data-scene="m-myth" aria-hidden="true"></figure>
+      <h2>Myth ♥</h2>
+      <dl><dt>Idle</dt><dd>A heart on bird legs wanders back and forth, beating.</dd><dt>Hover</dt><dd>It stops, turns to watch you, and beats faster.</dd><dt>Click</dt><dd>It buds: a little heart pops off and toddles away.</dd></dl>
+    </article>
+    <article>
+      <figure data-scene="m-antiquity" aria-hidden="true"></figure>
+      <h2>Antiquity ♦</h2>
+      <dl><dt>Idle</dt><dd>A sage whose head is a cut diamond, holding a scroll. Its facets shimmer.</dd><dt>Hover</dt><dd>He raises the scroll and the gem blazes.</dd><dt>Click</dt><dd>He unrolls the scroll; its runes rise, circle his head and sink into the gem, which flares.</dd></dl>
+    </article>
+    <article>
+      <figure data-scene="m-ruin" aria-hidden="true"></figure>
+      <h2>Ruin ♣</h2>
+      <dl><dt>Idle</dt><dd>A bald, muscled woman in black leather with a black cudgel on her shoulder.</dd><dt>Hover</dt><dd>She flexes.</dd><dt>Click</dt><dd>She slams the club on her own head: a frozen, shaking hit with a flash, then she's pumped, red-eyed and steaming, in a double flex. Click again to chain hits.</dd></dl>
+    </article>
+    <article>
+      <figure data-scene="m-promise" aria-hidden="true"></figure>
+      <h2>Promise ♠</h2>
+      <dl><dt>Idle</dt><dd>A tall, gaunt cormorant with a pale stare, ♠ marks in its feathers and a gold coin in its bill.</dd><dt>Hover</dt><dd>Skittish of the pointer: it leans away and trembles when it gets close.</dd><dt>Click</dt><dd>It leaps and flaps hard, tossing the coin up spinning, and catches it again.</dd></dl>
+    </article>
+  </div>
+
+  <h2 class="part">Margin Drolleries</h2>
+  <p>One beside each section they illustrate.</p>
+
+  <div class="cast">
+    <article>
+      <figure data-scene="m-places" aria-hidden="true"></figure>
+      <h2>Places</h2>
+      <dl><dt>Idle</dt><dd>A mango tree stands still; now and then a leaf drifts down.</dd><dt>Hover</dt><dd>Its leaves rustle.</dd><dt>Click</dt><dd>It shakes and a golden mango drops off its stalk. The mangos pile up.</dd></dl>
+    </article>
+    <article>
+      <figure data-scene="m-gods" aria-hidden="true"></figure>
+      <h2>Gods</h2>
+      <dl><dt>Idle</dt><dd>It bobs. The eye blinks now and then.</dd><dt>Hover</dt><dd>The eye follows your pointer.</dd><dt>Click</dt><dd>The eye rolls back and the hand flashes, working something.</dd></dl>
+    </article>
+    <article>
+      <figure data-scene="m-peoples" aria-hidden="true"></figure>
+      <h2>Peoples</h2>
+      <dl><dt>Idle</dt><dd>One hops, one taps a foot, one's hat tip bobs.</dd><dt>Hover</dt><dd>They all turn to look at you.</dd><dt>Click</dt><dd>They shuffle places.</dd></dl>
+    </article>
+    <article>
+      <figure data-scene="m-actors" aria-hidden="true"></figure>
+      <h2>Actors</h2>
+      <dl><dt>Idle</dt><dd>The snail inches. The pennant flutters.</dd><dt>Hover</dt><dd>The snail's eyestalks follow you.</dd><dt>Click</dt><dd>The knight lifts their helm: also a snail.</dd></dl>
+    </article>
+    <article>
+      <figure data-scene="m-nations" aria-hidden="true"></figure>
+      <h2>Nations</h2>
+      <dl><dt>Idle</dt><dd>The flag hangs limp, stirring now and then.</dd><dt>Hover</dt><dd>A gust snaps it out.</dd><dt>Click</dt><dd>Lightning strikes the end of the flag, which burns fast back to the pole; a new flag goes up.</dd></dl>
+    </article>
+    <article>
+      <figure data-scene="m-qualities" aria-hidden="true"></figure>
+      <h2>Qualities &amp; Relationships</h2>
+      <dl><dt>Idle</dt><dd>A great figure's portrait hangs in a gilt frame, a plaque beneath naming them <em>Wise</em>. They watch you, and blink now and then.</dd><dt>Hover</dt><dd>Their eyes follow your pointer.</dd><dt>Click</dt><dd>The frame swings and a brush repaints them top to bottom as the plaque's word is struck through and replaced: the <em>Wise</em> king, the <em>Holy</em> saint, the <em>Cruel</em> tyrant, then the tyrant's portrait defaced, <em>Fallen</em>.</dd></dl>
+    </article>
+    <article>
+      <figure data-scene="m-naming" aria-hidden="true"></figure>
+      <h2>Naming</h2>
+      <dl><dt>Idle</dt><dd>A chubby medieval baby in a linen coif and a little red gown sits asleep on a cushion, nodding. Little z's drift up.</dd><dt>Hover</dt><dd>It cries and waves its arms, shaking its rattle.</dd><dt>Click</dt><dd>It calms, a gold star appears, and it sleeps.</dd></dl>
+    </article>
+    <article>
+      <figure data-scene="m-journey" aria-hidden="true"></figure>
+      <h2>Journey</h2>
+      <dl><dt>Idle</dt><dd>The pilgrim shifts their weight.</dd><dt>Hover</dt><dd>They raise their hat to you.</dd><dt>Click</dt><dd>They walk off into the distance and come back with a souvenir for the waystone.</dd></dl>
+    </article>
+    <article>
+      <figure data-scene="m-narration" aria-hidden="true"></figure>
+      <h2>Narration</h2>
+      <dl><dt>Idle</dt><dd>The fire flickers; a thread of smoke rises.</dd><dt>Hover</dt><dd>The fire flares.</dd><dt>Click</dt><dd>She raises her arms and the smoke makes a picture.</dd></dl>
+    </article>
+    <article>
+      <figure data-scene="m-card" aria-hidden="true"></figure>
+      <h2>Draw a Card</h2>
+      <dl><dt>Idle</dt><dd>The card floats and turns a little in its own glow, sparks winking round it.</dd><dt>Hover</dt><dd>A corner lifts to peek.</dd><dt>Click</dt><dd>It spins up into the air and lands face up in a burst of rays, a ring and flying pips. Again, and it turns back down.</dd></dl>
+    </article>
+    <article>
+      <figure data-scene="m-legacy" aria-hidden="true"></figure>
+      <h2>Legacy</h2>
+      <dl><dt>Idle</dt><dd>The statue stands; its gold glints.</dd><dt>Hover</dt><dd>A pigeon circles overhead.</dd><dt>Click</dt><dd>The statue breaks into chunks under the pigeon. Click the rubble: a statue of the pigeon.</dd></dl>
+    </article>
+  </div>
+</main>
+<script src="../../assets/scenes/scene-kit.js"></script>
+<script src="../../assets/scenes/glyph-kit.js"></script>
+<script src="../../assets/scenes/marginalia.js"></script>
+<script src="../../assets/scenes/mascots.js"></script>
+<script>
+  const root = document.documentElement;
+  const dark = () => (root.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light')) === 'dark';
+  const flipTheme = () => { root.dataset.theme = dark() ? 'light' : 'dark'; };
+  const zoom = () => document.body.classList.toggle('zoom');
+  document.querySelector('[data-theme-toggle]').onclick = flipTheme;
+  document.querySelector('[data-zoom]').onclick = zoom;
+  addEventListener('keydown', (e) => {
+    if (e.key === 't') flipTheme();
+    else if (e.key === 'z') zoom();
+  });
+</script>
+</body>
+</html>

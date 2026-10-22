@@ -1,0 +1,14 @@
+{
+  "name": "world-seed-art",
+  "private": true,
+  "type": "module",
+  "description": "Rough.js scenes for The World Seed and the script that renders them to MP4 and WebP.",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "devDependencies": {
+    "ffmpeg-static": "^5.2.0",
+    "playwright-core": "^1.48.0",
+    "roughjs": "^4.6.6"
+  }
+}

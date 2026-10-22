@@ -1,0 +1,634 @@
+/* The World Seed: shared styles for every page. */
+
+:root {
+  --paper: #f7f3ea;
+  --surface: #fffdf8;
+  --ink: #2a2620;
+  --muted: #6b6357;
+  --rule: #e2d9c6;
+  --accent: #3f6b4a;
+  --accent-soft: #e3ece2;
+  --todo-bg: #fdf3d7;
+  --todo-border: #c99a2e;
+  --todo-ink: #6b4f12;
+  --can: #3f6b4a;
+  --cannot: #a3998a;
+  --free-bg: #3f6b4a;
+  --free-ink: #ffffff;
+
+  --era-myth: #b4415a;
+  --era-antiquity: #a8741a;
+  --era-ruin: #5f6b3a;
+  --era-promise: #3d5f9a;
+  --era-extra: #7a5a9a;
+  --era-cataclysm: #9a3d2b;
+  --era-industry: #5b6670;
+  --era-convergence: #6a4c93;
+
+  --font-display: "Fraunces", Georgia, "Times New Roman", serif;
+  --font-body: "Source Serif 4", Georgia, "Times New Roman", serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --font-ui: var(--font-mono);
+
+  --measure: 44rem;
+  --radius: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #1b1a17;
+    --surface: #24221e;
+    --ink: #ece6da;
+    --muted: #a59d8f;
+    --rule: #3a362f;
+    --accent: #8fbf98;
+    --accent-soft: #2a3a2d;
+    --todo-bg: #3a3020;
+    --todo-border: #c99a2e;
+    --todo-ink: #f0d79a;
+    --can: #8fbf98;
+    --cannot: #6f685d;
+    --free-bg: #8fbf98;
+    --free-ink: #1b1a17;
+    --era-myth: #e07a90;
+    --era-antiquity: #e0b155;
+    --era-ruin: #a7b56f;
+    --era-promise: #86a6e0;
+    --era-extra: #b79ad6;
+    --era-cataclysm: #e08a72;
+    --era-industry: #a5b0ba;
+    --era-convergence: #b39ae0;
+  }
+}
+
+:root[data-theme="dark"] {
+  --paper: #1b1a17;
+  --surface: #24221e;
+  --ink: #ece6da;
+  --muted: #a59d8f;
+  --rule: #3a362f;
+  --accent: #8fbf98;
+  --accent-soft: #2a3a2d;
+  --todo-bg: #3a3020;
+  --todo-border: #c99a2e;
+  --todo-ink: #f0d79a;
+  --can: #8fbf98;
+  --cannot: #6f685d;
+  --free-bg: #8fbf98;
+  --free-ink: #1b1a17;
+  --era-myth: #e07a90;
+  --era-antiquity: #e0b155;
+  --era-ruin: #a7b56f;
+  --era-promise: #86a6e0;
+  --era-extra: #b79ad6;
+  --era-cataclysm: #e08a72;
+  --era-industry: #a5b0ba;
+  --era-convergence: #b39ae0;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-padding-top: 5rem; scrollbar-gutter: stable; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+a { color: var(--accent); }
+a:hover { text-decoration-thickness: 2px; }
+
+/* ---------- Site header ---------- */
+
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1.25rem;
+  padding: 0.6rem 1rem;
+  background: color-mix(in srgb, var(--paper) 92%, transparent);
+  backdrop-filter: blur(6px);
+  border-bottom: 1px solid var(--rule);
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  letter-spacing: 0.02em;
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+  letter-spacing: 0.01em;
+}
+.brand span { color: var(--accent); }
+
+.site-nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1.75rem;
+  flex: 1;
+  margin-left: 1.5rem;
+}
+.site-nav a {
+  color: var(--muted);
+  text-decoration: none;
+  text-transform: uppercase;
+  padding: 0.25rem 0;
+}
+.site-nav .k { color: color-mix(in srgb, var(--muted) 60%, var(--paper)); margin-right: 0.5rem; }
+.site-nav a:hover, .site-nav a[aria-current="page"] { color: var(--ink); }
+.site-nav a[aria-current="page"] .k { color: var(--accent); }
+
+.todo-toggle {
+  font: inherit;
+  text-transform: uppercase;
+  color: var(--todo-ink);
+  background: none;
+  border: 1px dashed var(--todo-border);
+  border-radius: var(--radius);
+  padding: 0.25rem 0.6rem;
+  cursor: pointer;
+}
+.todo-toggle:hover { background: var(--todo-bg); }
+.todo-toggle[aria-pressed="false"] { opacity: 0.6; }
+
+@media (max-width: 40rem) {
+  .site-header { position: static; }
+  .todo-toggle { margin-left: auto; }
+  .site-nav { order: 3; flex: 1 1 100%; flex-wrap: nowrap; overflow-x: auto; margin: 0 -1rem; padding: 0 1rem; gap: 1.25rem; scrollbar-width: none; }
+  .site-nav .k, .todo-toggle .k { display: none; }
+  .site-nav a { white-space: nowrap; }
+}
+
+/* ---------- Layout ---------- */
+
+.layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 2rem;
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 4rem;
+}
+
+@media (min-width: 64rem) {
+  .layout { grid-template-columns: 15rem minmax(0, 1fr); padding: 2rem 2rem 5rem; }
+  .layout.no-toc > .content { grid-column: 2; }
+}
+
+.content { min-width: 0; }
+.content > :not(.card-grid, .era, .table-wrap, .page-hero, .card-controls, section),
+.content section > :not(.card-grid, .table-wrap, .era-head) { max-width: var(--measure); }
+
+/* ---------- On this page ---------- */
+
+/* A tree of the page's headings. Only the current section's h3s are expanded.
+   Below it, a reading-progress bar; on narrow screens a hairline at the top instead. */
+
+.toc {
+  --toc-ink-2: color-mix(in srgb, var(--ink) 72%, var(--paper));
+  --toc-ink-3: color-mix(in srgb, var(--ink) 55%, var(--paper));
+  --toc-ink-4: color-mix(in srgb, var(--ink) 32%, var(--paper));
+  --ease-out: cubic-bezier(.19, 1, .22, 1);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.45;
+}
+.toc details { border: 1px solid var(--rule); border-radius: var(--radius); background: var(--surface); padding: 0.5rem 0.75rem; }
+.toc summary { cursor: pointer; letter-spacing: 0.02em; text-transform: uppercase; color: var(--toc-ink-3); }
+.toc .tree { margin-top: 0.6rem; }
+.toc .tree a {
+  display: block;
+  width: fit-content;
+  max-width: 100%;
+  padding: 2px 0;
+  color: var(--toc-ink-2);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.toc .tree a:hover, .toc .tree a.active { color: var(--ink); }
+.toc .tree a .br { color: var(--toc-ink-4); margin-right: 10px; }
+.toc .tree a.active .br { color: var(--toc-ink-2); }
+.toc .tree a.sub { padding-left: 18px; }
+
+.toc .subs { display: grid; grid-template-rows: 0fr; visibility: hidden; }
+.toc .subs.open, .toc .subs:has(:focus-visible) { grid-template-rows: 1fr; visibility: visible; }
+.toc .subs > div { min-height: 0; overflow: hidden; margin: -3px; padding: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  .toc .subs { transition: grid-template-rows .3s var(--ease-out), visibility .3s; }
+}
+
+.toc .rail-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: 1.05rem;
+  line-height: 1.4;
+  color: var(--ink);
+  text-wrap: balance;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity .4s ease, transform .4s var(--ease-out), max-height .4s ease, margin .4s ease;
+}
+.toc .rail-title.on { opacity: 1; max-height: 10rem; margin-bottom: 1.25rem; transform: none; }
+
+.toc .prog { margin-top: 1.6rem; color: var(--toc-ink-4); white-space: nowrap; overflow: hidden; }
+.toc .prog b { color: var(--ink); font-weight: 400; }
+.toc .pct { color: var(--toc-ink-2); margin-left: 8px; }
+.toc .rail-time { margin-top: 0.75rem; letter-spacing: 0.02em; color: var(--toc-ink-3); }
+
+.top-prog { position: fixed; top: 0; left: 0; z-index: 20; width: 0; height: 2px; background: var(--accent); }
+
+@media (max-width: 63.99rem) {
+  .toc .rail-title, .toc .prog, .toc .rail-time { display: none; }
+}
+
+@media (min-width: 64rem) {
+  .toc { position: sticky; top: 4.5rem; align-self: start; max-height: calc(100vh - 6rem); overflow-y: auto; scrollbar-width: none; }
+  .toc details { border: 0; background: none; padding: 0; }
+  .toc summary { list-style: none; pointer-events: none; }
+  .toc summary::-webkit-details-marker { display: none; }
+  .top-prog { display: none; }
+}
+
+/* ---------- Typography ---------- */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-display);
+  line-height: 1.2;
+  font-weight: 600;
+  margin: 2rem 0 0.6rem;
+}
+h1 { font-size: clamp(2rem, 5vw, 2.8rem); margin-top: 0; }
+h2, h3, h4, h5 { font-family: var(--font-mono); line-height: 1.4; }
+h2 { font-size: 0.95rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; padding-top: 2.25rem; border-top: 1px solid var(--rule); margin: 3rem 0 1.25rem; }
+h3 { font-size: 0.95rem; font-weight: 600; margin: 2.25rem 0 0.9rem; }
+h4 { font-size: 0.85rem; font-weight: 600; margin: 1.75rem 0 0.6rem; }
+h4::before { content: "└ "; color: var(--muted); font-weight: 400; }
+h5 { font-size: 0.8rem; font-weight: 600; color: var(--muted); }
+h2 + h3 { margin-top: 0; }
+h6 { font-size: 0.8rem; font-family: var(--font-ui); text-transform: uppercase; letter-spacing: 0.05em; color: var(--muted); }
+
+section:first-of-type > h2:first-child, .page-hero + section > h2:first-child { border-top: 0; padding-top: 0; }
+
+.heading-anchor {
+  margin-left: 0.4rem;
+  color: var(--rule);
+  text-decoration: none;
+  font-weight: 400;
+  opacity: 0;
+}
+:is(h2, h3, h4):hover .heading-anchor, .heading-anchor:focus { opacity: 1; color: var(--muted); }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+li > ul, li > ol { margin: 0.25rem 0 0; }
+em { font-style: italic; }
+code { font-family: var(--font-mono); font-size: 0.85em; background: color-mix(in srgb, var(--ink) 5%, transparent); border: 1px solid var(--rule); padding: 0.05em 0.3em; }
+hr { border: 0; border-top: 1px solid var(--rule); margin: 2rem 0; }
+
+blockquote {
+  margin: 1.25rem 0;
+  padding: 0.75rem 1rem;
+  border-left: 1px solid var(--accent);
+  color: var(--ink);
+  font-style: italic;
+}
+blockquote > :last-child { margin-bottom: 0; }
+
+/* An aside set off by a thin rule; its leading <strong> becomes a small label. */
+.callout {
+  margin: 1.5rem 0;
+  padding: 0.1rem 0 0.1rem 1.25rem;
+  border-left: 1px solid var(--accent);
+}
+.callout > strong:first-child {
+  display: block;
+  margin-bottom: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--accent);
+}
+.callout + .callout { margin-top: -0.25rem; }
+
+/* ---------- Page hero ---------- */
+
+.page-hero { margin-bottom: 2rem; max-width: var(--measure); }
+.eyebrow {
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--accent);
+  margin: 0 0 0.4rem;
+}
+.page-hero .subtitle { display: block; font-size: 0.55em; color: var(--muted); font-weight: 500; margin-top: 0.3rem; }
+.tagline { font-size: 1.15rem; color: var(--muted); }
+.meta { font-family: var(--font-ui); font-size: 0.85rem; color: var(--muted); margin: 1rem 0 0; display: grid; gap: 0.35rem; }
+.meta div { display: grid; grid-template-columns: 5.5rem 1fr; gap: 0.75rem; }
+.meta dt { font-weight: 600; color: var(--ink); }
+.meta dd { margin: 0; }
+
+/* ---------- Tables ---------- */
+
+.table-wrap { overflow-x: auto; margin: 0 0 1.25rem; max-width: 100%; }
+table {
+  border-collapse: collapse;
+  font-size: 0.93rem;
+  line-height: 1.45;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  min-width: min(100%, 28rem);
+}
+th, td { padding: 0.45rem 0.75rem; text-align: left; vertical-align: top; border-bottom: 1px solid var(--rule); }
+th { font-family: var(--font-ui); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.04em; color: var(--muted); font-weight: 600; background: none; }
+tr:last-child td { border-bottom: 0; }
+td.center, th.center { text-align: center; }
+td:first-child { white-space: nowrap; }
+
+/* Naming tables */
+.naming td.can, .naming td.cannot { text-align: center; font-family: var(--font-ui); font-size: 0.78rem; }
+.naming td.can { color: var(--can); font-weight: 600; }
+.naming td.cannot { color: var(--cannot); }
+.naming td.free span {
+  display: inline-block;
+  background: var(--free-bg);
+  color: var(--free-ink);
+  border-radius: var(--radius);
+  padding: 0.05rem 0.45rem;
+  font-size: 0.72rem;
+  text-transform: uppercase;
+}
+.table-note { font-family: var(--font-ui); font-size: 0.78rem; color: var(--muted); }
+
+/* ---------- Todos ---------- */
+
+.todo {
+  position: relative;
+  margin: 0.75rem 0 1rem;
+  padding: 0.5rem 0.75rem 0.5rem 4.6rem;
+  background: var(--todo-bg);
+  border: 1px dashed var(--todo-border);
+  border-radius: var(--radius);
+  color: var(--todo-ink);
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+.todo::before {
+  content: "TODO";
+  position: absolute;
+  left: 0.75rem;
+  top: 0.55rem;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  border: 1px solid var(--todo-border);
+  padding: 0 0.3rem;
+}
+body.hide-todos .todo { display: none; }
+
+/* ---------- Era cards ---------- */
+
+.era-myth { --era: var(--era-myth); }
+.era-antiquity { --era: var(--era-antiquity); }
+.era-ruin { --era: var(--era-ruin); }
+.era-promise { --era: var(--era-promise); }
+.era-extra { --era: var(--era-extra); }
+.era-cataclysm { --era: var(--era-cataclysm); }
+.era-industry { --era: var(--era-industry); }
+.era-convergence { --era: var(--era-convergence); }
+
+.era > h2 .suit, .era-suit { color: var(--era, var(--accent)); }
+/* Only Eras after the first visible one get a divider, so filtering doesn't leave one on top. */
+.card-controls ~ .era > h2 { border-top: 0; padding-top: 0; }
+.era:not(.is-hidden) ~ .era:not(.is-hidden) > h2 { border-top: 1px solid var(--rule); padding-top: 2.25rem; }
+
+/* Cards sit on one ruled sheet. Each card draws a 1px rule on all sides with
+   shadows that overlap their neighbours', so lines collapse to a single hairline
+   and the empty cells in a short last row stay blank. */
+/* Two columns that read top to bottom, then left to right; one column when narrow. */
+.card-grid {
+  columns: 2 17rem;
+  column-gap: 0;
+  margin: 1rem 0 1.5rem;
+  padding: 0 1px 1px 0;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  box-shadow: 1px 0 0 var(--rule), 0 1px 0 var(--rule), 1px 1px 0 var(--rule), inset 1px 0 0 var(--rule), inset 0 1px 0 var(--rule);
+  padding: 1rem 1.15rem 1.15rem;
+  font-size: 0.93rem;
+  line-height: 1.55;
+  transition: background 0.15s;
+  break-inside: avoid;
+}
+.card:hover { background: color-mix(in srgb, var(--surface) 60%, var(--paper)); }
+.card:target { background: color-mix(in srgb, var(--era, var(--accent)) 8%, var(--paper)); }
+
+/* The rank sits in the corner, like a playing card's index. */
+.card-head { margin-bottom: 0.75rem; padding-right: 2.5rem; }
+.card-rank {
+  position: absolute;
+  top: 1rem;
+  right: 1.15rem;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.5;
+  color: var(--era, var(--accent));
+}
+.card-title { margin: 0; font-family: var(--font-display); font-size: 1.1rem; font-weight: 600; line-height: 1.25; text-transform: none; letter-spacing: 0; border: 0; padding: 0; }
+.card-name {
+  display: block;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 400;
+  line-height: 1.5;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--muted);
+  margin-bottom: 0.3rem;
+}
+.card-body > :last-child { margin-bottom: 0; }
+.card-body p { margin-bottom: 0.6rem; }
+.card-body ul { list-style: none; padding-left: 0; margin-bottom: 0.6rem; }
+.card-body li { position: relative; padding-left: 1.4em; margin: 0.4rem 0; }
+.card-body li::before {
+  content: "└";
+  position: absolute;
+  left: 0.15em;
+  font-family: var(--font-mono);
+  color: color-mix(in srgb, var(--muted) 70%, var(--paper));
+}
+.card-body .todo { font-size: 0.75rem; }
+.card-body:empty::after { content: "Not written yet."; font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
+
+/* Card filter controls */
+.card-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0 0 1.5rem;
+  font-family: var(--font-ui);
+  font-size: 0.75rem;
+}
+.card-search {
+  font: inherit;
+  flex: 1 1 12rem;
+  min-width: 0;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--ink);
+}
+.card-count { color: var(--muted); }
+.is-hidden { display: none !important; }
+
+/* ---------- Home page ---------- */
+
+/* Hero art: a looping video per theme in the text column. CSS shows the one
+   that matches and site.js plays it. The mask fades the video's outer edge, so
+   a decoder's slightly different paper colour never shows as a box. */
+.hero-art { margin: 0 0 1rem; }
+.hero-art :is(video, img, canvas) {
+  display: block; width: 100%; height: auto;
+  --fade: linear-gradient(to right, transparent, #000 2.5%, #000 97.5%, transparent), linear-gradient(transparent, #000 3.5%, #000 96.5%, transparent);
+  -webkit-mask-image: var(--fade);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--fade);
+  mask-composite: intersect;
+}
+
+/* Hero banner: a live scene (data-scene, assets/scenes/) across the top of the
+   page, under the header, that scrolls away. The art is a long strip with the
+   world in its middle 1400 of 2552 pixels. It's as tall as it can be while the
+   world still fits the window's width, and the window crops the strip's ends.
+   Its canvas replaces the WebP still once the scene starts. */
+.hero-banner {
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  margin: 0;
+  padding-top: 0.75rem;
+}
+.hero-banner :is(img, canvas) {
+  flex: none;
+  display: block;
+  width: auto;
+  height: min(62vh, 55vw, 44rem);
+  max-width: none;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  /* Fade the top and bottom into the page, and the far ends too, for windows wide enough to show them. */
+  --fade: linear-gradient(transparent, #000 4%, #000 96%, transparent), linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
+  -webkit-mask-image: var(--fade);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--fade);
+  mask-composite: intersect;
+}
+.hero-banner picture { flex: none; }
+/* A banner whose art stays inside its frame (the Era Cards shuffle) needs no fade. */
+.hero-banner.no-fade :is(img, canvas) { -webkit-mask-image: none; mask-image: none; }
+.is-live > picture { display: none; }
+
+/* Margin figures: the smallest live scenes, the Era mascots and the margin
+   drolleries (assets/scenes/mascots.js, marginalia.js), placed after the
+   heading they belong to. They float to the right of the section, which on a
+   wide screen is the empty margin beside the text; on a narrower one they sit
+   in the column and the text wraps round them. */
+.marginal { float: right; clear: right; width: 160px; margin: 0.25rem 0 1rem 1.5rem; }
+.marginal canvas {
+  display: block;
+  width: 100%;
+  height: auto;
+  image-rendering: pixelated;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+@media (max-width: 40rem) { .marginal { width: 120px; margin-left: 1rem; } }
+
+/* Scene strips: smaller live scenes in the text column, at the top of a
+   section (The Four Eras, Entities, The Game). Same runtime as the banners. */
+.scene-strip { margin: 0 0 1.5rem; }
+.scene-strip :is(img, canvas) {
+  display: block;
+  width: 100%;
+  height: auto;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+.hero-art .dark { display: none; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .hero-art .light { display: none; }
+  :root:not([data-theme="light"]) .hero-art .dark { display: block; }
+}
+:root[data-theme="dark"] .hero-art .light { display: none; }
+:root[data-theme="dark"] .hero-art .dark { display: block; }
+
+/* Hero facts, in the same label-over-value form as the rail: values hang off a └. */
+.facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: 1rem 1.5rem; margin: 1.75rem 0 0; }
+.facts dt { font-family: var(--font-mono); font-size: 0.72rem; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.35rem; }
+.facts dd { margin: 0; padding-left: 1.4em; text-indent: -1.4em; font-size: 0.95rem; line-height: 1.45; }
+.facts dd::before { content: "└"; display: inline-block; width: 1.4em; text-indent: 0; font-family: var(--font-mono); color: color-mix(in srgb, var(--muted) 60%, var(--paper)); }
+
+/* The page list: ruled rows; hovering one dims the rest. */
+.contents { list-style: none; margin: 0 0 2.5rem; padding: 0; border-top: 1px solid var(--rule); }
+.contents li { margin: 0; border-bottom: 1px solid var(--rule); }
+.contents a {
+  display: grid;
+  grid-template-columns: 3rem minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 1.1rem 0.15rem;
+  color: var(--ink);
+  text-decoration: none;
+  transition: opacity 0.25s;
+}
+.contents .n, .contents .tag { font-family: var(--font-mono); font-size: 0.75rem; color: var(--muted); }
+.contents .tag { text-transform: uppercase; letter-spacing: 0.02em; transition: color 0.15s; }
+.contents .t { font-family: var(--font-display); font-size: 1.2rem; font-weight: 600; line-height: 1.3; }
+.contents .d { display: block; margin-top: 0.25rem; font-family: var(--font-body); font-size: 0.95rem; font-weight: 400; color: var(--muted); }
+.contents a:hover .tag, .contents a:focus-visible .tag { color: var(--accent); }
+@media (hover: hover) {
+  .contents:hover a:not(:hover) { opacity: 0.4; }
+}
+section:has(> .contents:last-child) + .site-footer { border-top: 0; padding-top: 0; }
+@media (max-width: 40rem) {
+  .contents a { grid-template-columns: 2.25rem minmax(0, 1fr); }
+  .contents .tag { grid-column: 2; }
+}
+
+.site-footer { font-family: var(--font-ui); font-size: 0.72rem; color: var(--muted); border-top: 1px solid var(--rule); margin-top: 3rem; padding-top: 1rem; }
+
+/* ---------- Print ---------- */
+
+@media print {
+  .site-header, .toc, .top-prog, .card-controls, .heading-anchor, .marginal { display: none !important; }
+  .layout { display: block; padding: 0; }
+  body { background: #fff; color: #000; }
+  .card { break-inside: avoid; }
+}

@@ -1,0 +1,9 @@
+# Kept local, not published with the site
+drafts/
+CLAUDE.md
+.claude/
+reference/*
+!reference/HB-OnceUponATime.txt
+art/node_modules/
+art/out/
+.DS_Store
