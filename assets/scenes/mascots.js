@@ -98,6 +98,7 @@
     }
 
     drollery('myth', {
+      span: [3, 14, 80, 58],
       h: 64,
       make: () => ({ x: 24, dir: 1, face: 1, rest: 0, buds: [] }),
       update(st, step, pointer) {
@@ -199,6 +200,7 @@
     const open = (a) => (a < 0 || a >= READ ? 0 : a < 12 ? smooth(a / 12) : a < 64 ? 1 : 1 - smooth((a - 64) / 12));
 
     drollery('antiquity', {
+      span: [9, 9, 64, 66],
       h: 72,
       make: () => ({ readAt: -999 }),
       click(st, step) { if (step - st.readAt >= READ) st.readAt = step; },
@@ -358,6 +360,7 @@
     }
 
     drollery('ruin', {
+      span: [21, 6, 56, 52],
       h: 56,
       make: () => ({ bonkAt: -999, blinkAt: 30, combo: 0 }),
       update(st, step) { if (step > st.blinkAt + 4) st.blinkAt = step + 60 + Math.floor(R('blink', step) * 90); },
@@ -491,6 +494,7 @@
     }
 
     drollery('promise', {
+      span: [21, 12, 57, 64],
       h: 72,
       make: () => ({ flyAt: -999, blinkAt: 40 }),
       update(st, step) { if (step > st.blinkAt + 4) st.blinkAt = step + 70 + Math.floor(R('blink', step) * 100); },

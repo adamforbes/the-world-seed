@@ -150,13 +150,19 @@
     gggg
     .gg.
   `);
+  // Where there's no margin the page sets the figures beside their headings
+  // and rules the heading instead (margins-inline, set by site.js).
   function rule(p, x0, x1, y) {
+    if (document.documentElement.classList.contains('margins-inline')) return;
     for (let x = x0; x <= x1; x++) p.px(x, y, 'f');
     p.sprite(IVY, x1 + 1, y - 2);
   }
 
   // Each figure keeps its own state, made fresh by make() and again whenever
   // it scrolls away. Times are in steps, 24 a second.
+  // `span` is [x0, y0, x1, y1], the box everything it draws stays inside,
+  // with its ruled line along the bottom, for cropping it where it sits
+  // beside its heading.
   function drollery(name, d) {
     const at = (x, y) => [x / S, y / S];
     let st = d.make(), now = 0, pointer = null;
@@ -178,6 +184,9 @@
       },
       click(x, y) { d.click?.(st, now, at(x, y)); },
       cursor: () => 'pointer',
+      touchHover: true,
+      // The box everything in the figure stays inside, for cropping it.
+      span: d.span,
       reset() { st = d.make(); pointer = null; },
       get state() { return st; },
     };
@@ -224,6 +233,7 @@
     }
 
     drollery('places', {
+      span: [2, 10, 60, 58],
       h: 64,
       make: () => ({ tree: SPOTS.map(() => -1), apples: [], claimed: { '-1': 0, 1: 0 }, leaves: [], shakeAt: -99 }),
       update(st, step, pointer) {
@@ -351,6 +361,7 @@
     const CAST = 50, REACH = 26;
 
     drollery('gods', {
+      span: [14, 2, 69, 60],
       h: 64,
       make: () => ({ blinkAt: 40, castAt: -999 }),
       update(st, step) {
@@ -560,6 +571,7 @@
     ];
 
     drollery('peoples', {
+      span: [8, 6, 72, 46],
       h: 52,
       make: () => ({ at: SLOTS.slice(), to: SLOTS.slice(), order: [0, 1, 2], moves: 0 }),
       update(st) {
@@ -672,6 +684,7 @@
     }
 
     drollery('actors', {
+      span: [11, 4, 62, 50],
       h: 56,
       make: () => ({ off: false, at: -999 }),
       click(st, step) {
@@ -810,6 +823,7 @@
     const STRIKE = 84;
 
     drollery('nations', {
+      span: [10, 0, 66, 58],
       h: 64,
       make: () => ({ design: { field: 'r', pattern: 'plain', emblem: 'crown' }, e: 0, strike: null, flags: 0 }),
       update(st, step, pointer) {
@@ -1085,6 +1099,7 @@
     `);
 
     drollery('qualities', {
+      span: [19, 0, 60, 59],
       h: 64,
       make: () => ({ at: 0, was: 0, paintAt: -999, blinkAt: 50 }),
       update(st, step) { if (step > st.blinkAt + 3) st.blinkAt = step + 60 + Math.floor(R('blink', step) * 90); },
@@ -1255,6 +1270,7 @@
     }
 
     drollery('naming', {
+      span: [8, 4, 76, 66],
       h: 70,
       make: () => ({ soothed: false, starAt: -999, zs: [], tears: [], nextZ: 20 }),
       update(st, step, pointer) {
@@ -1465,6 +1481,7 @@
     const seen = (x) => clamp((FAR - x) / 12);
 
     drollery('journey', {
+      span: [4, 4, 74, 50],
       h: 56,
       make: () => ({ x: HOME, face: 1, phase: 'home', at: 0, item: 0, stack: [] }),
       update(st, step) {
@@ -1681,6 +1698,7 @@
     ];
 
     drollery('narration', {
+      span: [9, 3, 68, 66],
       h: 70,
       make: () => ({ puffs: [], raiseAt: -999, next: 0 }),
       update(st, step) { st.puffs = st.puffs.filter((q) => step - q.born < 74); },
@@ -1830,6 +1848,7 @@
     const FLIP = 18, TURNS = 5, BURST = 24;
 
     drollery('card', {
+      span: [16, 0, 64, 60],
       h: 68,
       make: () => ({ up: null, flip: null, peek: 'heart', fold: 0, draws: 0, shownAt: -999 }),
       update(st, step, pointer) {
@@ -2010,6 +2029,7 @@
     }
 
     drollery('legacy', {
+      span: [15, 1, 74, 66],
       h: 72,
       make: () => ({ form: 'hero', next: 'dove', anim: null, bird: { mode: 'away', x: ENTRY[0], y: ENTRY[1], alpha: 0 } }),
       update(st, step) {

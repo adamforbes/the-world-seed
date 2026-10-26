@@ -71,6 +71,34 @@
     h.append(a);
   });
 
+  // ---------- Margin figures ----------
+  // The drolleries and Era mascots (.marginal) float into the right margin
+  // beside their heading. When the margin is too narrow for them, each moves
+  // into its heading instead, cropped to its own size (see style.css). Runs
+  // once the scenes have loaded, since each one knows the box it stays in.
+  const figures = [...main.querySelectorAll(".marginal")];
+  if (figures.length) document.addEventListener("DOMContentLoaded", () => {
+    const homes = figures.map(f => f.previousElementSibling);
+    figures.forEach(f => {
+      const span = window.SceneKit?.scenes[f.dataset.scene]?.span;
+      if (!span) return;
+      const [x0, y0, x1, y1] = span;
+      f.style.cssText += `--x0:${x0};--y0:${y0};--w:${x1 - x0};--h:${y1 - y0}`;
+    });
+    const section = homes[0].parentElement, text = section.querySelector("p");
+    let inline = null;
+    const place = () => {
+      const room = section.clientWidth - (text ? text.getBoundingClientRect().width : 0);
+      const now = room < 160;
+      if (now === inline) return;
+      inline = now;
+      document.documentElement.classList.toggle("margins-inline", inline);
+      figures.forEach((f, i) => (inline ? homes[i].append(f) : homes[i].after(f)));
+    };
+    place();
+    new ResizeObserver(place).observe(main);
+  });
+
   // ---------- On this page ----------
   // A tree of h2s, each h3 group tucked under its h2 and opened only while
   // that section is being read. Below it, a reading-progress bar and time.

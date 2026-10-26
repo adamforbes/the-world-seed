@@ -8,7 +8,8 @@
 //
 // An interactive scene also has render(ctx, step, theme, { calm, time }) and
 // any of update(step), hover(x, y), click(x, y), cursor() and reset(), and is announced with
-// SceneKit.register(scene). Any element on the page with a matching
+// SceneKit.register(scene). With touchHover set, a first tap on a touch screen
+// plays its hover and a second its click. Any element on the page with a matching
 // data-scene attribute then gets a live canvas (see live() below). Its
 // preview page can call mount() as usual, and ?live plays it interactively.
 
@@ -229,7 +230,9 @@
   // scene.tick frames), passing it pointer input in scene pixels. It follows
   // the page's theme, sleeps while offscreen or in a background tab, and asks
   // the scene to hold its ambient motion still for readers who prefer reduced
-  // motion. Touch has no hover, so a tap is just a click. Tile scenes redraw
+  // motion. Touch has no hover, so a tap is just a click, unless the scene
+  // sets touchHover: then the first tap hovers there, the next taps click, and
+  // a tap anywhere else lets go. Tile scenes redraw
   // a step at a time; a scene with `smooth: true` redraws every frame, and
   // `time` (in milliseconds, continuous) is there for its motion.
   function live(host, scene) {
@@ -254,13 +257,35 @@
       dirty = true;
       canvas.style.cursor = scene.cursor ? scene.cursor() : '';
     };
+    let touched = false, swallow = false;
     canvas.addEventListener('pointermove', (e) => {
       if (e.pointerType === 'touch') return;
       scene.hover?.(...toScene(e));
       poke();
     });
-    canvas.addEventListener('pointerleave', () => { scene.hover?.(null); poke(); });
-    canvas.addEventListener('click', (e) => { scene.click?.(...toScene(e)); poke(); });
+    canvas.addEventListener('pointerleave', (e) => {
+      if (e.pointerType === 'touch') return;
+      scene.hover?.(null);
+      poke();
+    });
+    canvas.addEventListener('pointerdown', (e) => {
+      if (e.pointerType !== 'touch' || !scene.touchHover) return;
+      scene.hover?.(...toScene(e));
+      swallow = !touched;
+      touched = true;
+      poke();
+    });
+    document.addEventListener('pointerdown', (e) => {
+      if (!touched || e.target === canvas) return;
+      touched = false;
+      scene.hover?.(null);
+      poke();
+    });
+    canvas.addEventListener('click', (e) => {
+      if (swallow) { swallow = false; return; }
+      scene.click?.(...toScene(e));
+      poke();
+    });
 
     const draw = () => {
       ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -290,7 +315,7 @@
     // A scene with reset() starts over each time it scrolls out of view.
     new IntersectionObserver(([entry]) => {
       onscreen = entry.isIntersecting;
-      if (!onscreen && scene.reset) { scene.reset(); dirty = true; }
+      if (!onscreen && scene.reset) { scene.reset(); touched = false; dirty = true; }
       wake();
     }).observe(canvas);
     new MutationObserver(() => { dirty = true; }).observe(root, { attributes: true, attributeFilter: ['data-theme'] });
