@@ -17,8 +17,9 @@
 //   m-nations    a flag the wind snaps out; lightning burns it, a new one rises
 //   m-qualities  a portrait whose eyes follow you, repainted at a click: the
 //                Wise king, the Holy saint, the Cruel tyrant, the Fallen
-//   m-naming     a chubby medieval baby asleep on a cushion, who cries at a
-//                hover and calms at a click
+//   m-naming     a swaddled baby asleep on a cushion, who bursts out of the
+//                swaddle crying at a hover; at a click the swaddle flies
+//                back round it like a magic carpet
 //   m-journey    a pilgrim who walks off and comes back with a souvenir
 //   m-narration  a fortune-teller whose fire smokes out pictures
 //   m-card       a face-down card that peeks, and flips to a random suit
@@ -1159,60 +1160,92 @@
     });
   }
 
-  // ---------- Naming: a sleeping baby ----------
+  // ---------- Naming: a swaddled baby ----------
 
   {
-    const BASE = 66, BX = 18, BY = BASE - 47;
-    // A chubby baby out of a manuscript, asleep sitting up on a cushion: a
-    // linen coif tied with a lapis bow, rosy cheeks, a little red gown
-    // trimmed in gold, toes peeking out. E eyes, C cheeks, M mouth.
-    const BABY = art(`
-      .................##########.................
-      ...............##wwwwwwwwww##...............
-      .............##wwwwwwwwwwwwww##.............
-      ...........##wwwwwwwwwwwwwwwwww##...........
-      ...........#wwwwwwwwwwwwwwwwwwww#...........
-      .........##wwwwwwwwwwwwwwwwwwwwww##.........
-      .........#wwwwwwwppppppppppwwwwwww#.........
-      ........#wwwwwwppppppppppppppwwwwww#........
-      ........#wwwwwwppppppppppppppwwwwww#........
-      .......#wwwwwppppppppppppppppppwwwww#.......
-      .......#wwwwwppppppppppppppppppwwwww#.......
-      ......#wwwwwppppppppppppppppppppwwwww#......
-      ......#wwwwwppEppEppppppppEppEppwwwww#......
-      ......#wwwwwpppEEppppppppppEEpppwwwww#......
-      ......#wwwwwppCCppppppppppppCCppwwwww#......
-      ......#wwwwwppCCppppppppppppCCppwwwww#......
-      ......#wwwwwpppppppppMMpppppppppwwwww#......
-      .......#wwwwwppppppppppppppppppwwwww#.......
-      .......##wwwwppppppppppppppppppwwww##.......
-      .........#wwwwwppppppppppppppwwwww#.........
-      .........##wwwwppppppppppppppwwww##.........
-      ...........#wwwwwppppppppppwwwww#...........
-      ...........##wwwwwwwwwwwwwwwwww##...........
-      .............###wwwwwwwwwwww###.............
-      ................#wwwwbbwwww#................
-      ................#wwwbbbbwww#................
-      .............###rrrrrrrrrrrr###.............
-      ...........##grrrrrrrrrrrrrrrrg##...........
-      ...........#ggrrrrrrrrrrrrrrrrgg#...........
-      .........##ggrrrrrrrrrrrrrrrrrrgg##.........
-      .........#rrrrrrrrrrrrrrrrrrrrrrrr#.........
-      ........#rrrrrrrrrrrrrrrrrrrrrrrrrr#........
-      ........#rrrrrrrrrrrrrrrrrrrrrrrrrr#........
-      .......#rrrrrrrrrrrrrrrrrrrrrrrrrrrr#.......
-      .......#rrrrrrrrrrrrrrrrrrrrrrrrrrrr#.......
-      ......#rrrrrrrrrrrrrrrrrrrrrrrrrrrrrr#......
-      ......#gggggggggggggggggggggggggggggg#......
-      ......#rgrgrgrgrgrgrgrgrgrgrgrgrgrgrg#......
-      ......#pppppp#................#pppppp#......
-      .......#pppp#..................#pppp#.......
-      .......##pp##..................##pp##.......
-      .........##......................##.........
+    const BASE = 66, MID = 39.5, HX = 29, HY = 20;
+    // A chubby sleeping baby: a tuft of dark hair (h), closed eyes (E), rosy
+    // cheeks (C) and a little mouth (M).
+    const HEAD = art(`
+      .........#..#.........
+      ........#h##h#........
+      ......##hhhhhh##......
+      ....##pphhhhhhpp##....
+      ...#pppppppppppppp#...
+      ..#pppppppppppppppp#..
+      ..#pppppppppppppppp#..
+      .#pppppppppppppppppp#.
+      .#pppppppppppppppppp#.
+      .#ppppEpEppppEpEpppp#.
+      .#pppppEppppppEppppp#.
+      .#ppCCppppppppppCCpp#.
+      .#ppCCppppppppppCCpp#.
+      ..#pppppppMMppppppp#..
+      ..#pppppppppppppppp#..
+      ...#pppppppppppppp#...
+      ....##pppppppppp##....
+      ......##########......
     `);
-    const HEAD = BABY.slice(0, 26), BODY = BABY.slice(26);
-    const SHOULDERS = [[BX + 12, BY + 30], [BX + 31, BY + 30]];
-    const CUSHION = BY + BABY.length;
+    // The swaddle: a linen bundle from the chin down, round at the shoulders
+    // and tapering to the feet, bound with criss-crossed vermilion bands.
+    const UY = HY + 15, UH = 26, CUSHION = UY + UH;
+    const half = (j) => {
+      const t = j / (UH - 1);
+      return t < 0.15 ? 9 + (t / 0.15) * 4 : t < 0.7 ? 13 : 13 - ((t - 0.7) / 0.3) ** 2 * 7;
+    };
+    const inBundle = (x, y) => y >= UY && y < UY + UH && Math.abs(x - MID) <= half(y - UY);
+    function bundleInk(x, y) {
+      if (!inBundle(x - 1, y) || !inBundle(x + 1, y) || !inBundle(x, y - 1) || !inBundle(x, y + 1)) return '#';
+      const j = y - UY;
+      if (j === 2) return 'f';
+      const c = Math.floor(x), a = (((c + y) % 10) + 10) % 10, b = (((c - y) % 10) + 10) % 10;
+      return j > 4 && (a === 0 || b === 0) ? 'r' : 'w';
+    }
+    // Under it, crying, a little red gown with a gold hem, and bare feet.
+    const gownHalf = (j) => 7 + j * 0.2;
+    const inGown = (x, y) => y >= UY && y < UY + UH - 3 && Math.abs(x - MID) <= gownHalf(y - UY);
+    function gownInk(x, y) {
+      if (!inGown(x - 1, y) || !inGown(x + 1, y) || !inGown(x, y - 1) || !inGown(x, y + 1)) return '#';
+      const j = y - UY;
+      return j < 3 ? 'w' : j >= UH - 6 ? 'g' : 'r';
+    }
+    const FOOT = art(`
+      #pp#
+      pppp
+      .pp.
+    `);
+    // A chubby arm in a red sleeve, with a little hand.
+    function arm(p, [x0, y0], [x1, y1]) {
+      const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2);
+      for (const [r, ink] of [[2.8, '#'], [1.9, 'r']]) for (let k = 0; k <= n; k++) {
+        const x = lerp(x0, x1, k / n), y = lerp(y0, y1, k / n);
+        for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (dx * dx + dy * dy <= r * r) p.px(x + dx, y + dy, ink);
+      }
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) if (dx * dx + dy * dy < 2) p.px(x1 + dx, y1 + dy, 'p');
+    }
+    // The swaddle flown free, like a magic carpet: the same banded linen,
+    // with gold tassels, a wave running down it and its folds in shadow.
+    function carpet(p, cx, cy, len, ph, tilt) {
+      const L = Math.max(3, Math.round(len)), x0 = Math.round(cx - L / 2);
+      const at = (i) => {
+        const u = i / Math.max(1, L - 1), edge = 0.6 + Math.abs(u - 0.5) * 1.6;
+        return cy + Math.sin(u * TAU * 1.1 - ph) * 2 * edge + (u - 0.5) * tilt;
+      };
+      let yl = 0, yr = 0;
+      for (let i = 0; i < L; i++) {
+        const y = Math.round(at(i)), fold = at(i + 1) - at(i - 1) > 0.5;
+        if (i === 0) yl = y;
+        if (i === L - 1) yr = y;
+        for (let k = -4; k <= 3; k++) {
+          const x = x0 + i, a = (((x + k) % 10) + 10) % 10, b = (((x - k) % 10) + 10) % 10;
+          p.px(x, y + k, k === -4 || k === 3 ? '#' : a === 0 || b === 0 ? 'r' : fold ? 'f' : 'w');
+        }
+      }
+      const sway = Math.round(Math.sin(ph * 1.3));
+      for (const [x, y, d] of [[x0 - 1, yl, -1], [x0 + L, yr, 1]]) {
+        for (const k of [-3, -1, 1]) { p.px(x, y + k, 'g'); p.px(x + d, y + k + sway, 'g'); }
+      }
+    }
     const Z = [art(`
       #####
       ....#
@@ -1252,98 +1285,133 @@
       ggg....ggg
       gg......gg
     `)];
-    // A little hand, centred on a point.
-    const HAND = art(`
-      .pp.
-      pppp
-      pppp
-      .pp.
-    `);
-    const hand = (p, x, y) => p.sprite(HAND, Math.round(x) - 2, Math.round(y) - 2);
-    // A chubby arm in a red sleeve, with a little hand on the end.
-    function arm(p, [x0, y0], [x1, y1]) {
-      const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2);
-      for (const [r, ink] of [[3.4, '#'], [2.4, 'r']]) for (let k = 0; k <= n; k++) {
-        const x = lerp(x0, x1, k / n), y = lerp(y0, y1, k / n);
-        for (let dy = -4; dy <= 4; dy++) for (let dx = -4; dx <= 4; dx++) if (dx * dx + dy * dy <= r * r) p.px(x + dx, y + dy, ink);
-      }
-      hand(p, x1, y1);
-    }
+    // The carpet hovers here while the baby cries.
+    const HOVER = [MID, 11], BURST = 10, WRAP = 30, CLOTH = 36;
 
     drollery('naming', {
-      span: [8, 4, 76, 66],
+      span: [2, 1, 78, 66],
       h: 70,
-      make: () => ({ soothed: false, starAt: -999, zs: [], tears: [], nextZ: 20 }),
+      make: () => ({ mode: 'sleep', at: -999, soothed: false, starAt: -999, zs: [], tears: [], nextZ: 20 }),
       update(st, step, pointer) {
-        const crying = pointer && !st.soothed;
-        if (!crying && step >= st.nextZ && step - st.starAt > 30) {
+        const a = step - st.at;
+        if (st.mode === 'sleep' && pointer && !st.soothed) { st.mode = 'burst'; st.at = step; }
+        else if (st.mode === 'burst' && a >= BURST) { st.mode = 'cry'; st.at = step; }
+        else if (st.mode === 'wrap' && a >= WRAP) { st.mode = 'sleep'; st.at = step; if (st.star) st.starAt = step; }
+        if (st.mode === 'sleep' && step >= st.nextZ && step - st.starAt > 30) {
           st.zs.push({ born: step, big: st.zs.length % 2 });
           st.nextZ = step + 42;
         }
         st.zs = st.zs.filter((z) => step - z.born < 80);
-        if (crying && step % 4 === 0) {
+        if (st.mode === 'cry' && step % 4 === 0) {
           const side = (step / 4) % 2 ? 1 : -1;
-          st.tears.push({ x: BX + (side > 0 ? 29 : 14), y: BY + 14, vx: side * (0.7 + R('tear', step) * 0.6), vy: -0.8 });
+          st.tears.push({ x: HX + (side > 0 ? 15 : 6), y: HY + 10, vx: side * (0.7 + R('tear', step) * 0.6), vy: -0.8 });
         }
         for (const t of st.tears) { t.vy += 0.2; t.x += t.vx; t.y += t.vy; }
         st.tears = st.tears.filter((t) => t.y < BASE);
       },
-      leave(st) { st.soothed = false; },
-      click(st, step) {
-        st.soothed = true;
-        st.starAt = step;
-        st.nextZ = step + 36;
+      // Left alone it's wrapped back up; calmed with a click, it gets a star too.
+      leave(st, step) {
+        st.soothed = false;
+        if (st.mode === 'burst' || st.mode === 'cry') { st.mode = 'wrap'; st.at = step; st.star = false; }
       },
-      draw(p, st, { step, calm, pointer }) {
-        const crying = pointer && !st.soothed && !calm;
+      click(st, step) {
+        if (st.mode !== 'burst' && st.mode !== 'cry') return;
+        st.mode = 'wrap'; st.at = step; st.star = true; st.soothed = true; st.nextZ = step + WRAP + 30;
+      },
+      draw(p, st, { step, calm }) {
         rule(p, 6, 72, BASE);
+        const a = step - st.at, mode = st.mode;
         // The cushion: lapis, edged and tasselled in gold.
-        for (let y = CUSHION; y < BASE; y++) for (let x = BX - 2; x <= BX + 45; x++) {
-          const edge = y === CUSHION || y === BASE - 1 || x === BX - 2 || x === BX + 45;
+        for (let y = CUSHION; y < BASE; y++) for (let x = 15; x <= 64; x++) {
+          const edge = y === CUSHION || y === BASE - 1 || x === 15 || x === 64;
           p.px(x, y, edge ? '#' : y === CUSHION + 1 ? 'g' : 'b');
         }
-        for (const x of [BX - 3, BX + 46]) for (let y = CUSHION + 1; y <= CUSHION + 3; y++) p.px(x, y, 'g');
-        // Asleep, its head nods; crying, it bounces and waves its arms.
-        const nod = !calm && !crying && Math.sin((step / 72) * TAU) > 0.2 ? 1 : 0;
-        const hop = crying && (step >> 2) % 2 ? -2 : 0;
-        p.sprite(BODY, BX, BY + 26 + hop);
-        const flail = (step >> 2) % 2;
-        const hands = crying
-          ? [[BX + (flail ? 5 : 7), BY + (flail ? 19 : 27)], [BX + (flail ? 38 : 40), BY + (flail ? 27 : 19)]]
-          : [[BX + 17, BY + 37], [BX + 27, BY + 37]];
-        // Its arms wave when it cries; asleep, its hands rest in its lap.
-        if (crying) SHOULDERS.forEach((s, i) => arm(p, [s[0], s[1] + hop], [hands[i][0], hands[i][1] + hop]));
-        else for (const [hx, hy] of hands) hand(p, hx, hy);
-        // A little gold rattle in its hand, shaken when it cries.
-        const [rx, ry] = [hands[1][0] + 1, hands[1][1] + hop - 1], shake = crying ? (step % 2 ? 2 : -2) : 0;
-        p.line(rx, ry, rx + 3 + shake, ry - 7, 'g');
-        const [bx, by] = [rx + 3 + shake, ry - 10];
-        for (let oy = -2; oy <= 2; oy++) for (let ox = -2; ox <= 2; ox++) {
-          if (ox * ox + oy * oy > 5) continue;
-          p.px(bx + ox, by + oy, ox === -1 && oy === -1 ? 'glint' : ox * ox + oy * oy > 2 ? '#' : 'g');
-        }
-        p.sprite(HEAD, BX, BY + nod + hop, { map: { E: '#', C: 'r', M: 'm' } });
-        if (crying) {
-          // Its mouth wide open, its eyes squeezed, a wail round its head and
-          // tears flying off.
-          for (let oy = 0; oy < 4; oy++) for (let ox = 0; ox < 4; ox++) {
-            if ((ox === 0 || ox === 3) && (oy === 0 || oy === 3)) continue;
-            p.px(BX + 20 + ox, BY + 16 + oy + hop, 'm');
+        for (const x of [14, 65]) for (let y = CUSHION + 1; y <= CUSHION + 3; y++) p.px(x, y, 'g');
+        // How much of it is swaddled, from the feet up, and where the carpet is.
+        let wrapped = 1, cloth = null;
+        const ph = step * 0.35;
+        if (mode === 'burst') {
+          const t = a / BURST, s = smooth(t);
+          wrapped = 1 - t;
+          cloth = { x: lerp(MID, HOVER[0], s) + Math.sin(t * TAU) * 14 * (1 - t), y: lerp(UY + UH / 2, HOVER[1], s), len: lerp(8, CLOTH, s), tilt: Math.sin(t * TAU * 1.5) * 4, front: Math.cos(t * TAU) > 0 };
+        } else if (mode === 'cry') {
+          wrapped = 0;
+          cloth = { x: HOVER[0], y: HOVER[1] + Math.round(Math.sin(step * 0.15)), len: CLOTH, tilt: Math.sin(step * 0.09) * 3, front: true };
+        } else if (mode === 'wrap') {
+          // The carpet swoops down to the feet, then spirals up round the
+          // baby, wrapping it as it goes and growing shorter.
+          const u = a / WRAP;
+          if (u < 0.25) {
+            const s = smooth(u / 0.25);
+            wrapped = 0;
+            cloth = { x: lerp(HOVER[0], MID - 17, s), y: lerp(HOVER[1], UY + UH - 4, s) - Math.sin(s * Math.PI) * 6, len: CLOTH, tilt: lerp(0, 10, s), front: true };
+          } else {
+            const v = (u - 0.25) / 0.75, phi = v * TAU * 2.5;
+            wrapped = smooth(v);
+            cloth = { x: MID - 17 * Math.cos(phi), y: UY + UH - 4 - wrapped * (UH - 6), len: 4 + (CLOTH - 4) * (1 - wrapped), tilt: 6 * Math.cos(phi), front: Math.sin(phi) > 0, phi };
           }
-          if ((step >> 2) % 2) for (const ang of [-2.6, -1.57, -0.54]) {
-            const [cx, cy] = [BX + 21.5, BY + 12 + hop];
-            p.line(cx + Math.cos(ang) * 24, cy + Math.sin(ang) * 18, cx + Math.cos(ang) * 28, cy + Math.sin(ang) * 22, '#');
+        }
+        const crying = mode === 'burst' || mode === 'cry';
+        const hop = mode === 'cry' && !calm && (step >> 2) % 2 ? -1 : 0;
+        const nod = mode === 'sleep' && !calm && Math.sin((step / 72) * TAU) > 0.2 ? 1 : 0;
+        const line = UY + UH - wrapped * UH;
+        if (cloth && !cloth.front) carpet(p, cloth.x, cloth.y, cloth.len, ph, cloth.tilt);
+        // Under the swaddle: the gown, kicking feet and flailing arms.
+        if (wrapped < 1) {
+          for (let y = UY; y < UY + UH - 3; y++) for (let x = MID - 13; x <= MID + 13; x++) {
+            if (inGown(x, y) && y < line) p.px(x, y + hop, gownInk(x, y));
+          }
+          const kick = crying && !calm ? (step >> 2) % 2 : 0;
+          if (line > UY + UH - 3) {
+            p.sprite(FOOT, Math.round(MID) - 7, UY + UH - 3 - kick);
+            p.sprite(FOOT, Math.round(MID) + 3, UY + UH - 3 - (1 - kick));
+          }
+          if (line > UY + 8) {
+            const tuck = clamp(wrapped / 0.6), flail = (step >> 2) % 2;
+            for (const side of [-1, 1]) {
+              const up = (side > 0) === !!flail;
+              const hx = lerp(MID + side * (up ? 15 : 17), MID + side * 5, tuck), hy = lerp(UY + (up ? -6 : 3), UY + 9, tuck);
+              arm(p, [MID + side * 6, UY + 4 + hop], [hx, hy + hop]);
+            }
+          }
+        }
+        // The swaddle itself.
+        if (wrapped > 0) {
+          for (let y = Math.ceil(line); y < UY + UH; y++) for (let x = MID - 13; x <= MID + 13; x++) {
+            if (inBundle(x, y)) p.px(x, y, bundleInk(x, y));
+          }
+        }
+        p.sprite(HEAD, HX, HY + nod + hop, { map: { h: 'k', E: '#', C: 'r', M: 'm' } });
+        if (crying) {
+          // Mouth wide open, tears flying.
+          for (let oy = 0; oy < 3; oy++) for (let ox = 0; ox < 4; ox++) {
+            if ((ox === 0 || ox === 3) && oy !== 1) continue;
+            p.px(HX + 9 + ox, HY + 12 + oy + hop, 'm');
           }
           for (const t of st.tears) { p.px(t.x, t.y, 'b'); p.px(t.x, t.y - 1, 'b'); }
         }
+        if (cloth && cloth.front) carpet(p, cloth.x, cloth.y, cloth.len, ph, cloth.tilt);
+        // While it wraps, a band runs from the carpet to the swaddle, and
+        // sparks trail it.
+        if (mode === 'wrap' && cloth.phi !== undefined) {
+          const ex = MID + Math.sign(cloth.x - MID || 1) * half(clamp(line - UY, 0, UH - 1)), ey = line;
+          for (let k = 0; k <= 8; k++) {
+            const x = lerp(cloth.x, ex, k / 8), y = lerp(cloth.y, ey, k / 8);
+            p.px(x, y - 1, 'w'); p.px(x, y, 'r'); p.px(x, y + 1, 'w');
+          }
+          if (!calm) for (let k = 1; k <= 4; k++) {
+            const ph2 = cloth.phi - k * 0.5;
+            p.px(MID - 19 * Math.cos(ph2), cloth.y + k * 1.5 + Math.sin(k * 3 + step) * 2, k % 2 ? 'glint' : 'g', 1 - k / 5);
+          }
+        }
         for (const z of st.zs) {
-          const a = step - z.born;
-          p.sprite(Z[z.big], BX + 38 + a * 0.15 + Math.sin(a * 0.1) * 3, BY + 10 - a * 0.25, { alpha: a < 10 ? a / 10 : clamp(1 - (a - 50) / 30) });
+          const t = step - z.born;
+          p.sprite(Z[z.big], HX + 23 + t * 0.15 + Math.sin(t * 0.1) * 3, HY - 2 - t * 0.2, { alpha: t < 10 ? t / 10 : clamp(1 - (t - 50) / 30) });
         }
         const s = step - st.starAt;
         if (s >= 0 && s < 72) {
-          p.glow(BX + 22, BY - 8, 12, 'g', 0.3 * clamp(1 - (s - 40) / 32));
-          p.sprite(STAR[(step >> 3) % 2], BX + 17, Math.round(BY - 4 - 10 * smooth(clamp(s / 12))), { alpha: clamp(1 - (s - 50) / 22) });
+          p.glow(MID, HY - 8, 12, 'g', 0.3 * clamp(1 - (s - 40) / 32));
+          p.sprite(STAR[(step >> 3) % 2], Math.round(MID) - 5, Math.round(HY - 4 - 12 * smooth(clamp(s / 12))), { alpha: clamp(1 - (s - 50) / 22) });
         }
       },
     });

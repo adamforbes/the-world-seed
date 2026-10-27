@@ -525,7 +525,7 @@
         if (st.move && step - st.move.at >= st.move.dur) {
           st.x = st.move.to;
           st.move = null;
-          st.rest = step + 3;
+          st.rest = step + 6;
         }
         if (!pointer || st.move || step < st.rest || step - st.flyAt < FLY) return;
         const dx = pointer[0] - (st.x + BW / 2);
@@ -535,7 +535,18 @@
         if (to >= XMIN && to <= XMAX) st.move = { from: st.x, to, at: step, dur: HOP, flip: false };
         else st.move = { from: st.x, to: clamp(Math.round(pointer[0] - away * 18 - BW / 2), XMIN, XMAX), at: step, dur: FLIP, flip: true };
       },
-      click(st, step) { if (!st.move && step - st.flyAt >= FLY) st.flyAt = step; },
+      // A click works even mid-hop: it stops where it is and leaps, and
+      // stays put a moment after.
+      click(st, step) {
+        if (step - st.flyAt < FLY) return;
+        if (st.move) {
+          const { from, to, at, dur, flip } = st.move, t = clamp((step - at) / dur);
+          st.x = Math.round(lerp(from, to, flip ? smooth(t) : t));
+          st.move = null;
+        }
+        st.flyAt = step;
+        st.rest = step + FLY + 12;
+      },
       draw(p, st, { step, calm, pointer }) {
         rule(p, 4, 72, BASE);
         const f = step - st.flyAt, flying = f >= 0 && f < FLY;
