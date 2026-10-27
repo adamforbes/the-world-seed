@@ -1,0 +1,10 @@
+# Same as .gitignore: only the site goes up
+drafts/
+CLAUDE.md
+.claude/
+reference/*
+!reference/HB-OnceUponATime.txt
+art/node_modules/
+art/out/
+.git/
+.DS_Store

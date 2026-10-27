@@ -10,8 +10,9 @@
 //   m-ruin       ♣ a bald, muscled woman in black leather with a club, who
 //                flexes at a hover and at a click slams it on her own head
 //                and gets pumped
-//   m-promise    ♠ a tall, skittish cormorant with a coin in its bill, who
-//                leans away from the pointer and at a click leaps and flaps
+//   m-promise    ♠ a crested cormorant with a coin in its bill, who hops back
+//                from the pointer and flaps over it when cornered, and at a
+//                click leaps and flaps
 
 (function () {
   const { TAU, clamp, lerp, smooth } = SceneKit;
@@ -422,124 +423,171 @@
   // ---------- Promise ♠: a skittish cormorant with a coin ----------
 
   {
-    const BASE = 64, CX0 = 30;
-    // Tall and gaunt, facing right: a long hooked grey bill with a gold
-    // throat, a pale staring eye (E), a long S of a neck, hunched shoulders,
-    // black plumage marked with a lapis spade, a drooping tail and long legs.
+    const BASE = 64, HOME = 29, XMIN = 14, XMAX = 44;
+    // Upright, facing right: a ragged crest, a pale blue eye (E), a long
+    // hooked bill over a gold throat and a white cheek, an S of a neck, a
+    // folded wing (W) of pointed, spade-shaped feathers, a white flank, a
+    // long stiff tail and big black feet. It holds a gold coin in its bill.
     const BIRD = art(`
-      .........##.......
-      ........#kk#......
-      .......#kkEk####..
-      .......#kkkgffff#.
-      ........#kk#....#.
-      ........#kk#......
-      .........#kk#.....
-      .........#kk#.....
-      ........#kk#......
-      .......#kk#.......
-      .......#kk#.......
-      ........#kk#......
-      ........#kkk#.....
-      .......#kkkkk#....
-      ......#kkkkkkk#...
-      .....#kkkkkkkkk#..
-      ....#kkkkkbkkkkk#.
-      ....#kkkkbbbkkkk#.
-      ....#kkkbbbbbkkk#.
-      ....#kkkbkbkbkkk#.
-      ....#kkkkkbkkkkk#.
-      ....#kkkkbbbkkkk#.
-      ...#kkkkkkkkkkk#..
-      ...#kkkkkkkkkkk#..
-      ..#kkkkkkkkkkk#...
-      .#kkkkkkkkkk#.....
-      #kkk#.#kkkkk#.....
-      #kk#..#kkkk#......
-      #k#....#k#k#......
-      .......#k#k#......
-      .......#k#k#......
-      .......#k#k#......
-      ......##k##k#.....
+      .....#.#..............
+      ....#k#k#.............
+      ....#kkkk##...........
+      ...#kkkkkkk#..........
+      ...#kkkkEkkk#######...
+      ....#kkkkkknnnnnnnn#..
+      .....#kkkwo#######nn#.
+      ......#kko#.......#n#.
+      ......#kkk#........#..
+      ......#kk#............
+      .....#kk#.............
+      ....#kk#..............
+      ....#kk#..............
+      ....#kk#..............
+      ....#kkk#.............
+      .....#kkk#............
+      .....#kkkk#...........
+      .....#kkkkk#..........
+      ....#WWkkkkk#.........
+      ...#WWWWkkkkk#........
+      ...#WWWWWkkkk#........
+      ..#WWWWWWkkkkk#.......
+      ..#WWWWWWWkkkk#.......
+      ..#WWWWWWWkkkk#.......
+      ..#WWWWWWWkkkk#.......
+      ..#WWWWWWWWkkk#.......
+      ..#WWWWWWWwwkk#.......
+      ..#WWWWWWWwwk#........
+      .#nWWWWWWWkkk#........
+      .#nnWWWWWkkk#.........
+      #nnn#WWWkkk#..........
+      #nn#.#k#kk#...........
+      #nn#.#k##k#...........
+      #n#..#k#.#k#..........
+      #n#.#kkk#kkk#.........
+      ##..#########.........
     `);
     const [BW, BH] = size(BIRD);
-    const BY0 = BASE - BH, SHOULDER = [8, 16], BILL = [16, 5], FLY = 30;
-    // A spade, for the feathers.
-    const MARK = (p, x, y, X) => { p.px(X(x), y - 1, 'b'); p.px(X(x - 1), y, 'b'); p.px(X(x), y, 'b'); p.px(X(x + 1), y, 'b'); p.px(X(x), y + 1, 'b'); };
-    // A wing spread from the shoulder: up, level or down by `angle` (0 is
-    // straight back), long-feathered, a spade on each feather.
-    function wing(p, [sx, sy], angle, X) {
-      const d = [-Math.cos(angle), Math.sin(angle)], n = [-d[1], d[0]];
-      const at = (u, v) => [sx + d[0] * u + n[0] * v, sy + d[1] * u + n[1] * v];
-      const pts = [at(0, -1.5), at(6, -3), at(16, -1.5), at(17, 0), at(14, 3), at(10, 3.5), at(6, 4), at(1, 2.5)];
-      const inPoly = (x, y) => {
-        let c = false;
-        for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
-          const [xi, yi] = pts[i], [xj, yj] = pts[j];
-          if ((yi > y) !== (yj > y) && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) c = !c;
-        }
-        return c;
-      };
-      const xs = pts.map((q) => q[0]), ys = pts.map((q) => q[1]);
-      for (let y = Math.floor(Math.min(...ys)) - 1; y <= Math.max(...ys) + 1; y++) for (let x = Math.floor(Math.min(...xs)) - 1; x <= Math.max(...xs) + 1; x++) {
-        if (!inPoly(x, y)) continue;
-        const rim = !inPoly(x - 1, y) || !inPoly(x + 1, y) || !inPoly(x, y - 1) || !inPoly(x, y + 1);
-        p.px(X(x), y, rim ? 'e' : 'k');
+    const BY0 = BASE - BH, SHOULDER = [8, 19], COIN = [16, 8];
+    const HOP = 5, FLIP = 11, FLY = 26, DRY = 40;
+    // The coverts: rows of pointed, spade-shaped feathers with a bronze
+    // sheen, each edged in black.
+    function scale(i, j) {
+      const r = Math.floor(j / 3), u = (((i + (r % 2) * 2) % 4) + 4) % 4, v = ((j % 3) + 3) % 3;
+      return u === 3 || (v === 1 && u === 0) || (v === 2 && u !== 1) ? 'k' : 'n';
+    }
+    // A spread wing from the shoulder, pointing at angle th (up is -π/2,
+    // straight back is π): long fingered primaries fanned from the wrist,
+    // secondaries along the trailing edge, and spade-feathered coverts along
+    // the arm, `k` times full length. The far wing, behind the body, has plain
+    // dark coverts.
+    function wing(p, [sx, sy], th, X, far, k = 1) {
+      const A = 9 * k, wx = sx + Math.cos(th) * A, wy = sy + Math.sin(th) * A;
+      const feathers = [];
+      for (let i = 0; i < 6; i++) feathers.push([wx, wy, th - i * 0.15, (16 - i) * k]);
+      for (let i = 0; i < 5; i++) {
+        const f = 0.9 - i * 0.2;
+        feathers.push([sx + (wx - sx) * f, sy + (wy - sy) * f, th - 1.1 - i * 0.1, (11 - i) * k]);
       }
-      for (const u of [6, 10, 14]) { const [x, y] = at(u, 1); MARK(p, x, y, (v) => v); }
+      const disc = (x, y, r, ink) => {
+        const e = Math.ceil(r);
+        for (let oy = -e; oy <= e; oy++) for (let ox = -e; ox <= e; ox++) {
+          if (ox * ox + oy * oy > r * r) continue;
+          const px = Math.round(x + ox), py = Math.round(y + oy);
+          p.px(X(px), py, typeof ink === 'function' ? ink(px, py) : ink);
+        }
+      };
+      const pass = (rf, rc, ink, cover) => {
+        for (const [x0, y0, a, L] of feathers) for (let t = 0; t <= L; t += 0.5) {
+          disc(x0 + Math.cos(a) * t, y0 + Math.sin(a) * t, t > L - 2 ? rf * 0.7 : rf, ink);
+        }
+        for (let t = 0; t <= 1; t += 0.1) disc(lerp(sx, wx, t), lerp(sy, wy, t), rc, cover);
+      };
+      pass(1.6, 3.2, 'e', 'e');
+      pass(0.8, 2.4, 'n', far ? 'k' : scale);
     }
     // The coin: a gold disc, edge-on as it spins.
     function coin(p, x, y, spin) {
       const w = [1, 1, 0, 1][spin % 4];
-      for (let oy = -1; oy <= 1; oy++) for (let ox = -w; ox <= w; ox++) p.px(x + ox, y + oy, ox === 0 && oy === -1 ? 'glint' : 'o');
+      for (let oy = -1; oy <= 1; oy++) for (let ox = -w; ox <= w; ox++) {
+        if (w && ox && oy) continue;
+        p.px(x + ox, y + oy, ox === 0 && oy === 0 ? 'glint' : 'o');
+      }
     }
 
     drollery('promise', {
-      span: [21, 12, 57, 64],
+      span: [2, 2, 78, 64],
       h: 72,
-      make: () => ({ flyAt: -999, blinkAt: 40 }),
-      update(st, step) { if (step > st.blinkAt + 4) st.blinkAt = step + 70 + Math.floor(R('blink', step) * 100); },
-      click(st, step) { if (step - st.flyAt >= FLY) st.flyAt = step; },
-      draw(p, st, { step, calm, pointer }) {
-        const a = step - st.flyAt, flying = a >= 0 && a < FLY;
-        rule(p, 4, 72, BASE);
-        // Skittish of the pointer: it stares at it, leans away from it, and
-        // trembles when it gets close.
-        const cx = CX0 + BW / 2;
-        let face = 1, lean = 0, shiver = 0;
-        if (pointer && !flying) {
-          const dx = pointer[0] - cx, near = Math.hypot(dx, pointer[1] - (BY0 + 10));
-          face = dx >= 0 ? 1 : -1;
-          lean = -face * Math.round(clamp(36 / Math.max(near, 8), 0, 4));
-          if (near < 24 && !calm) shiver = step % 2 ? 1 : -1;
-        } else if (!calm && R('look', Math.floor(step / 120)) < 0.3) face = -1;
-        const X = (x) => (face > 0 ? x : 2 * CX0 + BW - 1 - x);
-        // A click: a crouch, a leap, quick hard wingbeats, and back down, the
-        // coin tossed up spinning and caught again in its bill.
-        let hop = 0, beat = null;
-        if (flying) {
-          if (a < 2) hop = 1;
-          else if (a < 6) hop = -Math.round(9 * smooth((a - 2) / 4));
-          else if (a < 20) { beat = Math.floor((a - 6) / 2) % 2; hop = -9 + (beat ? 1 : 0); }
-          else if (a < 27) { hop = -Math.round(9 * (1 - smooth((a - 20) / 7))); beat = 2; }
-          else hop = a < 29 ? 1 : 0;
+      make: () => ({ x: HOME, face: 1, move: null, rest: 0, flyAt: -999, blinkAt: 40 }),
+      // It won't let the pointer near: it hops back out of the way, and once
+      // its back is to the edge it flaps up over the pointer to the far side.
+      update(st, step, pointer) {
+        if (step > st.blinkAt + 4) st.blinkAt = step + 70 + Math.floor(R('blink', step) * 100);
+        if (st.move && step - st.move.at >= st.move.dur) {
+          st.x = st.move.to;
+          st.move = null;
+          st.rest = step + 3;
         }
-        const y0 = BY0 + hop;
-        const sh = [CX0 + SHOULDER[0], y0 + SHOULDER[1]];
-        // Wings beat up and back, clear of its neck, and down.
-        const angle = beat === 0 ? -0.85 : beat === 1 ? 1.1 : 0.15;
-        if (beat !== null) wing(p, [sh[0] + 2, sh[1] - 1], angle + (beat === 2 ? 0 : 0.2), X);
-        const eye = pointer ? 'glint' : !calm && step - st.blinkAt >= 0 && step - st.blinkAt < 3 ? 'k' : 'w';
+        if (!pointer || st.move || step < st.rest || step - st.flyAt < FLY) return;
+        const dx = pointer[0] - (st.x + BW / 2);
+        st.face = dx >= 0 ? 1 : -1;
+        if (Math.abs(dx) > 16) return;
+        const away = dx > 0 ? -1 : dx < 0 ? 1 : -st.face, to = st.x + away * 8;
+        if (to >= XMIN && to <= XMAX) st.move = { from: st.x, to, at: step, dur: HOP, flip: false };
+        else st.move = { from: st.x, to: clamp(Math.round(pointer[0] - away * 18 - BW / 2), XMIN, XMAX), at: step, dur: FLIP, flip: true };
+      },
+      click(st, step) { if (!st.move && step - st.flyAt >= FLY) st.flyAt = step; },
+      draw(p, st, { step, calm, pointer }) {
+        rule(p, 4, 72, BASE);
+        const f = step - st.flyAt, flying = f >= 0 && f < FLY;
+        let x = st.x, lift = 0, face = st.face, near = null, far = null;
+        const flap = (k) => (k % 4 < 2 ? -2.0 : 2.1);
+        let span = 1;
+        if (st.move) {
+          const t = clamp((step - st.move.at) / st.move.dur);
+          // A hop back, wings flicked open; or a quick flapping leap over.
+          if (st.move.flip) {
+            x = lerp(st.move.from, st.move.to, smooth(t));
+            lift = Math.round(Math.sin(Math.PI * t) * 16);
+            face = Math.sign(st.move.to - st.move.from) || face;
+            near = flap(step - st.move.at);
+            far = near + 0.5;
+          } else {
+            x = lerp(st.move.from, st.move.to, t);
+            lift = Math.round(Math.sin(Math.PI * t) * 3);
+            near = 2.9;
+            far = 3.3;
+            span = 0.6;
+          }
+        } else if (flying) {
+          // A click: a crouch, a leap, hard wingbeats with the coin tossed up
+          // spinning, and down again to catch it.
+          if (f < 2) lift = -1;
+          else if (f < 6) lift = Math.round(9 * smooth((f - 2) / 4));
+          else if (f < 18) { lift = 9 - ((f >> 1) % 2); near = flap(f - 6); far = near + 0.5; }
+          else if (f < 24) { lift = Math.round(9 * (1 - smooth((f - 18) / 6))); near = 2.9; far = 3.3; span = 0.6; }
+        } else if (!pointer && !calm && step % 360 >= 240 && step % 360 < 240 + DRY) {
+          // Now and then it holds its wings out to dry, shaking them.
+          const k = (step % 360) - 240, shake = k % 6 < 3 ? 0 : 0.08;
+          near = -2.3 + shake;
+          far = -1.75 - shake;
+        } else if (!pointer && !calm && R('look', Math.floor(step / 120)) < 0.3) face = -1;
+        const bx = Math.round(x), by = BY0 - lift;
+        const X = (v) => (face > 0 ? v : 2 * bx + BW - 1 - v);
+        const sh = [bx + SHOULDER[0], by + SHOULDER[1]];
+        if (far !== null) wing(p, [sh[0] + 3, sh[1] - 2], far, X, true, span);
+        const eye = !calm && step - st.blinkAt >= 0 && step - st.blinkAt < 3 ? 'k' : 'b';
         BIRD.forEach((row, j) => {
-          const dx = Math.round((lean * (BH - 1 - j)) / (BH - 1)) + shiver;
-          p.sprite([row], CX0 + face * dx, y0 + j, { flip: face < 0, map: { E: eye, '#': 'e' } });
+          for (let i = 0; i < BW; i++) {
+            const ch = row[i];
+            if (ch === '.') continue;
+            p.px(X(bx + i), by + j, ch === 'W' ? scale(i, j) : ch === '#' ? 'e' : ch === 'E' ? eye : ch);
+          }
         });
-        if (beat !== null) wing(p, sh, angle, X);
+        if (near !== null) wing(p, sh, near, X, false, span);
         // The coin in its bill, or in the air.
-        const bill = [X(CX0 + BILL[0] + Math.round(lean * (BH - 1 - BILL[1]) / (BH - 1)) * face) + 0, y0 + BILL[1] + 1];
-        if (flying && a >= 4 && a < 22) {
-          const t = (a - 4) / 18;
-          coin(p, bill[0] + face * 2, bill[1] - Math.sin(t * Math.PI) * 14, a);
-        } else coin(p, bill[0] + shiver, bill[1], calm ? 0 : (step >> 3) % 2 ? 1 : 0);
+        const [cx, cy] = [X(bx + COIN[0]), by + COIN[1]];
+        if (flying && f >= 4 && f < 20) coin(p, cx, cy - Math.round(Math.sin(((f - 4) / 16) * Math.PI) * 14), f);
+        else coin(p, cx, cy, calm ? 0 : (step >> 3) % 2 ? 1 : 0);
       },
     });
   }
