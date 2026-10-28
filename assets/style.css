@@ -192,7 +192,8 @@ a:hover { text-decoration-thickness: 2px; }
 
 /* ---------- On this page ---------- */
 
-/* A tree of the page's headings. Only the current section's h3s are expanded.
+/* A tree of the page's headings. Only the current section's branch is expanded,
+   and the rows leading to the current one light their └.
    Below it, a reading-progress bar; on narrow screens a hairline at the top instead. */
 
 .toc {
@@ -220,8 +221,8 @@ a:hover { text-decoration-thickness: 2px; }
 }
 .toc .tree a:hover, .toc .tree a.active { color: var(--ink); }
 .toc .tree a .br { color: var(--toc-ink-4); margin-right: 10px; }
-.toc .tree a.active .br { color: var(--toc-ink-2); }
-.toc .tree a.sub { padding-left: 18px; }
+.toc .tree a:is(.active, .trail) .br { color: var(--toc-ink-2); }
+.toc .tree a.sub { padding-left: calc(var(--depth) * 18px); }
 
 .toc .subs { display: grid; grid-template-rows: 0fr; visibility: hidden; }
 .toc .subs.open, .toc .subs:has(:focus-visible) { grid-template-rows: 1fr; visibility: visible; }

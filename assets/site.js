@@ -100,21 +100,31 @@
   });
 
   // ---------- On this page ----------
-  // A tree of h2s, each h3 group tucked under its h2 and opened only while
-  // that section is being read. Below it, a reading-progress bar and time.
+  // A tree of h2s, h3s and h4s. Each h2's branch is opened whole while that
+  // section is being read, and the rows above the current one light their └.
+  // Rows indent by heading rank, so an h4 straight under an h2 sits two steps in.
+  // Below it, a reading-progress bar and time.
   const toc = document.querySelector(".toc");
   if (toc) {
-    const heads = [...main.querySelectorAll("h2[id], h3[id]")].filter(h => !h.classList.contains("card-title"));
+    const heads = [...main.querySelectorAll("h2[id], h3[id], h4[id]")].filter(h => !h.classList.contains("card-title"));
     if (heads.length > 1) {
       const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/"/g, "&quot;");
-      const isSub = i => heads[i] && heads[i].tagName === "H3";
+      const rank = h => Number(h.tagName[1]);
+      const top = Math.min(...heads.map(rank));
+      const isSub = i => heads[i] && rank(heads[i]) > top;
+      // Each heading's nearest outranking heading above it, or -1.
+      const parents = heads.map((h, i) => {
+        let j = i - 1;
+        while (j >= 0 && rank(heads[j]) >= rank(h)) j--;
+        return j;
+      });
       const labelOf = h => {
         const label = h.cloneNode(true);
         label.querySelectorAll(".heading-anchor").forEach(n => n.remove());
         return label.textContent.trim();
       };
       const tree = heads.map((h, i) => {
-        const a = `<a href="#${h.id}" data-i="${i}"${isSub(i) ? ' class="sub"' : ""}><span class="br" aria-hidden="true">└</span>${esc(labelOf(h))}</a>`;
+        const a = `<a href="#${h.id}" data-i="${i}"${isSub(i) ? ` class="sub" style="--depth:${rank(h) - top}"` : ""}><span class="br" aria-hidden="true">└</span>${esc(labelOf(h))}</a>`;
         if (!isSub(i)) return a;
         return (isSub(i - 1) ? "" : '<div class="subs"><div>') + a + (isSub(i + 1) ? "" : "</div></div>");
       }).join("");
@@ -158,10 +168,19 @@
         // Headings in Eras hidden by the card search have no offsetParent; skip them.
         let current = Math.max(0, heads.findIndex(h => h.offsetParent));
         if (clicked !== null) current = clicked;
-        else heads.forEach((h, i) => {
-          if (h.offsetParent && h.getBoundingClientRect().top < innerHeight * 0.4) current = i;
+        else {
+          heads.forEach((h, i) => {
+            if (h.offsetParent && h.getBoundingClientRect().top < innerHeight * 0.4) current = i;
+          });
+          // A short last section never reaches the reading line; at the end, light it anyway.
+          if (t >= 1) current = Math.max(current, heads.findLastIndex(h => h.offsetParent));
+        }
+        const trail = new Set();
+        for (let j = parents[current]; j >= 0; j = parents[j]) trail.add(j);
+        links.forEach((a, i) => {
+          a.classList.toggle("active", i === current);
+          a.classList.toggle("trail", trail.has(i));
         });
-        links.forEach((a, i) => a.classList.toggle("active", i === current));
         const link = links[current];
         subs.forEach(s => {
           const parent = s.previousElementSibling;
