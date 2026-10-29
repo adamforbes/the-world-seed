@@ -16,7 +16,7 @@
 
 (function () {
   const { TAU, clamp, lerp, smooth } = SceneKit;
-  const { drollery, art, size, rule, R } = Margins;
+  const { drollery, art, size, R } = Margins;
 
   // Fades a figure out as it nears the sides, so nothing meets the frame.
   const inside = (x, w, lo = 4, hi = 76) => clamp(Math.min(x - lo, hi - (x + w)) / 6);
@@ -121,7 +121,6 @@
         st.buds.push({ born: step, sx: x, sy: TOP + 14, x: x + dir * 8, dir });
       },
       draw(p, st, { step, calm, pointer }) {
-        rule(p, 4, 70, BASE);
         const walking = !pointer && step >= st.rest && !calm;
         const x = Math.round(st.x), bob = walking && (step >> 2) % 2 ? 1 : 0;
         const cycle = pointer ? 12 : 26, ph = step % cycle;
@@ -207,7 +206,6 @@
       click(st, step) { if (step - st.readAt >= READ) st.readAt = step; },
       draw(p, st, { step, calm, pointer }) {
         const a = step - st.readAt, k = open(a);
-        rule(p, 4, 72, BASE);
         // A few gold motes drifting up.
         if (!calm) for (let i = 0; i < 8; i++) {
           const life = 180 + R('life', i) * 80, age = (step + R('mote', i) * life) % life;
@@ -374,7 +372,6 @@
       },
       draw(p, st, { step, calm, pointer }) {
         const a = step - st.bonkAt, bonking = a >= 0 && a < BONK;
-        rule(p, 4, 72, BASE);
         const X = (x) => x;
         const hit = bonking && a >= HIT && a < FREEZE, pumped = bonking && a >= FREEZE && a < PUMPED;
         // The hit freezes her, shaking; pumped, she bounces on her toes.
@@ -548,7 +545,6 @@
         st.rest = step + FLY + 12;
       },
       draw(p, st, { step, calm, pointer }) {
-        rule(p, 4, 72, BASE);
         const f = step - st.flyAt, flying = f >= 0 && f < FLY;
         let x = st.x, lift = 0, face = st.face, near = null, far = null;
         const flap = (k) => (k % 4 < 2 ? -2.0 : 2.1);

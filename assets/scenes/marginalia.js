@@ -147,26 +147,11 @@
     return { I, px, sprite, line, region, glow, capture, turn, greyed };
   }
 
-  // The ruled line a figure stands on, ending in a gold ivy leaf.
-  const IVY = art(`
-    ..g.
-    .ggg
-    gggg
-    .gg.
-  `);
-  // Where there's no margin the page sets the figures beside their headings
-  // and rules the heading instead (margins-inline, set by site.js).
-  function rule(p, x0, x1, y) {
-    if (document.documentElement.classList.contains('margins-inline')) return;
-    for (let x = x0; x <= x1; x++) p.px(x, y, 'f');
-    p.sprite(IVY, x1 + 1, y - 2);
-  }
-
   // Each figure keeps its own state, made fresh by make() and again whenever
   // it scrolls away. Times are in steps, 24 a second.
   // `span` is [x0, y0, x1, y1], the box everything it draws stays inside,
-  // with its ruled line along the bottom, for cropping it where it sits
-  // beside its heading.
+  // with the ground it stands on along the bottom, for cropping it where
+  // it sits beside its heading.
   function drollery(name, d) {
     const at = (x, y) => [x / S, y / S];
     let st = d.make(), now = 0, pointer = null;
@@ -198,7 +183,7 @@
   }
 
   // For the Era mascots in mascots.js, which are made the same way.
-  window.Margins = { drollery, art, size, rule, R, W, INKS };
+  window.Margins = { drollery, art, size, R, W, INKS };
 
   // ---------- Places: a mango tree ----------
 
@@ -278,7 +263,6 @@
           if (shake < 16) return Math.round(Math.sin(shake * 1.9) * 2.4 * w * (1 - shake / 18));
           return pointer && !calm ? Math.round(Math.sin(step * 0.55) * 0.9 * w) : 0;
         };
-        rule(p, 4, 66, BASE);
         for (let y = 34; y < BASE; y++) {
           const half = y >= BASE - 1 ? 3 : y >= BASE - 3 ? 2 : 1;
           for (let x = TRUNK - half; x <= TRUNK + half; x++) p.px(x, y, '#');
@@ -402,7 +386,6 @@
         // Its shadow on the line, smaller as it rises.
         const sw = 8 - bob - lift * 2;
         for (let x = -sw; x <= sw; x++) p.px(cx + x, 58, 'f', Math.abs(x) > sw - 2 ? 0.5 : 1);
-        rule(p, 6, 70, 60);
 
         const burning = burst >= 0 && burst < 16 && (burst < 8 || step % 2 === 0);
         p.sprite(HAND, hx, hy, burning ? { map: { '#': 'r' } } : {});
@@ -588,7 +571,6 @@
         st.to = st.order.map((s) => SLOTS[s]);
       },
       draw(p, st, { step, calm, pointer }) {
-        rule(p, 6, 72, BASE);
         GNOMES.forEach((g, i) => {
           const x = st.at[i], walking = x !== st.to[i];
           let face = g.face;
@@ -698,7 +680,6 @@
       },
       draw(p, st, { step, calm, pointer }) {
         const d = calm ? 0 : Math.floor(step / 36) % 2;
-        rule(p, 6, 66, BASE);
         p.region(inBody(d), [10, 34, 56, 49], 'f', '#');
         stalk(p, 47 + d, 35, 6, pointer, -1);
         stalk(p, 51 + d, 35, 6, pointer, 1);
@@ -846,7 +827,6 @@
         st.strike = { born: step, e: st.e, hit: Math.max(3, L - 2), next: pickDesign(st.design, ++st.flags) };
       },
       draw(p, st, { step, calm }) {
-        rule(p, 4, 66, BASE);
         for (const [y, x0, x1] of [[57, 21, 31], [56, 23, 29], [55, 25, 27]]) for (let x = x0; x <= x1; x++) p.px(x, y, y === 55 || x === x0 || x === x1 ? '#' : 'f');
         for (let y = 9; y < 55; y++) p.px(POLE, y, '#');
         p.sprite(art(`
@@ -1114,7 +1094,6 @@
         st.paintAt = step;
       },
       draw(p, st, { step, calm, pointer }) {
-        rule(p, 12, 66, BASE);
         const a = step - st.paintAt, painting = a >= 0 && a < REPAINT;
         const now = SITTERS[st.at], before = SITTERS[st.was];
         // Its eyes watch you, and follow the pointer; the saint's are raised
@@ -1321,7 +1300,6 @@
         st.mode = 'wrap'; st.at = step; st.star = true; st.soothed = true; st.nextZ = step + WRAP + 30;
       },
       draw(p, st, { step, calm }) {
-        rule(p, 6, 72, BASE);
         const a = step - st.at, mode = st.mode;
         // The cushion: lapis, edged and tasselled in gold.
         for (let y = CUSHION; y < BASE; y++) for (let x = 15; x <= 64; x++) {
@@ -1584,7 +1562,6 @@
         st.phase = 'out';
       },
       draw(p, st, { step, calm, pointer }) {
-        rule(p, 2, 72, BASE);
         // One waystone, with the souvenirs piled on it, newest on top.
         const [sw, sh] = size(WAYSTONE);
         p.sprite(WAYSTONE, STONE, BASE - sh);
@@ -1801,7 +1778,6 @@
         st.raiseAt = step;
       },
       draw(p, st, { step, calm, pointer }) {
-        rule(p, 4, 72, BASE);
         // The fire: crossed logs, and flames that flare at a hover.
         const flare = pointer ? 1.8 : 1;
         let crest = BASE;
@@ -1958,7 +1934,6 @@
         st.flip = { born: step, from: st.up, to: st.up ? null : st.peek };
       },
       draw(p, st, { step, calm }) {
-        rule(p, 10, 66, BASE);
         const f = st.flip, t = f ? (step - f.born) / FLIP : 0;
         // Idle, it floats and turns a little, breathing light, with sparks
         // winking round it. A click spins it up into the air, turning over
@@ -2205,7 +2180,6 @@
         st.anim = { kind: 'crumble', born: step, chunks, hm };
       },
       draw(p, st, { step, calm, pointer }) {
-        rule(p, 4, 70, BASE);
         // The plinth, with a gold plaque.
         p.region((x, y) => (y >= TOP && y <= TOP + 1 && x >= PL && x <= PR) || (y > TOP + 1 && y < BASE - 2 && x >= PL + 2 && x <= PR - 2) || (y >= BASE - 2 && y < BASE && x >= PL && x <= PR), [PL, TOP, PR, BASE - 1], 'f', '#');
         for (let x = MID - 4; x <= MID + 4; x++) for (const y of [TOP + 4, TOP + 5]) p.px(x, y, 'g');

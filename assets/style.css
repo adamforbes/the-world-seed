@@ -573,39 +573,18 @@ body.hide-todos .todo { display: none; }
 /* Where there's no margin to float into, site.js moves each figure into its
    heading (.margins-inline on the root). It's cropped to the box it stays in
    (--x0, --y0, --w, --h, in figure pixels, each 2 CSS pixels) and stands at
-   the right end of the heading, which takes over its ruled line and ivy leaf.
-   The text below keeps its full width. */
-:root { --figure-rule: rgba(29, 43, 42, 0.38); --figure-gold: #9a6a2c; }
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) { --figure-rule: rgba(230, 223, 207, 0.38); --figure-gold: #b8864e; }
-}
-:root[data-theme="dark"] { --figure-rule: rgba(230, 223, 207, 0.38); --figure-gold: #b8864e; }
+   the right end of the heading. The text below keeps its full width. */
 .margins-inline :is(h3, h4, h5):has(> .marginal) {
   display: flex;
   align-items: flex-end;
   gap: 0.75rem;
-  position: relative;
-  padding-bottom: 0.4rem;
-  border-bottom: 2px solid var(--figure-rule);
-  margin-bottom: 1.1rem;
-}
-.margins-inline :is(h3, h4, h5):has(> .marginal)::after {
-  content: "";
-  position: absolute;
-  right: -2px;
-  bottom: -4px;
-  width: 8px;
-  height: 8px;
-  background: var(--figure-gold);
-  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 4' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v1H2zM1 1h3v1H1zM0 2h4v1H0zM1 3h2v1H1z'/%3E%3C/svg%3E") center / 100% 100%;
-  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 4 4' shape-rendering='crispEdges'%3E%3Cpath d='M2 0h1v1H2zM1 1h3v1H1zM0 2h4v1H0zM1 3h2v1H1z'/%3E%3C/svg%3E") center / 100% 100%;
 }
 .margins-inline .marginal {
   float: none;
   flex: none;
   width: calc(var(--w) * 2px);
   height: calc(var(--h) * 2px);
-  margin: 0 10px -0.4rem auto;
+  margin: 0 0 0 auto;
   overflow: hidden;
 }
 .margins-inline .marginal canvas { width: 160px; margin: calc(var(--y0) * -2px) 0 0 calc(var(--x0) * -2px); }
