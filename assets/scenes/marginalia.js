@@ -46,7 +46,15 @@
     dark: { '#': '#5d6779', faint: '#e6dfcf', r: QUD.dark.R, b: QUD.dark.B, g: '#b8864e', v: QUD.dark.g, m: '#a9493a', p: '#e89a80', k: '#433a31', o: '#eeb041', e: '#5d6779', n: '#9a958a', w: '#fffaf0', glint: '#e6bf85', flash: '#ffffff', paper: QUD.dark.paper },
     light: { '#': QUD.light.Y, faint: QUD.light.Y, r: QUD.light.R, b: QUD.light.B, g: '#9a6a2c', v: QUD.light.g, m: '#7d2c1e', p: '#e0937a', k: QUD.light.Y, o: '#d8941e', e: QUD.light.Y, n: '#8d8371', w: '#fffdf8', glint: '#cf9d55', flash: '#ffffff', paper: QUD.light.paper },
   };
+  // Faint ink is ink at 38% on the paper, mixed in advance so it's solid:
+  // where figures overlap, one doesn't show through the other.
   const FAINT = 0.38;
+  const mix = (a, b, t) => {
+    const x = parseInt(a.slice(1), 16), y = parseInt(b.slice(1), 16);
+    const c = (s) => Math.round(((x >> s) & 255) * t + ((y >> s) & 255) * (1 - t));
+    return '#' + ((c(16) << 16) | (c(8) << 8) | c(0)).toString(16).padStart(6, '0');
+  };
+  for (const I of Object.values(INKS)) I.f = mix(I.faint, I.paper, FAINT);
   const rgba = (hex, a) => {
     const n = parseInt(hex.slice(1), 16);
     return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
@@ -73,7 +81,7 @@
       x = Math.round(x); y = Math.round(y);
       if (buf) { buf.push([x, y, ink, alpha]); return; }
       let a = alpha, c;
-      if (ink === 'f' || grey) { c = I.faint; a *= FAINT; }
+      if (ink === 'f' || grey) c = I.f;
       else if (ink === 'g' && x + y - sweep >= 0 && x + y - sweep < 2) c = I.glint;
       else c = I[ink] || ink;
       if (a <= 0) return;
