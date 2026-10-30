@@ -13,8 +13,8 @@
   --todo-ink: #6b4f12;
   --can: #3f6b4a;
   --cannot: #a3998a;
-  --free-bg: #3f6b4a;
-  --free-ink: #ffffff;
+  --bonus-bg: #3f6b4a;
+  --bonus-ink: #ffffff;
   /* Read aloud and tips, in the Qud colours of glyph-kit.js. */
   --aloud-label: #1c6577;
   --aloud-ink: #224c54;
@@ -53,8 +53,8 @@
     --todo-ink: #f0d79a;
     --can: #8fbf98;
     --cannot: #6f685d;
-    --free-bg: #8fbf98;
-    --free-ink: #1b1a17;
+    --bonus-bg: #8fbf98;
+    --bonus-ink: #1b1a17;
     --aloud-label: #77bfcf;
     --aloud-ink: #b1c9c3;
     --tip-label: #00c420;
@@ -83,8 +83,8 @@
   --todo-ink: #f0d79a;
   --can: #8fbf98;
   --cannot: #6f685d;
-  --free-bg: #8fbf98;
-  --free-ink: #1b1a17;
+  --bonus-bg: #8fbf98;
+  --bonus-ink: #1b1a17;
   --aloud-label: #77bfcf;
   --aloud-ink: #b1c9c3;
   --tip-label: #00c420;
@@ -502,10 +502,10 @@ td:first-child { white-space: nowrap; }
 .naming td.can, .naming td.cannot { text-align: center; font-family: var(--font-ui); font-size: 0.78rem; }
 .naming td.can { color: var(--can); font-weight: 600; }
 .naming td.cannot { color: var(--cannot); }
-.naming td.free span {
+.naming td.bonus span {
   display: inline-block;
-  background: var(--free-bg);
-  color: var(--free-ink);
+  background: var(--bonus-bg);
+  color: var(--bonus-ink);
   border-radius: var(--radius);
   padding: 0.05rem 0.45rem;
   font-size: 0.72rem;

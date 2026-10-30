@@ -101,7 +101,7 @@
     const byHref = new Map();
     entries.forEach(e => { if (e.href) byHref.set(e.href, byHref.has(e.href) ? null : e); });
     const forms = [...byForm.keys()].sort((a, b) => b.length - a.length).map(f => f.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
-    // Longest forms first, so "Free Naming" wins over "Naming". "Era of Myth" is a name, not the term.
+    // Longest forms first, so "Bonus Naming" wins over "Naming". "Era of Myth" is a name, not the term.
     const pattern = new RegExp(`\\b(?:${forms.join("|")})\\b(?! of [A-Z])`, "g");
     const SKIP = "h1, h2, h3, h4, h5, h6, a, strong, em, table, figure, blockquote, code, .todo, .table-note, .page-hero, .glossary, .term";
 

@@ -202,16 +202,14 @@
 <h3 id="turn-mechanics">Turn Mechanics</h3>
 <p>On your turn, do the following:</p>
 <ol>
-  <li><strong>Free Naming (Optional):</strong> Name a new Entity of a type that's Free this Era. See <a href="#free-naming">Free Naming</a>.</li>
   <li><strong>Take an Action:</strong> Choose between <a href="#naming">Naming</a>, <a href="#journey">Journey</a>, or <a href="#narration">Narration</a>.</li>
   <li><strong>Draw an Era Card:</strong> Read its text aloud from the <a href="era-cards.html">Era Cards</a> page and follow its instructions.</li>
+  <li><strong>Bonus Naming (Optional):</strong> Name a new Entity of one of the current Era's <a href="#naming-options">Bonus types</a>. You get one per turn, and you choose when to take it, as long as it's before you roll for Journeys.</li>
   <li><strong>Roll for Journeys:</strong> Every player rolls a d20 for each of their Journeys in progress, except any given this turn. See <a href="#journey">Journey</a>.</li>
 </ol>
-<h4 id="free-naming">Free Naming</h4>
-<p>In each Era, some types of Entities appear more often than others. These are marked <strong>Free</strong> in the <a href="#naming-options">Naming Options</a> table.</p>
-<p>At the start of your turn, you may Name one Entity of a type that's Free in the current Era. Name it the same way as the <a href="#naming">Naming</a> action. Free Naming is optional, and it doesn't use up your action: you can still take any action afterwards, including Naming another Entity.</p>
+<aside class="todo">Shorten the Bonus Naming step above and its section below. Both grew long once Bonus Naming could be taken at any point in the turn. Consider splitting the text up, or moving details like the timing into a tooltip or a tip.</aside>
 <h4 id="action">Action</h4>
-<p>During your action, you may take either the <em>Naming</em>, <em>Journey</em>, or <em>Narration</em> action. These options are detailed below.</p>
+<p>Each turn, you must take one action: <em>Naming</em>, <em>Journey</em>, or <em>Narration</em>. These options are detailed below.</p>
 <h5 id="naming">Naming</h5>
 <figure class="marginal" aria-hidden="true" data-scene="m-naming"></figure>
 <p>You Name a new Entity into the game. The following Entities can be Named in their listed Eras below.</p>
@@ -233,7 +231,7 @@
   <tbody>
     <tr>
       <td><strong>Myth</strong></td>
-      <td class="can free"><span>Free</span></td>
+      <td class="can bonus"><span>Bonus</span></td>
       <td class="can">Yes</td>
       <td class="can">Yes</td>
       <td class="can">Yes</td>
@@ -241,10 +239,10 @@
     </tr>
     <tr>
       <td><strong>Antiquity</strong></td>
-      <td class="can free"><span>Free</span></td>
+      <td class="can bonus"><span>Bonus</span></td>
       <td class="can">Yes</td>
       <td class="can">Yes</td>
-      <td class="can free"><span>Free</span></td>
+      <td class="can bonus"><span>Bonus</span></td>
       <td class="can">Yes</td>
     </tr>
     <tr>
@@ -252,21 +250,21 @@
       <td class="can">Yes</td>
       <td class="cannot">No</td>
       <td class="can">Yes</td>
-      <td class="can free"><span>Free</span></td>
-      <td class="can free"><span>Free</span></td>
+      <td class="can bonus"><span>Bonus</span></td>
+      <td class="can bonus"><span>Bonus</span></td>
     </tr>
     <tr>
       <td><strong>Promise</strong></td>
       <td class="cannot">No</td>
       <td class="cannot">No</td>
       <td class="cannot">No</td>
-      <td class="can free"><span>Free</span></td>
+      <td class="can bonus"><span>Bonus</span></td>
       <td class="can">Yes</td>
     </tr>
   </tbody>
 </table>
 </div>
-<p class="table-note"><strong>Free</strong> = can be Named with your <a href="#free-naming">Free Naming</a>.</p>
+<p class="table-note"><strong>Bonus</strong> = Yes, and can also be Named with your <a href="#bonus-naming">Bonus Naming</a>.</p>
 <p>Era cards may Name any Entity, even one not normally allowed in the current Era.</p>
 <h5 id="journey">Journey</h5>
 <figure class="marginal" aria-hidden="true" data-scene="m-journey"></figure>
@@ -378,6 +376,9 @@
 <h4 id="draw-a-card">Draw a Card</h4>
 <figure class="marginal" aria-hidden="true" data-scene="m-card"></figure>
 <p>After taking your action, draw an <a href="era-cards.html">Era Card</a>. Draw the top card of the Era deck and reveal it, then follow the instructions.</p>
+<h4 id="bonus-naming">Bonus Naming</h4>
+<p>In each Era, some types of Entities appear more often than others. These are that Era's Bonus types, marked <strong>Bonus</strong> in its row of the <a href="#naming-options">Naming Options</a> table.</p>
+<p>Once per turn, you may Name a new Entity of one of the current Era's Bonus types. Name it the same way as the <a href="#naming">Naming</a> action. Bonus Naming is optional and comes on top of your action, never instead of it. You choose when to take it: before your action, after it, or after you draw an Era Card, as long as it's before you roll for Journeys. Your action can still be a Naming, even of the same type.</p>
 <h3 id="ending-an-era">Ending an Era</h3>
 <p>An Era ends when its deck runs out. Between it and the next Era, an undefined amount of time passes. At the end of every Era but the last, do the following, in order:</p>
 <ol>
@@ -395,10 +396,10 @@
 <h2 id="glossary">Glossary</h2>
 <dl class="glossary">
   <div id="g-actor"><dt data-forms="Actor, Actors">Actor</dt><dd>A person, group or creature who shapes history. Unless a card says otherwise, Actors die when their Era ends. <a href="#actors">Actors</a></dd></div>
+  <div id="g-bonus-naming"><dt data-forms="Bonus Naming">Bonus Naming</dt><dd>An optional extra Naming on your turn, of one of the current Era's Bonus types. Take it any time before you roll for Journeys. <a href="#bonus-naming">Bonus Naming</a></dd></div>
   <div id="g-entity"><dt data-forms="Entity, Entities">Entity</dt><dd>A named Place, God, People, Actor or Nation. Track each on its own card. <a href="#entities">Entities</a></dd></div>
   <div id="g-era"><dt data-forms="Era, Eras">Era</dt><dd>One of the four ages of history: Myth, Antiquity, Ruin and Promise. Each is played with its own deck. <a href="#the-four-eras">The Four Eras</a></dd></div>
   <div id="g-era-card"><dt data-forms="Era Card, Era Cards">Era Card</dt><dd>The card you draw after your action each turn. Read it aloud and follow it. <a href="era-cards.html">Era Cards</a></dd></div>
-  <div id="g-free-naming"><dt data-forms="Free Naming">Free Naming</dt><dd>An optional Naming at the start of your turn, for a type that's Free in the current Era. <a href="#free-naming">Free Naming</a></dd></div>
   <div id="g-god"><dt data-forms="God, Gods">God</dt><dd>A powerful being tied to a domain, such as Fire or Truth. Mighty, but neither all-powerful nor all-knowing. <a href="#gods">Gods</a></dd></div>
   <div id="g-journey"><dt data-forms="Journey, Journeys">Journey</dt><dd>An undertaking that takes time and can fail. Roll for it each turn until its tasks reach zero, then it completes. <a href="#journey">Journey</a></dd></div>
   <div id="g-legacy"><dt data-forms="Legacy, Legacies">Legacy</dt><dd>At the end of an Era, a departing Actor leaves its mark on a new or renamed Entity. <a href="#legacy">Legacy</a></dd></div>
