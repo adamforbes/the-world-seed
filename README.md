@@ -1,6 +1,6 @@
 # The World Seed
 
-The rules for *Once Upon A Time: Procedural Edition*, a collaborative worldbuilding game for session 0, as a small website.
+The rules for *The World Seed*, a collaborative worldbuilding game for session 0, as a small website.
 
 Open `index.html` in a browser to read them.
 

@@ -13,8 +13,13 @@
   --todo-ink: #6b4f12;
   --can: #3f6b4a;
   --cannot: #a3998a;
-  --free-bg: #3f6b4a;
-  --free-ink: #ffffff;
+  --bonus-bg: #3f6b4a;
+  --bonus-ink: #ffffff;
+  /* Read aloud and tips, in the Qud colours of glyph-kit.js. */
+  --aloud-label: #1c6577;
+  --aloud-ink: #224c54;
+  --tip-label: #2d7a1f;
+  --tip-ink: #2c581f;
 
   --era-myth: #b4415a;
   --era-antiquity: #a8741a;
@@ -48,8 +53,12 @@
     --todo-ink: #f0d79a;
     --can: #8fbf98;
     --cannot: #6f685d;
-    --free-bg: #8fbf98;
-    --free-ink: #1b1a17;
+    --bonus-bg: #8fbf98;
+    --bonus-ink: #1b1a17;
+    --aloud-label: #77bfcf;
+    --aloud-ink: #b1c9c3;
+    --tip-label: #00c420;
+    --tip-ink: #a5dca2;
     --era-myth: #e07a90;
     --era-antiquity: #e0b155;
     --era-ruin: #a7b56f;
@@ -74,8 +83,12 @@
   --todo-ink: #f0d79a;
   --can: #8fbf98;
   --cannot: #6f685d;
-  --free-bg: #8fbf98;
-  --free-ink: #1b1a17;
+  --bonus-bg: #8fbf98;
+  --bonus-ink: #1b1a17;
+  --aloud-label: #77bfcf;
+  --aloud-ink: #b1c9c3;
+  --tip-label: #00c420;
+  --tip-ink: #a5dca2;
   --era-myth: #e07a90;
   --era-antiquity: #e0b155;
   --era-ruin: #a7b56f;
@@ -102,6 +115,16 @@ body {
 
 a { color: var(--accent); }
 a:hover { text-decoration-thickness: 2px; }
+/* Key words (.term, see Glossary) keep the colour of the text around them,
+   with a dotted underline in the link colour, and take that colour on hover.
+   Links stay links: coloured and underlined. */
+.term {
+  color: inherit;
+  text-decoration: underline dotted var(--accent);
+  text-decoration-thickness: 0.1em;
+  text-underline-offset: 0.22em;
+}
+.term:hover, .term:focus-visible { color: var(--accent); }
 
 /* ---------- Site header ---------- */
 
@@ -192,7 +215,8 @@ a:hover { text-decoration-thickness: 2px; }
 
 /* ---------- On this page ---------- */
 
-/* A tree of the page's headings. Only the current section's h3s are expanded.
+/* A tree of the page's headings. Only the current section's branch is expanded,
+   and the rows leading to the current one light their └.
    Below it, a reading-progress bar; on narrow screens a hairline at the top instead. */
 
 .toc {
@@ -220,8 +244,8 @@ a:hover { text-decoration-thickness: 2px; }
 }
 .toc .tree a:hover, .toc .tree a.active { color: var(--ink); }
 .toc .tree a .br { color: var(--toc-ink-4); margin-right: 10px; }
-.toc .tree a.active .br { color: var(--toc-ink-2); }
-.toc .tree a.sub { padding-left: 18px; }
+.toc .tree a:is(.active, .trail) .br { color: var(--toc-ink-2); }
+.toc .tree a.sub { padding-left: calc(var(--depth) * 18px); }
 
 .toc .subs { display: grid; grid-template-rows: 0fr; visibility: hidden; }
 .toc .subs.open, .toc .subs:has(:focus-visible) { grid-template-rows: 1fr; visibility: visible; }
@@ -250,7 +274,6 @@ a:hover { text-decoration-thickness: 2px; }
 .toc .pct { color: var(--toc-ink-2); margin-left: 8px; }
 .toc .rail-time { margin-top: 0.75rem; letter-spacing: 0.02em; color: var(--toc-ink-3); }
 
-.top-prog { position: fixed; top: 0; left: 0; z-index: 20; width: 0; height: 2px; background: var(--accent); }
 
 @media (max-width: 63.99rem) {
   .toc .rail-title, .toc .prog, .toc .rail-time { display: none; }
@@ -261,8 +284,50 @@ a:hover { text-decoration-thickness: 2px; }
   .toc details { border: 0; background: none; padding: 0; }
   .toc summary { list-style: none; pointer-events: none; }
   .toc summary::-webkit-details-marker { display: none; }
-  .top-prog { display: none; }
 }
+
+/* ---------- Persistent nav on narrow screens ---------- */
+
+/* Below 64rem the tree's summary is a bar along the bottom of the screen, like
+   a Qud status line, naming the current section (its h2 └ the heading). It
+   opens the tree in a panel above it and dims the page behind. */
+
+.toc .now-where, .toc .now-open { display: none; }
+
+@media (max-width: 63.99rem) {
+  body { padding-bottom: 3.5rem; }
+  .toc { position: fixed; left: 0; right: 0; bottom: 0; z-index: 15; }
+  .toc details { border: 0; border-top: 1px solid var(--rule); border-radius: 0; padding: 0; background: var(--surface); }
+  .toc details[open]::before { content: ""; position: fixed; inset: 0; z-index: -1; background: rgb(0 0 0 / 0.4); }
+  .toc summary { display: flex; align-items: center; gap: 0.75rem; padding: 0.8rem 1rem calc(0.8rem + env(safe-area-inset-bottom)); list-style: none; text-transform: none; color: var(--ink); }
+  .toc summary::-webkit-details-marker { display: none; }
+  .toc .now-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .toc .now-where { display: block; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .toc .now-top { text-transform: uppercase; letter-spacing: 0.04em; color: var(--toc-ink-3); }
+  .toc .now-top:not(:empty)::after { content: " └ "; color: var(--toc-ink-4); }
+  .toc .now-open { display: block; color: var(--toc-ink-2); }
+  .toc .now-open::before { content: "≡"; }
+  .toc details[open] .now-open::before { content: "×"; }
+  .toc .sheet {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 100%;
+    max-height: 65vh;
+    overflow: hidden auto;
+    overscroll-behavior: contain;
+    padding: 0.4rem 1rem 0.9rem;
+    background: var(--surface);
+    border-top: 1px solid var(--rule);
+  }
+  .toc .tree { margin-top: 0; }
+  @media (prefers-reduced-motion: no-preference) {
+    .toc details[open] .sheet { animation: sheet-up .3s var(--ease-out); }
+    .toc details[open]::before { animation: fade-in .3s ease; }
+  }
+}
+@keyframes sheet-up { from { transform: translateY(1.5rem); opacity: 0; } }
+@keyframes fade-in { from { opacity: 0; } }
 
 /* ---------- Typography ---------- */
 
@@ -328,6 +393,75 @@ blockquote > :last-child { margin-bottom: 0; }
 }
 .callout + .callout { margin-top: -0.25rem; }
 
+/* ---------- Read aloud and tips ---------- */
+
+/* Set apart from the rules like lines in a Qud message log: a small label
+   running into a ░ shaded line, over tinted text. Read aloud
+   (<blockquote class="read-aloud">) is flavor for the host to read to the
+   table. A tip (<aside class="tip">) is advice, not a rule. */
+
+.read-aloud, .tip { margin: 1.6rem 0 1.4rem; padding: 0; border: 0; }
+:is(.read-aloud, .tip)::before {
+  display: block;
+  overflow: hidden;
+  margin-bottom: 0.3rem;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-style: normal;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  line-height: 1.5rem;
+  text-transform: uppercase;
+  white-space: pre;
+}
+.read-aloud::before { content: "Read aloud ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░"; content: "Read aloud ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░" / "Read aloud"; color: var(--aloud-label); }
+.tip::before { content: "Tip ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░"; content: "Tip ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░" / "Tip"; color: var(--tip-label); }
+.read-aloud { color: var(--aloud-ink); font-style: italic; font-size: 1.1rem; line-height: 1.55; }
+.tip { color: var(--tip-ink); font-style: italic; }
+:is(.read-aloud, .tip) > :first-child { margin-top: 0; }
+:is(.read-aloud, .tip) > :last-child { margin-bottom: 0; }
+
+/* ---------- Glossary ---------- */
+
+/* The rules page's Glossary, and the key words in the text that show its
+   definitions (site.js marks the first of each under a heading, and every one
+   in read-aloud text, with the dotted underline above). */
+
+.glossary { margin: 0; }
+.glossary > div { display: grid; grid-template-columns: 8.5rem minmax(0, 1fr); gap: 0.25rem 1rem; padding: 0.6rem 0; border-bottom: 1px solid var(--rule); }
+.glossary > div:target { background: color-mix(in srgb, var(--accent) 8%, var(--paper)); }
+.glossary dt { font-family: var(--font-mono); font-size: 0.85rem; font-weight: 600; padding-top: 0.2rem; }
+.glossary dd { margin: 0; }
+:is(.glossary dd, .term-tip) a { font-family: var(--font-mono); font-size: 0.72rem; white-space: nowrap; margin-left: 0.2rem; }
+:is(.glossary dd, .term-tip) a::before { content: "→ "; }
+@media (max-width: 40rem) { .glossary > div { grid-template-columns: minmax(0, 1fr); } }
+
+.term { cursor: help; }
+.term:focus-visible { outline: 1px solid var(--accent); outline-offset: 2px; }
+
+.term-tip {
+  position: absolute;
+  z-index: 30;
+  width: max-content;
+  max-width: min(20rem, calc(100vw - 1rem));
+  padding: 0.55rem 0.75rem 0.6rem;
+  background: var(--surface);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 20px rgb(0 0 0 / 0.18);
+  font-size: 0.88rem;
+  line-height: 1.45;
+}
+.term-tip-name {
+  margin-bottom: 0.2rem;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.term-tip-name::before { content: "└ "; }
+
 /* ---------- Page hero ---------- */
 
 .page-hero { margin-bottom: 2rem; max-width: var(--measure); }
@@ -368,10 +502,10 @@ td:first-child { white-space: nowrap; }
 .naming td.can, .naming td.cannot { text-align: center; font-family: var(--font-ui); font-size: 0.78rem; }
 .naming td.can { color: var(--can); font-weight: 600; }
 .naming td.cannot { color: var(--cannot); }
-.naming td.free span {
+.naming td.bonus span {
   display: inline-block;
-  background: var(--free-bg);
-  color: var(--free-ink);
+  background: var(--bonus-bg);
+  color: var(--bonus-ink);
   border-radius: var(--radius);
   padding: 0.05rem 0.45rem;
   font-size: 0.72rem;
@@ -645,7 +779,8 @@ section:has(> .contents:last-child) + .site-footer { border-top: 0; padding-top:
 /* ---------- Print ---------- */
 
 @media print {
-  .site-header, .toc, .top-prog, .card-controls, .heading-anchor, .marginal { display: none !important; }
+  .site-header, .toc, .card-controls, .heading-anchor, .marginal, .term-tip { display: none !important; }
+  .term { text-decoration: none; }
   .layout { display: block; padding: 0; }
   body { background: #fff; color: #000; }
   .card { break-inside: avoid; }
