@@ -23,6 +23,8 @@
 //   m-journey    a pilgrim who walks off and comes back with a souvenir
 //   m-narration  a fortune-teller whose fire smokes out pictures
 //   m-card       a face-down card that peeks, and flips to a random suit
+//   m-bonus      a stork with a swaddled bundle in its bill, which it drops,
+//                and out tumbles a second: twins
 //   m-legacy     a statue that crumbles under a pigeon, then rises as one
 
 (function () {
@@ -1995,6 +1997,175 @@
             const th = (q / 8) * TAU + 0.4, d = 10 + b * 0.5;
             p.sprite(SMALL[st.up], Math.round(cx + Math.cos(th) * d) - 1, Math.round(cy + Math.sin(th) * d) - 1, { alpha: k, map: { '#': si } });
           }
+        }
+      },
+    });
+  }
+
+  // ---------- Bonus Naming: a stork with a bundle ----------
+
+  {
+    const BASE = 66;
+    // The stork, facing left: a white body with black flight feathers, an S
+    // of a neck, and a vermilion bill and legs. Body, neck and head are one
+    // shape, so a single outline runs round all three.
+    const NECK = [[50, 35], [41, 30], [44, 21]];
+    const STORK = [];
+    {
+      const inBody = (x, y) => ((x - 55) / 12) ** 2 + ((y - 40) / 6.5) ** 2 < 1;
+      const inTail = (x, y) => x >= 64 && x <= 71 && y >= 38 + (x - 64) * 0.55 && y <= 41 + (x - 64) * 0.45;
+      const neck = new Set();
+      for (let k = 0; k <= 40; k++) {
+        const t = k / 40, u = 1 - t;
+        const nx = u * u * NECK[0][0] + 2 * u * t * NECK[1][0] + t * t * NECK[2][0];
+        const ny = u * u * NECK[0][1] + 2 * u * t * NECK[1][1] + t * t * NECK[2][1];
+        for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
+          if (dx * dx + dy * dy <= 2.4 * 2.4) neck.add(Math.round(nx + dx) + ',' + Math.round(ny + dy));
+        }
+      }
+      const inside = (x, y) => inBody(x, y) || inTail(x, y) || neck.has(x + ',' + y) || (x - 44) ** 2 + (y - 18) ** 2 < 3.6 * 3.6;
+      for (let y = 10; y < 50; y++) for (let x = 36; x < 74; x++) {
+        if (!inside(x, y)) continue;
+        const rim = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
+        // The flight feathers: the back and lower half of the folded wing,
+        // and its tips past the tail.
+        STORK.push([x, y, rim ? '#' : inTail(x, y) || (inBody(x, y) && x + (y - 40) * 1.5 > 59) ? 'k' : 'w']);
+      }
+    }
+    // It stands on one leg, and puts the other down when you come near.
+    const STAND = [[53, 46], [54, 55], [53, BASE - 2]];
+    const TUCK = [[57, 46], [61, 52], [57, 54]];
+    const DOWN = [[57, 46], [59, 55], [59, BASE - 2]];
+    function leg(p, pts) {
+      for (let i = 1; i < pts.length; i++) p.line(...pts[i - 1], ...pts[i], 'r');
+      const [x, y] = pts[pts.length - 1];
+      if (y === BASE - 2) for (let dx = -3; dx <= 1; dx++) p.px(x + dx, BASE - 1, 'r');
+    }
+    // The bill, from the head to its tip. Open, the lower half drops.
+    function bill(p, open) {
+      for (let x = 26; x <= 41; x++) {
+        const s = (41 - x) / 15, y = Math.round(19 + s * 4);
+        const low = y + (x > 35 ? 1 : 0) + Math.round(s * open * 5);
+        p.px(x, y - 1, '#');
+        p.px(x, y, 'r');
+        if (low === y) p.px(x, y + 1, '#');
+        else if (low === y + 1 && !open) { p.px(x, low, 'r'); p.px(x, low + 1, '#'); }
+        else { p.px(x, y + 1, '#'); p.px(x, low - 1, '#'); p.px(x, low, 'r'); p.px(x, low + 1, '#'); }
+      }
+      p.px(25, 23, '#');
+    }
+    // The bundle: the baby's banded linen, gathered into a gold knot with its
+    // corners sticking up, and a little face peeking out.
+    const KNOT = art(`
+      .#.....#.
+      #w#...#w#
+      .#wgggw#.
+      ..#ggg#..
+    `);
+    const FACE = {
+      asleep: art(`
+        ..#####..
+        .#kkkpp#.
+        #ppppppp#
+        #p##p##p#
+        #rpppppr#
+        .#ppmpp#.
+        ..#####..
+      `),
+      awake: art(`
+        ..#####..
+        .#kkkpp#.
+        #ppppppp#
+        #pkpppkp#
+        #rpppppr#
+        .#pmmmp#.
+        ..#####..
+      `),
+    };
+    const SH = 14;
+    const sling = (j) => (j < 3 ? 1.5 + j * 1.5 : j < 10 ? 6 : 6 - (j - 9) * 1.2);
+    const inSling = (x, j) => j >= 0 && j < SH && Math.abs(x) <= sling(j);
+    // Drawn from the knot at kx, ky.
+    function bundle(p, kx, ky, { awake = false, alpha = 1, wave = 0 } = {}) {
+      for (let j = 0; j < SH; j++) for (let x = -7; x <= 7; x++) {
+        if (!inSling(x, j)) continue;
+        const rim = !inSling(x - 1, j) || !inSling(x + 1, j) || !inSling(x, j - 1) || !inSling(x, j + 1);
+        const a = (((x + j) % 7) + 7) % 7, b = (((x - j) % 7) + 7) % 7;
+        p.px(kx + x, ky + 1 + j, rim ? '#' : j > 3 && (a === 0 || b === 0) ? 'r' : 'w', alpha);
+      }
+      p.sprite(KNOT, kx - 4, ky - 3, { alpha });
+      p.sprite(awake ? FACE.awake : FACE.asleep, kx - 10, ky + 2, { alpha });
+      // Awake, a little hand waves from the top of the cloth.
+      if (awake) {
+        const hy = ky + 1 - wave;
+        p.px(kx - 3, ky + 3, 'r', alpha);
+        p.px(kx - 3, hy + 1, 'r', alpha);
+        p.px(kx - 3, hy, 'p', alpha); p.px(kx - 2, hy, 'p', alpha); p.px(kx - 3, hy - 1, 'p', alpha);
+      }
+    }
+    const AT = [32, 23], GROUND = BASE - 1 - SH, FROM = [58, 36], TO = [14, GROUND];
+    const DROP = 16, TOSS = 22, TWINS = 100, FADE = 16;
+
+    drollery('bonus', {
+      span: [4, 12, 72, 66],
+      h: 70,
+      make: () => ({ mode: 'hold', at: -999 }),
+      update(st, step) {
+        const a = step - st.at;
+        if (st.mode === 'drop' && a >= DROP + TOSS) { st.mode = 'twins'; st.at = step; }
+        else if (st.mode === 'twins' && a >= TWINS) { st.mode = 'fade'; st.at = step; }
+        else if (st.mode === 'fade' && a >= FADE) { st.mode = 'hold'; st.at = step; }
+      },
+      // A click and it drops the bundle, and out from behind it tumbles a
+      // second one: twins.
+      click(st, step) { if (st.mode === 'hold') { st.mode = 'drop'; st.at = step; } },
+      draw(p, st, { step, calm, pointer }) {
+        const a = step - st.at, mode = st.mode;
+        for (let x = 46; x <= 64; x++) p.px(x, BASE - 1, 'f', 0.8);
+        const near = pointer && mode === 'hold';
+        leg(p, near ? DOWN : TUCK);
+        leg(p, STAND);
+        for (const q of STORK) p.px(...q);
+        if (calm || step % 110 >= 3) p.px(43, 17, '#');
+        // The bill goes on over the bundle, gripping its knot.
+        const wave = calm ? 0 : (step >> 2) % 2;
+        if (mode === 'hold') {
+          // It sways from the bill; held near, it wriggles and wakes.
+          const th = calm ? 0 : near ? ((step >> 1) % 2 ? 0.08 : -0.08) : Math.sin((step / 60) * TAU) * 0.1;
+          const held = p.capture(() => bundle(p, AT[0], AT[1], { awake: near, wave }));
+          p.turn(held, AT[0], AT[1] - 1, th);
+          bill(p, 0);
+          return;
+        }
+        if (mode === 'fade') {
+          const k = clamp(a / FADE);
+          bundle(p, AT[0], GROUND, { awake: true, alpha: 1 - k });
+          bundle(p, TO[0], TO[1], { awake: true, alpha: 1 - k });
+          bundle(p, AT[0], AT[1], { alpha: k });
+          bill(p, 0);
+          return;
+        }
+        // Down it falls, and wakes as it lands.
+        const d = mode === 'twins' ? DROP + TOSS : a;
+        const fall = Math.min(GROUND - AT[1], 0.11 * d * d);
+        bundle(p, AT[0], AT[1] + fall, { awake: d >= DROP, wave });
+        bill(p, mode === 'drop' ? clamp(1 - (a - 8) / 6) : 0);
+        // The second one bursts out in a shower of sparks and arcs over.
+        const b = d - DROP;
+        if (b >= 0) {
+          const k = clamp(b / TOSS);
+          bundle(p, Math.round(lerp(FROM[0], TO[0], k)), Math.round(lerp(FROM[1], TO[1], k) - Math.sin(k * Math.PI) * 18), { awake: k >= 1, wave: 1 - wave });
+          if (b < 10 && !calm) for (let r = 0; r < 8; r++) {
+            const th = (r / 8) * TAU, d = 3 + b;
+            p.px(FROM[0] + Math.cos(th) * d, FROM[1] + Math.sin(th) * d, r % 2 ? 'glint' : 'g', 1 - b / 10);
+          }
+        }
+        // Twins! Sparks wink over them.
+        if (mode === 'twins' && !calm) for (let k = 0; k < 4; k++) {
+          const life = (step + k * 17) % 48, cyc = Math.floor((step + k * 17) / 48);
+          if (life > 16) continue;
+          const sx = 8 + R('twin', k, cyc) * 32, sy = GROUND - 12 + R('twin-y', k, cyc) * 8, al = 1 - Math.abs(life - 8) / 8;
+          for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) p.px(sx + ox, sy + oy, ox || oy ? 'g' : 'glint', al);
         }
       },
     });
