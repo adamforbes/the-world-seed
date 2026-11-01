@@ -216,17 +216,32 @@
   // ---------- Margin figures ----------
   // The drolleries and Era mascots (.marginal) float into the right margin
   // beside their heading. When the margin is too narrow for them, each moves
-  // into its heading instead, cropped to its own size (see style.css). Runs
-  // once the scenes have loaded, since each one knows the box it stays in.
+  // into the top of its heading instead, cropped to its own size and drawn a
+  // little smaller, and the heading and text wrap round it (see style.css).
+  // Runs once the scenes have loaded, since each one knows the box it stays
+  // in.
   const figures = [...main.querySelectorAll(".marginal")];
   if (figures.length) document.addEventListener("DOMContentLoaded", () => {
     const homes = figures.map(f => f.previousElementSibling);
     figures.forEach(f => {
-      const span = window.SceneKit?.scenes[f.dataset.scene]?.span;
+      const scene = window.SceneKit?.scenes[f.dataset.scene], span = scene?.span;
       if (!span) return;
       const [x0, y0, x1, y1] = span;
-      f.style.cssText += `--x0:${x0};--y0:${y0};--w:${x1 - x0};--h:${y1 - y0}`;
+      // Where the drawing starts at rest, so that, rather than its headroom,
+      // lines up with the heading; the headroom for its animations spills up
+      // into the space above the heading.
+      const c = document.createElement("canvas");
+      c.width = scene.width; c.height = scene.height;
+      scene.render(c.getContext("2d"), 0, "light", { calm: true });
+      const px = c.getContext("2d").getImageData(0, 0, c.width, c.height).data, k = scene.width / window.Margins.W;
+      let top = y0;
+      for (let i = 3; i < px.length; i += 4) if (px[i] > 64) { top = Math.max(y0, Math.floor((i - 3) / 4 / c.width / k)); break; }
+      f.style.cssText += `--x0:${x0};--y0:${y0};--top:${top};--w:${x1 - x0};--h:${y1 - top};--room:${top - y0}`;
     });
+    // Smaller figures there, but every figure pixel still a whole number of
+    // device pixels, so the art stays crisp and all the same size.
+    const dpr = window.devicePixelRatio || 1;
+    document.documentElement.style.setProperty("--figure-px", Math.max(1, Math.round(1.5 * dpr)) / dpr + "px");
     const section = homes[0].parentElement, text = section.querySelector("p");
     let inline = null;
     const place = () => {
@@ -235,7 +250,7 @@
       if (now === inline) return;
       inline = now;
       document.documentElement.classList.toggle("margins-inline", inline);
-      figures.forEach((f, i) => (inline ? homes[i].append(f) : homes[i].after(f)));
+      figures.forEach((f, i) => (inline ? homes[i].prepend(f) : homes[i].after(f)));
     };
     place();
     new ResizeObserver(place).observe(main);

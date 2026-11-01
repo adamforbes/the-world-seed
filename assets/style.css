@@ -709,24 +709,26 @@ h4 + .marginal { margin-top: -1.79rem; }
   user-select: none;
 }
 
-/* Where there's no margin to float into, site.js moves each figure into its
-   heading (.margins-inline on the root). It's cropped to the box it stays in
-   (--x0, --y0, --w, --h, in figure pixels, each 2 CSS pixels) and stands at
-   the right end of the heading. The text below keeps its full width. */
-.margins-inline :is(h3, h4, h5):has(> .marginal) {
-  display: flex;
-  align-items: flex-end;
-  gap: 0.75rem;
-}
+/* Where there's no margin to float into, site.js moves each figure into the
+   top of its heading (.margins-inline on the root) and it floats right there,
+   so its top lines up with the heading and the heading and text wrap round
+   it. It's cropped to the box it stays in (--x0, --y0, --w, --h, in figure
+   pixels) and drawn a little smaller: each figure pixel --figure-px, about
+   1.5 CSS pixels, rounded to whole device pixels. The box starts where the
+   drawing does at rest (--top); the --room above that, where its animations
+   go, shows over the empty space above the heading. */
+.margins-inline :is(h3, h4, h5):has(> .marginal) { clear: right; }
 .margins-inline .marginal {
-  float: none;
-  flex: none;
-  width: calc(var(--w) * 2px);
-  height: calc(var(--h) * 2px);
-  margin: 0 0 0 auto;
-  overflow: hidden;
+  float: right;
+  width: calc(var(--w) * var(--figure-px));
+  height: calc(var(--h) * var(--figure-px));
+  margin: 0.1rem 0 0.5rem 0.75rem;
+  clip-path: inset(calc(var(--room) * var(--figure-px) * -1) 0 0 0);
 }
-.margins-inline .marginal canvas { width: 160px; margin: calc(var(--y0) * -2px) 0 0 calc(var(--x0) * -2px); }
+.margins-inline .marginal canvas {
+  width: calc(80 * var(--figure-px));
+  margin: calc(var(--top) * var(--figure-px) * -1) 0 0 calc(var(--x0) * var(--figure-px) * -1);
+}
 
 /* Scene strips: smaller live scenes in the text column, at the top of a
    section (The Four Eras, Entities, The Game). Same runtime as the banners. */
