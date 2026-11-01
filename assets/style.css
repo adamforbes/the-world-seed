@@ -695,6 +695,11 @@ body.hide-todos .todo { display: none; }
    wide screen is the empty margin beside the text; on a narrower one they sit
    in the column and the text wraps round them. */
 .marginal { float: right; clear: right; width: 160px; margin: 0.25rem 0 1rem 1.5rem; }
+/* Pulled up by its heading's own line-height + bottom margin, so the
+   drollery's top edge lands flush with the heading text's top edge
+   instead of trailing below it. */
+h3 + .marginal { margin-top: -2.23rem; }
+h4 + .marginal { margin-top: -1.79rem; }
 .marginal canvas {
   display: block;
   width: 100%;
