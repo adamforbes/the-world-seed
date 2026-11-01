@@ -659,7 +659,9 @@
       rrrrr
       ..rr.
     `)];
-    const KX = 23, KY = 14, TUCK = 16;
+    const KX = 23, KY = 14, TUCK = 16, PLANT = 4;
+    // The lance as it's held: from the knight's hand, how long, at what angle.
+    const LANCE = { butt: [KX + 10, KY + 8], len: Math.hypot(27, 17), th: Math.atan2(-17, 27) };
     // The helm on the knight's head (t = 0) and tucked under their arm (t = 1).
     const HEAD = [KX + 2, KY], ARM = [KX + 6, KY + 8];
     function helmAt(t) {
@@ -722,9 +724,17 @@
           const t = i / 40, u = 1 - t;
           p.px(u * u * (KX + 10) + 2 * u * t * 40 + t * t * (46 + d), u * u * (KY + 10) + 2 * u * t * 41 + t * t * 41, '#');
         }
-        // The lance and its pennant.
-        p.line(KX + 10, KY + 8, KX + 37, KY - 9, '#');
-        p.sprite(PENNANT[calm ? 0 : (step >> 3) % 2], KX + 29, KY - 6);
+        // The lance and its pennant: couched up to the right, or, while the
+        // helm is off, planted upright beside the snail. It's stabbed into the
+        // ground in a few frames as the helm comes off, and snatched back up as
+        // the helm goes back on.
+        const q = st.off ? smooth(clamp(a / PLANT)) : 1 - smooth(clamp((a - (TUCK - PLANT)) / PLANT));
+        const butt = [lerp(LANCE.butt[0], 42, q), lerp(LANCE.butt[1], BASE - 1, q)];
+        const th = lerp(LANCE.th, -Math.PI / 2, q);
+        const tip = [butt[0] + Math.cos(th) * LANCE.len, butt[1] + Math.sin(th) * LANCE.len];
+        p.line(butt[0], butt[1], tip[0], tip[1], '#');
+        p.sprite(PENNANT[calm ? 0 : (step >> 3) % 2], Math.round(tip[0] + lerp(-8, 1, q)), Math.round(tip[1] + lerp(3, 1, q)));
+        if (st.off && a >= PLANT && a < PLANT + 3) for (const ox of [-2, 2]) p.px(42 + ox, BASE - 1, 'f');
         p.sprite(KNIGHT, KX, KY + 7);
         // The helm comes off and goes under an arm: under it, another snail.
         // A second click puts it back on.
