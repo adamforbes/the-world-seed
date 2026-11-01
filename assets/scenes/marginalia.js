@@ -668,16 +668,23 @@
       return [Math.round(lerp(HEAD[0], ARM[0], u) + Math.sin(u * Math.PI) * 3), Math.round(lerp(HEAD[1] - 3, ARM[1], u))];
     }
 
-    // An eyestalk from its base, leaning toward the pointer.
-    function stalk(p, bx, by, len, pointer, ox) {
+    // An eyestalk from its base, leaning toward the pointer (or whatever it's
+    // looking at), its eye squinted shut for a blink.
+    function stalk(p, bx, by, len, pointer, ox, shut = false) {
       let tx = bx + ox, ty = by - len;
       if (pointer) {
         const vx = pointer[0] - bx, vy = pointer[1] - (by - len), m = Math.hypot(vx, vy) || 1;
         tx = bx + Math.round((vx / m) * 3); ty = by - len + Math.round((vy / m) * 2);
       }
       p.line(bx, by, tx, ty, '#');
-      p.px(tx, ty, '#'); p.px(tx + 1, ty, '#'); p.px(tx, ty - 1, '#'); p.px(tx + 1, ty - 1, '#');
+      p.px(tx, ty, '#'); p.px(tx + 1, ty, '#');
+      if (!shut) { p.px(tx, ty - 1, '#'); p.px(tx + 1, ty - 1, '#'); }
     }
+    // When the helm comes off, the mount turns its eyes back to its rider,
+    // holds the look, blinks slowly, and turns forward again: when it's
+    // looking, and how far round (0 to 1).
+    const RIDER = [KX + 4, KY + 3], GLANCE = [12, 18, 46, 52], BLINK = [32, 36];
+    const glance = (a) => (a < GLANCE[0] || a >= GLANCE[3] ? 0 : a < GLANCE[1] ? (a - GLANCE[0]) / (GLANCE[1] - GLANCE[0]) : a < GLANCE[2] ? 1 : 1 - (a - GLANCE[2]) / (GLANCE[3] - GLANCE[2]));
 
     drollery('actors', {
       span: [11, 4, 62, 50],
@@ -691,8 +698,15 @@
       draw(p, st, { step, calm, pointer }) {
         const d = calm ? 0 : Math.floor(step / 36) % 2;
         p.region(inBody(d), [10, 34, 56, 49], 'f', '#');
-        stalk(p, 47 + d, 35, 6, pointer, -1);
-        stalk(p, 51 + d, 35, 6, pointer, 1);
+        const a = step - st.at, w = st.off && !calm ? smooth(glance(a)) : 0;
+        const shut = w === 1 && a >= BLINK[0] && a < BLINK[1];
+        for (const [bx, ox] of [[47 + d, -1], [51 + d, 1]]) {
+          // Turning round, it looks at a point slid from where it was looking
+          // over to the rider.
+          const from = pointer || [bx + ox * 6, 35 - 40];
+          const look = w > 0 ? [lerp(from[0], RIDER[0], w), lerp(from[1], RIDER[1], w)] : pointer;
+          stalk(p, bx, 35, 6, look, ox, shut);
+        }
         p.region(inShell, [20, 26, 40, 46], 'g', '#');
         for (let th = 0.4; th < 13; th += 0.04) {
           const r = 0.6 + th * 0.62;
