@@ -69,6 +69,14 @@
     return rows.map((r) => r.padEnd(n, '.'));
   };
   const size = (a) => [a[0].length, a.length];
+  // A sprite squashed (k < 1) or stretched (k > 1) top to bottom, for squash
+  // and stretch: rows dropped from or doubled through its middle, so its top
+  // and bottom rows stay as they are.
+  function squash(rows, k) {
+    const h = rows.length, H = Math.max(2, Math.round(h * k));
+    if (H === h) return rows;
+    return Array.from({ length: H }, (_, j) => rows[j === 0 ? 0 : j === H - 1 ? h - 1 : Math.round((j * (h - 1)) / (H - 1))]);
+  }
 
   // Every figure is drawn at the same pixel size, so they sit together on
   // the page as one set.
@@ -219,6 +227,21 @@
       ooor
       .or.
     `);
+    // Falling fast, stretched; landing, squashed flat.
+    const FALLING = art(`
+      ..#.
+      .oo.
+      .Go.
+      oooo
+      ooor
+      .or.
+    `);
+    const LANDED = art(`
+      ...#.
+      .ooo.
+      oGoooo
+      .ooorr
+    `);
     // Where fallen apples come to rest, outward from the trunk, a second row
     // on top once there are two to sit on.
     const PILE = {};
@@ -232,7 +255,7 @@
     }
 
     drollery('places', {
-      span: [3, 11, 59, 54],
+      span: [2, 10, 60, 54],
       h: 60,
       make: () => ({ tree: SPOTS.map(() => -1), apples: [], claimed: { '-1': 0, 1: 0 }, leaves: [], shakeAt: -99 }),
       update(st, step, pointer) {
@@ -247,16 +270,24 @@
           a.y += a.vy;
           if (a.y >= a.sy) {
             a.y = a.sy;
-            if (!a.bounced && a.vy > 2) { a.vy = -a.vy * 0.3; a.bounced = true; }
+            a.hit = step;
+            if (!a.bounced && a.vy > 2) { a.vy = -a.vy * 0.35; a.bounced = true; }
             else { a.done = true; a.at = step; }
           }
           const k = a.bounced ? 1 : clamp((a.y - a.y0) / (a.sy - a.y0));
           a.x = lerp(a.x0, a.sx, k);
         }
         st.apples = st.apples.filter((a) => a.slot || !a.done || step - a.at < 24);
+        for (const l of st.leaves) if (l.vx && step >= l.born) { l.x += l.vx; l.vx *= 0.82; }
       },
+      // A click: the tree gathers itself, then shakes hard, flinging leaves,
+      // and a mango tugs at its stalk and drops.
       click(st, step) {
         st.shakeAt = step;
+        for (let k = 0; k < 7; k++) {
+          const [x, y] = CANOPY[Math.floor(R('fling', step, k) * CANOPY.length)];
+          st.leaves.push({ x, y, born: step + 3, land: (BASE - 1 - y) / 0.22, vx: (x < TRUNK ? -1 : 1) * (0.5 + R('flingv', step, k) * 0.7) });
+        }
         const ready = st.tree.map((back, i) => (step >= back ? i : -1)).filter((i) => i >= 0);
         if (!ready.length) return;
         const i = ready[Math.floor(R('pick', step) * ready.length)];
@@ -264,15 +295,21 @@
         const [x0, y0] = SPOTS[i];
         const side = x0 + 1 < TRUNK ? -1 : 1;
         const slot = PILE[side][st.claimed[side]++];
-        st.apples.push({ x0, y0, x: x0, y: y0, vy: 0, side, slot, sx: slot ? slot[0] : x0, sy: slot ? slot[1] : BASE - 5, born: step + 3 });
+        st.apples.push({ x0, y0, x: x0, y: y0, vy: 0, side, slot, sx: slot ? slot[0] : x0, sy: slot ? slot[1] : BASE - 5, born: step + 6, from: step });
       },
       draw(p, st, { step, calm, pointer }) {
         const shake = step - st.shakeAt;
+        // The shake: a lean back and a squash down to gather itself, a whip
+        // the other way, then a quick shudder dying away. Higher up sways more.
         const sway = (y) => {
           const w = (BASE - y) / 40;
-          if (shake < 16) return Math.round(Math.sin(shake * 1.9) * 2.4 * w * (1 - shake / 18));
-          return pointer && !calm ? Math.round(Math.sin(step * 0.55) * 0.9 * w) : 0;
+          if (calm) return 0;
+          if (shake < 3) return Math.round(-1.6 * w * (shake + 1) / 3);
+          if (shake < 26) return Math.round(Math.cos((shake - 3) * 1.25) * 5 * w * Math.exp(-(shake - 3) / 7));
+          return pointer ? Math.round(Math.sin(step * 0.55) * 0.9 * w) : 0;
         };
+        // The canopy squashes down as it gathers, and springs up on the whip.
+        const lift = calm ? 0 : shake < 3 ? 1 : shake < 5 ? -1 : 0;
         for (let y = 34; y < BASE; y++) {
           const half = y >= BASE - 1 ? 3 : y >= BASE - 3 ? 2 : 1;
           for (let x = TRUNK - half; x <= TRUNK + half; x++) p.px(x, y, '#');
@@ -283,19 +320,31 @@
         for (const [x, y, edge] of CANOPY) {
           if (edge && rustle && R('rustle', x, y, step >> 2) < 0.35) continue;
           if (hung.some(([ax, ay]) => x >= ax - 1 && x <= ax + 4 && y >= ay && y <= ay + 5)) continue;
-          p.px(x + sway(y), y, 'v');
+          p.px(x + sway(y), y + lift, 'v');
         }
         st.tree.forEach((back, i) => {
           const [x, y] = SPOTS[i];
           if (step >= back) {
-            p.line(x + 2 + sway(y - 2), y - 2, x + 2 + sway(y), y, '#');
-            p.sprite(APPLE, x + sway(y + 2), y, { map: { G: 'glint' } });
-          } else if (step >= back - 36) p.px(x + 1 + sway(y + 2), y + 2, 'o');
+            p.line(x + 2 + sway(y - 2), y - 2 + lift, x + 2 + sway(y), y + lift, '#');
+            p.sprite(APPLE, x + sway(y + 2), y + lift, { map: { G: 'glint' } });
+          } else if (step >= back - 36) p.px(x + 1 + sway(y + 2), y + 2 + lift, 'o');
         });
         // An apple with no room left on the pile fades where it lands.
-        for (const a of st.apples) if (step >= a.born) p.sprite(APPLE, Math.round(a.x), Math.round(a.y), { alpha: a.slot || !a.done ? 1 : 1 - (step - a.at) / 24, map: { G: 'glint' } });
+        for (const a of st.apples) {
+          // Before it drops it tugs at its stalk, stretching it.
+          if (step < a.born) {
+            const t = step - a.from, tug = t >= 3 ? (t % 2 ? 1 : 0) + 1 : 0;
+            p.line(a.x0 + 2 + sway(a.y0 - 2), a.y0 - 2, a.x0 + 2 + sway(a.y0), a.y0 + tug, '#');
+            p.sprite(APPLE, a.x0 + sway(a.y0 + 2), a.y0 + tug, { map: { G: 'glint' } });
+            continue;
+          }
+          const sprite = a.hit !== undefined && step - a.hit < 2 ? LANDED : a.vy > 1.5 ? FALLING : APPLE;
+          const [, sh] = size(sprite);
+          p.sprite(sprite, Math.round(a.x) - (sprite === LANDED ? 1 : 0), Math.round(a.y) + 5 - sh, { alpha: a.slot || !a.done ? 1 : 1 - (step - a.at) / 24, map: { G: 'glint' } });
+        }
         for (const l of st.leaves) {
           const age = step - l.born, t = Math.min(age, l.land);
+          if (age < 0) continue;
           const x = l.x + Math.sin(t * 0.12 + l.x) * 2.5, y = l.y + t * 0.22;
           const alpha = clamp(1 - (age - l.land) / 70);
           p.px(x, y, 'v', alpha);
@@ -567,37 +616,78 @@
       },
     ];
 
+    // The shuffle, choreographed: each gnome that moves crouches, then
+    // leapfrogs to its new place, the one going furthest jumping highest
+    // over the others, stretched in the air with its hat trailing, and lands
+    // with a squash and a puff of dust. They go one after another.
+    const CROUCH = 3, STAGGER = 5;
+    const hopLen = (d) => Math.round(5 + Math.abs(d) / 5);
+    // Where gnome i is at frame a of a shuffle: x, how high, its squash, and
+    // how far its hat trails.
+    function hopAt(st, i, a) {
+      const x0 = st.from[i], x1 = st.to[i], d = x1 - x0;
+      if (!d) return { x: x0, y: 0, k: 1, hat: 0 };
+      const t0 = st.delay[i], D = hopLen(d), u = a - t0;
+      if (u < 0) return { x: x0, y: 0, k: 1, hat: 0 };
+      if (u < CROUCH) return { x: x0, y: 0, k: 0.9, hat: 0 };
+      const f = (u - CROUCH) / D;
+      if (f < 1) {
+        const h = Math.min(8, 3 + Math.abs(d) * 0.16);
+        return { x: lerp(x0, x1, smooth(f)), y: -Math.sin(f * Math.PI) * h, k: f < 0.35 || f > 0.7 ? 1.06 : 1, hat: -Math.sign(d) * (f < 0.8 ? 1 : 0) };
+      }
+      const l = u - CROUCH - D;
+      return { x: x1, y: 0, k: l < 2 ? 0.87 : l < 3 ? 1.04 : 1, hat: l < 2 ? Math.sign(d) : 0, land: l };
+    }
+    const shuffling = (st, a) => st.delay && a < Math.max(...st.to.map((x, i) => st.delay[i] + CROUCH + hopLen(x - st.from[i]) + 4));
+
     drollery('peoples', {
-      span: [8, 6, 72, 46],
+      span: [5, 5, 76, 46],
       h: 52,
-      make: () => ({ at: SLOTS.slice(), to: SLOTS.slice(), order: [0, 1, 2], moves: 0 }),
-      update(st) {
-        st.at = st.at.map((x, i) => (Math.abs(st.to[i] - x) < 1.6 ? st.to[i] : x + Math.sign(st.to[i] - x) * 1.5));
+      make: () => ({ at: SLOTS.slice(), from: SLOTS.slice(), to: SLOTS.slice(), delay: null, order: [0, 1, 2], moves: 0, t: -999 }),
+      update(st, step) {
+        if (st.delay && !shuffling(st, step - st.t)) { st.at = st.to.slice(); st.delay = null; }
       },
       click(st, step) {
-        if (st.at.some((x, i) => x !== st.to[i])) return;
+        if (st.delay) return;
         const perms = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]].filter((q) => q.join() !== st.order.join());
         st.order = perms[Math.floor(R('shuffle', step, st.moves++) * perms.length)];
+        st.from = st.at.slice();
         st.to = st.order.map((s) => SLOTS[s]);
+        // The one with furthest to go goes first.
+        const by = [0, 1, 2].sort((a, b) => Math.abs(st.to[b] - st.from[b]) - Math.abs(st.to[a] - st.from[a]));
+        st.delay = [0, 0, 0];
+        by.forEach((g, n) => { st.delay[g] = n * STAGGER; });
+        st.t = step;
       },
       draw(p, st, { step, calm, pointer }) {
-        GNOMES.forEach((g, i) => {
-          const x = st.at[i], walking = x !== st.to[i];
+        const a = step - st.t, moving = !!st.delay;
+        // Highest in the air drawn last, so leaps go over.
+        const order = [0, 1, 2].map((i) => [i, moving ? hopAt(st, i, a) : { x: st.at[i], y: 0, k: 1, hat: 0 }]).sort((A, B) => B[1].y - A[1].y);
+        for (const [i, m] of order) {
+          const g = GNOMES[i], d = st.to[i] - st.from[i];
           let face = g.face;
-          if (walking) face = Math.sign(st.to[i] - x);
-          else if (pointer) face = pointer[0] >= x ? 1 : -1;
+          if (moving && d) face = Math.sign(d);
+          else if (pointer) face = pointer[0] >= m.x ? 1 : -1;
           else if (!calm && R('glance', i, Math.floor(step / 150)) < 0.3) face = -g.face;
-          let rows = g.art, y = 0;
-          if (walking) y = Math.floor(step / 3) % 2 ? -2 : 0;
-          else if (!calm) {
+          let rows = g.art, y = Math.round(m.y);
+          if (!moving && !calm) {
             if (i === 0) { const k = (step + 20) % 110; if (k < 10) y = -Math.round(Math.sin((k / 10) * Math.PI) * 6); }
             if (i === 1 && step % 90 < 30 && (step >> 2) % 2) rows = [...rows.slice(0, -4), ...g.tap];
             if (i === 2 && (step >> 4) % 2) rows = [...g.tip, ...rows.slice(6)];
           }
+          if (m.k !== 1) rows = squash(rows, m.k);
           const [w, h] = size(rows);
           const lamp = calm || R('lamp', step >> 1) > 0.3 ? 'o' : 'r';
-          p.sprite(rows, Math.round(x) - (w >> 1), BASE - h + y, { flip: face < 0, map: { H: g.hat, l: lamp } });
-        });
+          const x0 = Math.round(m.x) - (w >> 1), y0 = BASE - h + y;
+          // The hat, the rows above the brim, trails behind a leap.
+          const brim = rows.findIndex((r) => r.includes('#'));
+          rows.forEach((row, j) => p.sprite([row], x0 + (j < brim ? m.hat * (j < brim / 2 ? 2 : 1) : 0), y0 + j, { flip: face < 0, map: { H: g.hat, l: lamp } }));
+          // A puff of dust where it lands.
+          if (m.land !== undefined && m.land < 4 && !calm) for (const s of [-1, 1]) {
+            p.px(m.x + s * (w / 2 + m.land), BASE - 1 - (m.land > 1), 'f');
+            p.px(m.x + s * (w / 2 + m.land + 1), BASE - 2, 'f', 0.6);
+          }
+        }
       },
     });
   }
@@ -1573,59 +1663,84 @@
     // The pilgrim fades into the distance at the far end of the road rather
     // than walking out of the frame.
     const seen = (x) => clamp((FAR - x) / 12);
+    const READY = 5, TOSS = 15;
 
     drollery('journey', {
-      span: [4, 4, 74, 50],
+      span: [6, 1, 73, 50],
       h: 56,
-      make: () => ({ x: HOME, face: 1, phase: 'home', at: 0, item: 0, stack: [] }),
+      make: () => ({ x: HOME, face: 1, phase: 'home', at: -99, item: 0, stack: [] }),
+      // Off they go, eager: a crouch and a spring, then a walk that picks up
+      // speed. Back with a prize held high, they wind up and toss it onto the
+      // pile, which wobbles, then stroll home and settle.
       update(st, step) {
-        if (st.phase === 'out') {
-          st.x += SPEED;
+        if (st.phase === 'ready' && step - st.at >= READY) { st.phase = 'out'; st.at = step; }
+        else if (st.phase === 'out') {
+          st.x += Math.min(SPEED * 1.3, 0.3 + (step - st.at) * 0.12);
           if (st.x >= FAR) { st.phase = 'away'; st.at = step; }
         } else if (st.phase === 'away' && step - st.at > 36) {
           st.phase = 'back'; st.face = -1;
         } else if (st.phase === 'back') {
           st.x -= SPEED;
           if (st.x <= STOP) { st.x = STOP; st.phase = 'place'; st.at = step; }
-        } else if (st.phase === 'place' && step - st.at > 14) {
+        } else if (st.phase === 'place' && step - st.at >= TOSS) {
           st.stack = [...st.stack, st.item].slice(-3);
+          st.landed = step;
           st.phase = 'home-bound';
-        } else if (st.phase === 'home-bound') {
-          st.x -= SPEED;
-          if (st.x <= HOME) { st.x = HOME; st.phase = 'home'; st.face = 1; }
+        } else if (st.phase === 'home-bound' && step - st.landed > 6) {
+          st.x -= clamp((st.x - HOME) / 5, 0.35, SPEED);
+          if (st.x <= HOME + 0.2) { st.x = HOME; st.phase = 'home'; st.face = 1; st.at = step; }
         }
       },
       click(st, step) {
         if (st.phase !== 'home') return;
         const choices = ITEMS.map((_, i) => i).filter((i) => i !== st.stack[st.stack.length - 1]);
         st.item = choices[Math.floor(R('item', step) * choices.length)];
-        st.phase = 'out';
+        st.phase = 'ready';
+        st.at = step;
       },
       draw(p, st, { step, calm, pointer }) {
         // One waystone, with the souvenirs piled on it, newest on top.
         const [sw, sh] = size(WAYSTONE);
         p.sprite(WAYSTONE, STONE, BASE - sh);
         let top = BASE - sh;
-        for (const it of st.stack) {
-          const [w, h] = size(ITEMS[it]);
+        // A new prize lands squashed, and the pile wobbles under it.
+        const since = step - (st.landed ?? -99), wob = calm || since > 10 ? 0 : Math.round(Math.sin(since * 1.4) * 1.5 * (1 - since / 10));
+        st.stack.forEach((it, n) => {
+          let rows = ITEMS[it];
+          const newest = n === st.stack.length - 1;
+          if (newest && since >= 0 && since < 2) rows = squash(rows, 0.7);
+          const [w, h] = size(rows);
           top -= h;
-          p.sprite(ITEMS[it], STONE + (sw >> 1) - (w >> 1), top);
-        }
+          p.sprite(rows, STONE + (sw >> 1) - (w >> 1) + (newest || n > 0 ? wob * (n + 1) / st.stack.length : 0), top);
+        });
+        if (!calm && since >= 0 && since < 4) for (const s of [-1, 1]) p.px(STONE + (sw >> 1) + s * (sw / 2 + since), BASE - 1, 'f');
         if (st.phase === 'away') return;
         const alpha = seen(st.x);
         const walking = ['out', 'back', 'home-bound'].includes(st.phase);
         const look = st.phase === 'home' && pointer && !calm;
+        // Walking: a stride every six pixels, and the body rises as it passes
+        // over each foot.
         const striding = walking && Math.floor(st.x / 6) % 2;
-        let x = Math.round(st.x), rows = PILGRIM;
+        const bob = walking && !calm && Math.floor(st.x / 3) % 2 ? -1 : 0;
+        let x = Math.round(st.x), rows = PILGRIM, rise = bob;
         if (striding) rows = [...rows.slice(0, -5), ...STRIDE];
         if (st.phase === 'home' && !look && !calm && (step / 48) % 2 >= 1) x += 1;
-        const [pw] = size(PILGRIM), y = BASE - rows.length, flip = st.face < 0;
+        // Setting off: a crouch, then a spring up.
+        const r = step - st.at;
+        if (st.phase === 'ready') { if (r < 3) rows = squash(rows, 0.9); else rise = -2; }
+        // Home again: a lean forward as they stop, settling back.
+        if (st.phase === 'home' && !calm && r >= 0 && r < 4) x += r < 2 ? 1 : 0;
+        // Tossing the prize: a wind-up, up on their toes.
+        if (st.phase === 'place' && r >= 3 && r < 7) rise = -1;
+        const [pw] = size(PILGRIM), y = BASE - rows.length + rise, flip = st.face < 0;
         const fx = (i) => (flip ? x + pw - 1 - i : x + i);
-        // The staff, in the front hand.
-        const lean = striding ? 2 : 0;
-        p.line(fx(16 + lean), y - 4, fx(16), BASE - 1, '#', alpha);
-        p.px(fx(16 + lean), y - 5, 'g', alpha);
-        p.px(fx(16 + lean), y - 6, 'g', alpha);
+        // The staff, in the front hand: walking, its foot is planted ahead and
+        // stays put as they walk past it, then swings forward again.
+        const plant = walking ? 5 - (Math.abs(st.x) % 12) : 0;
+        const foot = flip ? fx(16) - plant : fx(16) + plant;
+        p.line(fx(16), y - 4, foot, BASE - 1, '#', alpha);
+        p.px(fx(16), y - 5, 'g', alpha);
+        p.px(fx(16), y - 6, 'g', alpha);
         // At a hover, it raises its hat to you with its other hand.
         if (look) {
           p.sprite(rows.slice(6), x, y + 6, { flip });
@@ -1635,16 +1750,22 @@
           p.line(fx(4), y + 14, fx(4), y + 3, 'b');
           p.px(fx(3), y + 2, 'p'); p.px(fx(4), y + 2, 'p');
         } else p.sprite(rows, x, y, { flip, alpha });
-        // A souvenir, carried home overhead and set on the pile.
+        // A souvenir, held high on the way back (bobbing a beat behind
+        // them), raised higher for the wind-up, and tossed in an arc onto the
+        // pile, spinning end over end.
         if (st.phase === 'back' || st.phase === 'place') {
           const it = ITEMS[st.item], [w, h] = size(it);
-          let ix = x + (pw >> 1) - (w >> 1), iy = y - h - 3;
+          let ix = x + (pw >> 1) - (w >> 1), iy = y - h - 3 - bob, flipIt = false;
           if (st.phase === 'place') {
-            const k = smooth(clamp((step - st.at) / 14));
-            ix = Math.round(lerp(ix, STONE + (sw >> 1) - (w >> 1), k));
-            iy = Math.round(lerp(iy, top - h, k));
+            if (r < 7) iy -= r < 3 ? 0 : 2;
+            else {
+              const k = clamp((r - 7) / (TOSS - 7));
+              ix = Math.round(lerp(ix, STONE + (sw >> 1) - (w >> 1), k));
+              iy = Math.round(lerp(iy - 2, top - h, k) - Math.sin(k * Math.PI) * 5);
+              flipIt = Math.floor(k * 4) % 2 === 1;
+            }
           }
-          p.sprite(it, ix, iy, { alpha });
+          p.sprite(flipIt ? [...it].reverse() : it, ix, iy, { alpha });
         }
       },
     });
