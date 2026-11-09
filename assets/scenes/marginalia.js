@@ -23,8 +23,8 @@
 //   m-journey    a pilgrim who walks off and comes back with a souvenir
 //   m-narration  a fortune-teller whose fire smokes out pictures
 //   m-card       a face-down card that peeks, and flips to a random suit
-//   m-bonus      a stork with a swaddled bundle in its bill, which it drops,
-//                and out tumbles a second: twins
+//   m-bonus      a stork that sets down a swaddled baby, clatters its bill,
+//                and does a double-take when a twin pops out
 //   m-legacy     a statue that crumbles under a pigeon, then rises as one
 
 (function () {
@@ -1653,50 +1653,41 @@
   // ---------- Narration: a fortune-teller at a fire ----------
 
   {
-    const BASE = 60, FX = 46, TX = 8;
+    const BASE = 60, FX = 42, TX = 10;
     // A hooded fortune-teller in one long maroon cloak, standing in profile
     // with her hands held out to the fire. The cloak's reaching sleeve is
-    // rows 19 to 21.
+    // rows 16 to 19.
     const TELLER = art(`
-      ........eeeee.........
-      ......eemmmmmee.......
-      .....emmmmmmmmme......
-      ....emmmmmmmmmmme.....
-      ...emmmmmmmmmmmmme....
-      ...emmmmmmmkkkkkme....
-      ..emmmmmmmkkppppkme...
-      ..emmmmmmmkpp#pppme...
-      ..emmmmmmmkppppppppe..
-      ..emmmmmmmkpppppppe...
-      ..emmmmmmmkkppppme....
-      ..emmmmmmmmkkpppme....
-      ..emmmmmmmmmkkkmme....
-      ..emmmmmmmmmmmmmme....
-      ..emmmmmmmmmmmmmme....
-      ..emmmmmmmmmmmmmmme...
-      ..emmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmmeee.
-      .emmmmmmmmmmmmmmmmmmpp
-      .emmmmmmmmmmmmmmmmmmpp
-      .emmmmmmmmmmmmmmmmeee.
-      .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmmme..
-      .emmmmmmmmmmmmmmmmme..
-      emmmmmmmmmmmmmmmmmme..
-      emmmmmmmmmmmmmmmmmme..
-      emmmmmmmmmmmmmmmmmme..
-      emmmmmmmmmmmmmmmmmmme.
-      emmmmmmmmmmmmmmmmmmme.
-      emmmmmmmmmmmmmmmmmmme.
-      emmmmmmmmmmmmmmmmmmmme
-      emmmmmmmmmmmmmmmmmmmme
-      eggggggggggggggggggggge
-      eeeeeeeeeeeeeeeeeeeeee
+      ......eeee.........
+      .....emmmmee.......
+      ....emmmmmmme......
+      ...emmmmmmmmme.....
+      ...emmmmmmmmmme....
+      ...emmmmkkkkkme....
+      ..emmmmkkppppkme...
+      ..emmmmkpp#pppme...
+      ..emmmmkppppppppe..
+      ..emmmmkpppppppe...
+      ..emmmmkkppppme....
+      ..emmmmmkkpppme....
+      ..emmmmmmkkkmme....
+      ..emmmmmmmmmmme....
+      ..emmmmmmmmmmmme...
+      .emmmmmmmmmmmmme...
+      .emmmmmmmmmmmmmeee.
+      .emmmmmmmmmmmmmmmpp
+      .emmmmmmmmmmmmmmmpp
+      .emmmmmmmmmmmmmeee.
+      .emmmmmmmmmmmmme...
+      .emmmmmmmmmmmmmme..
+      emmmmmmmmmmmmmmme..
+      emmmmmmmmmmmmmmmme.
+      emmmmmmmmmmmmmmmmme
+      eggggggggggggggggge
+      eeeeeeeeeeeeeeeeeee
     `);
     const TY = BASE - TELLER.length;
-    const ARMSUP = [...TELLER.slice(0, 18), ...Array(4).fill('.emmmmmmmmmmmmmmmme...'), ...TELLER.slice(22)];
+    const ARMSUP = [...TELLER.slice(0, 16), ...Array(4).fill(TELLER[20]), ...TELLER.slice(20)];
     // Her sleeve raised to the smoke, hand out of it.
     const RAISED = art(`
       .......pp.
@@ -1803,7 +1794,7 @@
     ];
 
     drollery('narration', {
-      span: [8, 3, 67, 60],
+      span: [10, 3, 63, 60],
       h: 64,
       make: () => ({ puffs: [], raiseAt: -999, next: 0 }),
       update(st, step) { st.puffs = st.puffs.filter((q) => step - q.born < 74); },
@@ -1853,7 +1844,7 @@
         const up = step - st.raiseAt < 30;
         p.sprite(up ? ARMSUP : TELLER, TX, TY);
         if (up) {
-          p.sprite(RAISED, TX + 16, TY + 3);
+          p.sprite(RAISED, TX + 13, TY + 1);
         }
       },
     });
@@ -2029,54 +2020,79 @@
   // ---------- Bonus Naming: a stork with a bundle ----------
 
   {
-    const BASE = 60;
+    const BASE = 50, GROUND = BASE - 1;
     // The stork, facing left: a white body with black flight feathers, an S
-    // of a neck, and a vermilion bill and legs. Body, neck and head are one
-    // shape, so a single outline runs round all three.
-    const NECK = [[50, 35], [41, 30], [44, 21]];
-    const STORK = [];
-    {
-      const inBody = (x, y) => ((x - 55) / 12) ** 2 + ((y - 40) / 6.5) ** 2 < 1;
-      const inTail = (x, y) => x >= 64 && x <= 71 && y >= 38 + (x - 64) * 0.55 && y <= 41 + (x - 64) * 0.45;
+    // of a neck, and a vermilion bill and legs. Its neck bends, so body, neck
+    // and head are worked out afresh each frame as one shape, with a single
+    // outline round all three.
+    const inBody = (x, y) => ((x - 57) / 9) ** 2 + ((y - 30) / 5) ** 2 < 1;
+    const inTail = (x, y) => x >= 63 && x <= 69 && y >= 28 + (x - 63) * 0.5 && y <= 31 + (x - 63) * 0.4;
+    const NECK = [51, 27], HEAD = 2.7, BILL = 10;
+    // Where its head is, the bend of its neck, which way its bill points
+    // (radians, 0 is right, y is down) and how far it's open.
+    const POSE = {
+      rest: { h: [48, 15], c: [45, 23], a: Math.PI - 0.3, o: 0 },
+      dip: { h: [38, 24], c: [44, 15], a: Math.PI / 2 + 0.3, o: 0 },
+      clatter: { h: [54, 16], c: [47, 22], a: -Math.PI / 2 + 0.35, o: 0 },
+      startle: { h: [44, 18], c: [44, 22], a: Math.PI / 2 + 0.75, o: 1 },
+    };
+    const mix = (A, B, t) => ({ h: [lerp(A.h[0], B.h[0], t), lerp(A.h[1], B.h[1], t)], c: [lerp(A.c[0], B.c[0], t), lerp(A.c[1], B.c[1], t)], a: lerp(A.a, B.a, t), o: lerp(A.o, B.o, t) });
+    const tipOf = (P) => [P.h[0] + Math.cos(P.a) * (BILL + 2), P.h[1] + Math.sin(P.a) * (BILL + 2)];
+    function stork(p, P, blink) {
       const neck = new Set();
-      for (let k = 0; k <= 40; k++) {
-        const t = k / 40, u = 1 - t;
-        const nx = u * u * NECK[0][0] + 2 * u * t * NECK[1][0] + t * t * NECK[2][0];
-        const ny = u * u * NECK[0][1] + 2 * u * t * NECK[1][1] + t * t * NECK[2][1];
-        for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
-          if (dx * dx + dy * dy <= 2.4 * 2.4) neck.add(Math.round(nx + dx) + ',' + Math.round(ny + dy));
-        }
+      for (let k = 0; k <= 30; k++) {
+        const t = k / 30, u = 1 - t;
+        const nx = u * u * NECK[0] + 2 * u * t * P.c[0] + t * t * P.h[0], ny = u * u * NECK[1] + 2 * u * t * P.c[1] + t * t * P.h[1];
+        for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (dx * dx + dy * dy <= 3.2) neck.add(Math.round(nx + dx) + ',' + Math.round(ny + dy));
       }
-      const inside = (x, y) => inBody(x, y) || inTail(x, y) || neck.has(x + ',' + y) || (x - 44) ** 2 + (y - 18) ** 2 < 3.6 * 3.6;
-      for (let y = 10; y < 50; y++) for (let x = 36; x < 74; x++) {
+      const inside = (x, y) => inBody(x, y) || inTail(x, y) || neck.has(x + ',' + y) || (x - P.h[0]) ** 2 + (y - P.h[1]) ** 2 < HEAD * HEAD;
+      for (let y = 4; y < 40; y++) for (let x = 28; x < 72; x++) {
         if (!inside(x, y)) continue;
         const rim = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
-        // The flight feathers: the back and lower half of the folded wing,
-        // and its tips past the tail.
-        STORK.push([x, y, rim ? '#' : inTail(x, y) || (inBody(x, y) && x + (y - 40) * 1.5 > 59) ? 'k' : 'w']);
+        p.px(x, y, rim ? '#' : inTail(x, y) || (inBody(x, y) && x + (y - 30) * 1.5 > 60) ? 'k' : 'w');
+      }
+      // The bill, two mandibles that part as it opens, and the eye above it.
+      const d = [Math.cos(P.a), Math.sin(P.a)];
+      const s0 = [P.h[0] + d[0] * 1.5, P.h[1] + d[1] * 1.5];
+      const jaws = P.o > 0.05 ? [P.a + 0.32 * P.o, P.a - 0.32 * P.o] : [P.a];
+      for (const pass of ['#', 'r']) for (const j of jaws) {
+        const e = [Math.cos(j), Math.sin(j)];
+        for (let t = 0; t <= (pass === 'r' ? BILL - 1.5 : BILL); t += 0.5) {
+          const x = s0[0] + e[0] * t, y = s0[1] + e[1] * t;
+          if (pass === 'r') p.px(x, y, 'r');
+          else for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) p.px(x + ox, y + oy, '#');
+        }
+      }
+      if (!blink) p.px(P.h[0] + d[0] * 0.8 - d[1] * 1.4, P.h[1] + d[1] * 0.8 + d[0] * 1.4 * (d[0] < 0 ? -1 : 1), '#');
+    }
+    // A wing flung open from the shoulder, up and back, by `k` (0 to 1): a
+    // fan of white coverts edged with long black primaries, fingered at the
+    // tip.
+    function wing(p, k) {
+      if (k <= 0) return;
+      const S = [57, 27], t0 = -1.55, t1 = t0 + 1.15 * k, L = 6 + 9 * k;
+      const reach = (th) => {
+        const f = (th - t0) / (t1 - t0);
+        return L * (1 - 0.25 * f) - (((th - t0) / 0.19) % 1 > 0.7 && f < 0.95 ? 2 : 0);
+      };
+      const inside = (x, y) => {
+        const dx = x - S[0], dy = y - S[1], th = Math.atan2(dy, dx), r = Math.hypot(dx, dy);
+        return th >= t0 && th <= t1 && r <= reach(th);
+      };
+      for (let y = S[1] - 17; y <= S[1] + 2; y++) for (let x = S[0] - 2; x <= S[0] + 17; x++) {
+        if (!inside(x, y)) continue;
+        const rim = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
+        p.px(x, y, rim ? '#' : Math.hypot(x - S[0], y - S[1]) > L * 0.62 ? 'k' : 'w');
       }
     }
     // It stands on one leg, and puts the other down when you come near.
-    const STAND = [[53, 46], [54, 55], [53, BASE - 2]];
-    const TUCK = [[57, 46], [61, 52], [57, 54]];
-    const DOWN = [[57, 46], [59, 55], [59, BASE - 2]];
+    const STAND = [[55, 34], [56, 41], [55, BASE - 2]];
+    const TUCK = [[58, 34], [61, 38], [58, 40]];
+    const DOWN = [[58, 34], [60, 41], [60, BASE - 2]];
     function leg(p, pts) {
       for (let i = 1; i < pts.length; i++) p.line(...pts[i - 1], ...pts[i], 'r');
       const [x, y] = pts[pts.length - 1];
       if (y === BASE - 2) for (let dx = -3; dx <= 1; dx++) p.px(x + dx, BASE - 1, 'r');
-    }
-    // The bill, from the head to its tip. Open, the lower half drops.
-    function bill(p, open) {
-      for (let x = 26; x <= 41; x++) {
-        const s = (41 - x) / 15, y = Math.round(19 + s * 4);
-        const low = y + (x > 35 ? 1 : 0) + Math.round(s * open * 5);
-        p.px(x, y - 1, '#');
-        p.px(x, y, 'r');
-        if (low === y) p.px(x, y + 1, '#');
-        else if (low === y + 1 && !open) { p.px(x, low, 'r'); p.px(x, low + 1, '#'); }
-        else { p.px(x, y + 1, '#'); p.px(x, low - 1, '#'); p.px(x, low, 'r'); p.px(x, low + 1, '#'); }
-      }
-      p.px(25, 23, '#');
     }
     // The bundle: the baby's banded linen, gathered into a gold knot with its
     // corners sticking up, and a little face peeking out.
@@ -2106,90 +2122,123 @@
         ..#####..
       `),
     };
-    const SH = 14;
-    const sling = (j) => (j < 3 ? 1.5 + j * 1.5 : j < 10 ? 6 : 6 - (j - 9) * 1.2);
+    const SH = 11;
+    const sling = (j) => (j < 2 ? 1.5 + j * 2 : j < 8 ? 5 : 5 - (j - 7) * 1.2);
     const inSling = (x, j) => j >= 0 && j < SH && Math.abs(x) <= sling(j);
     // Drawn from the knot at kx, ky.
-    function bundle(p, kx, ky, { awake = false, alpha = 1, wave = 0 } = {}) {
-      for (let j = 0; j < SH; j++) for (let x = -7; x <= 7; x++) {
+    function bundle(p, kx, ky, { awake = false, wave = 0 } = {}) {
+      kx = Math.round(kx); ky = Math.round(ky);
+      for (let j = 0; j < SH; j++) for (let x = -6; x <= 6; x++) {
         if (!inSling(x, j)) continue;
         const rim = !inSling(x - 1, j) || !inSling(x + 1, j) || !inSling(x, j - 1) || !inSling(x, j + 1);
-        const a = (((x + j) % 7) + 7) % 7, b = (((x - j) % 7) + 7) % 7;
-        p.px(kx + x, ky + 1 + j, rim ? '#' : j > 3 && (a === 0 || b === 0) ? 'r' : 'w', alpha);
+        const a = (((x + j) % 6) + 6) % 6, b = (((x - j) % 6) + 6) % 6;
+        p.px(kx + x, ky + 1 + j, rim ? '#' : j > 2 && (a === 0 || b === 0) ? 'r' : 'w');
       }
-      p.sprite(KNOT, kx - 4, ky - 3, { alpha });
-      p.sprite(awake ? FACE.awake : FACE.asleep, kx - 10, ky + 2, { alpha });
+      p.sprite(KNOT, kx - 4, ky - 3);
+      p.sprite(awake ? FACE.awake : FACE.asleep, kx - 9, ky + 2);
       // Awake, a little hand waves from the top of the cloth.
       if (awake) {
         const hy = ky + 1 - wave;
-        p.px(kx - 3, ky + 3, 'r', alpha);
-        p.px(kx - 3, hy + 1, 'r', alpha);
-        p.px(kx - 3, hy, 'p', alpha); p.px(kx - 2, hy, 'p', alpha); p.px(kx - 3, hy - 1, 'p', alpha);
+        p.px(kx - 2, ky + 3, 'r'); p.px(kx - 2, hy + 1, 'r');
+        p.px(kx - 2, hy, 'p'); p.px(kx - 1, hy, 'p'); p.px(kx - 2, hy - 1, 'p');
       }
     }
-    const AT = [32, 23], GROUND = BASE - 1 - SH, FROM = [58, 36], TO = [14, GROUND];
-    const DROP = 16, TOSS = 22, TWINS = 100, FADE = 16;
+    // Where the babies are set down: the first under its bill, the others
+    // beside it.
+    const KY = GROUND - SH, SPOTS = [[35, KY], [23, KY], [11, KY]];
+    const hop = (A, B, t, h) => [lerp(A[0], B[0], t), lerp(A[1], B[1], t) - Math.sin(t * Math.PI) * h];
+    // The steps of a delivery.
+    const SET = 9, CLACK = [20, 30], POP = 34, LOOK = [50, 62], GRAB = 72, END = 84;
+    function poseAt(a, pop, look) {
+      const { rest, dip, clatter, startle } = POSE;
+      if (a < SET - 1) return mix(rest, dip, smooth(a / (SET - 1)));
+      if (a < 10) return dip;
+      if (a < 16) return mix(dip, rest, smooth((a - 10) / 6));
+      if (a < CLACK[0]) return mix(rest, clatter, smooth((a - 16) / 4));
+      if (a < CLACK[1]) return { ...clatter, o: (a >> 1) % 2 };
+      if (a < POP) return mix(clatter, rest, smooth((a - CLACK[1]) / 4));
+      // A double take: its head snaps down at the new baby, bill agape.
+      if (pop && a < POP + 3) return mix(rest, startle, (a - POP) / 3);
+      if (pop && a < LOOK[0]) return startle;
+      if (pop && a < LOOK[0] + 4) return mix(startle, rest, smooth((a - LOOK[0]) / 4));
+      // Then it looks from one baby to the other.
+      if (a < LOOK[1]) return { ...rest, a: rest.a + (look ? 0.35 : -0.05), h: [rest.h[0] - (look ? 2 : 0), rest.h[1] + (look ? 2 : 0)] };
+      if (a < GRAB) return mix(rest, dip, smooth((a - LOOK[1]) / (GRAB - LOOK[1])));
+      return mix(dip, rest, smooth((a - GRAB) / (END - GRAB)));
+    }
 
     drollery('bonus', {
-      span: [4, 15, 72, 60],
-      h: 64,
-      make: () => ({ mode: 'hold', at: -999 }),
+      span: [1, 2, 70, 50],
+      h: 54,
+      make: () => ({ n: 1, from: 1, to: 1, at: -999, blinkAt: 30 }),
       update(st, step) {
-        const a = step - st.at;
-        if (st.mode === 'drop' && a >= DROP + TOSS) { st.mode = 'twins'; st.at = step; }
-        else if (st.mode === 'twins' && a >= TWINS) { st.mode = 'fade'; st.at = step; }
-        else if (st.mode === 'fade' && a >= FADE) { st.mode = 'hold'; st.at = step; }
+        if (step > st.blinkAt + 3) st.blinkAt = step + 50 + Math.floor(R('blink', step) * 80);
+        if (step - st.at === END) st.n = st.to;
       },
-      // A click and it drops the bundle, and out from behind it tumbles a
-      // second one: twins.
-      click(st, step) { if (st.mode === 'hold') { st.mode = 'drop'; st.at = step; } },
+      // A click and it sets the baby down, clatters its bill, and out pops
+      // another: twins, and then triplets. It gathers them all up again.
+      click(st, step) {
+        if (step - st.at < END) return;
+        st.at = step; st.from = st.n; st.to = Math.min(3, st.n + 1);
+      },
       draw(p, st, { step, calm, pointer }) {
-        const a = step - st.at, mode = st.mode;
-        for (let x = 46; x <= 64; x++) p.px(x, BASE - 1, 'f', 0.8);
-        const near = pointer && mode === 'hold';
-        leg(p, near ? DOWN : TUCK);
-        leg(p, STAND);
-        for (const q of STORK) p.px(...q);
-        if (calm || step % 110 >= 3) p.px(43, 17, '#');
-        // The bill goes on over the bundle, gripping its knot.
+        const a = step - st.at, on = a >= 0 && a < END, pop = on && st.to > st.from;
+        const n = on ? (a >= POP && pop ? st.to : st.from) : st.n;
+        const near = pointer && !on;
         const wave = calm ? 0 : (step >> 2) % 2;
-        if (mode === 'hold') {
-          // It sways from the bill; held near, it wriggles and wakes.
-          const th = calm ? 0 : near ? ((step >> 1) % 2 ? 0.08 : -0.08) : Math.sin((step / 60) * TAU) * 0.1;
-          const held = p.capture(() => bundle(p, AT[0], AT[1], { awake: near, wave }));
-          p.turn(held, AT[0], AT[1] - 1, th);
-          bill(p, 0);
-          return;
-        }
-        if (mode === 'fade') {
-          const k = clamp(a / FADE);
-          bundle(p, AT[0], GROUND, { awake: true, alpha: 1 - k });
-          bundle(p, TO[0], TO[1], { awake: true, alpha: 1 - k });
-          bundle(p, AT[0], AT[1], { alpha: k });
-          bill(p, 0);
-          return;
-        }
-        // Down it falls, and wakes as it lands.
-        const d = mode === 'twins' ? DROP + TOSS : a;
-        const fall = Math.min(GROUND - AT[1], 0.11 * d * d);
-        bundle(p, AT[0], AT[1] + fall, { awake: d >= DROP, wave });
-        bill(p, mode === 'drop' ? clamp(1 - (a - 8) / 6) : 0);
-        // The second one bursts out in a shower of sparks and arcs over.
-        const b = d - DROP;
-        if (b >= 0) {
-          const k = clamp(b / TOSS);
-          bundle(p, Math.round(lerp(FROM[0], TO[0], k)), Math.round(lerp(FROM[1], TO[1], k) - Math.sin(k * Math.PI) * 18), { awake: k >= 1, wave: 1 - wave });
-          if (b < 10 && !calm) for (let r = 0; r < 8; r++) {
-            const th = (r / 8) * TAU, d = 3 + b;
-            p.px(FROM[0] + Math.cos(th) * d, FROM[1] + Math.sin(th) * d, r % 2 ? 'glint' : 'g', 1 - b / 10);
+        for (let x = 50; x <= 64; x++) p.px(x, BASE - 1, 'f');
+        let P = on ? poseAt(a, pop, (a >> 3) % 2) : POSE.rest;
+        // Near the pointer it tips its bill toward it.
+        if (near) P = { ...P, a: P.a + clamp((pointer[1] - P.h[1]) / 60, -0.25, 0.25) };
+        // Startled, its wings fly open; clattering, they lift a little.
+        const flare = !on || calm ? 0 : a >= POP && a < LOOK[0] && pop ? clamp(1 - (a - POP - 6) / 10) : a >= CLACK[0] && a < CLACK[1] ? 0.45 : 0;
+        leg(p, near || flare > 0 ? DOWN : TUCK);
+        leg(p, STAND);
+        wing(p, flare);
+        stork(p, P, !calm && step - st.blinkAt >= 0 && step - st.blinkAt < 3);
+        // The babies: held from its bill, splayed from one knot, or on the ground.
+        const tip = tipOf(P), knot = [tip[0], tip[1] + 2];
+        const held = !on || a < SET || a >= GRAB;
+        if (held) {
+          const sway = calm ? 0 : near ? ((step >> 1) % 2 ? 0.07 : -0.07) : Math.sin((step / 60) * TAU) * 0.08;
+          for (let i = 0; i < n; i++) {
+            const th = (i - (n - 1) / 2) * 0.5 + sway;
+            p.turn(p.capture(() => bundle(p, knot[0], knot[1], { awake: near, wave: (wave + i) % 2 })), Math.round(knot[0]), Math.round(knot[1]), th);
+          }
+        } else {
+          for (let i = 0; i < n; i++) {
+            let at = SPOTS[i];
+            // Carried ones hop out to their spots once they're down, and back
+            // to be gathered up.
+            if (i > 0 && i < st.from && a < 18) at = hop(SPOTS[0], SPOTS[i], clamp((a - 10) / 8), 6);
+            if (i > 0 && a >= LOOK[1]) at = hop(SPOTS[i], SPOTS[0], clamp((a - LOOK[1]) / 8), 6);
+            // The new one bursts out of the last and tumbles over to its spot.
+            if (i === n - 1 && pop && a >= POP && a < POP + 12) at = hop(SPOTS[i - 1], SPOTS[i], clamp((a - POP) / 12), 12);
+            const wiggle = !calm && a >= CLACK[1] && a < POP && i === n - 1 ? (step % 2 ? 1 : -1) : 0;
+            bundle(p, at[0] + wiggle, at[1], { awake: true, wave: (wave + i) % 2 });
           }
         }
-        // Twins! Sparks wink over them.
-        if (mode === 'twins' && !calm) for (let k = 0; k < 4; k++) {
-          const life = (step + k * 17) % 48, cyc = Math.floor((step + k * 17) / 48);
-          if (life > 16) continue;
-          const sx = 8 + R('twin', k, cyc) * 32, sy = GROUND - 12 + R('twin-y', k, cyc) * 8, al = 1 - Math.abs(life - 8) / 8;
-          for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) p.px(sx + ox, sy + oy, ox || oy ? 'g' : 'glint', al);
+        // The pop: a burst of sparks off the last bundle.
+        if (pop && a >= POP && a < POP + 10 && !calm) {
+          const [sx, sy] = SPOTS[st.from - 1], b = a - POP;
+          for (let r = 0; r < 10; r++) {
+            const th = (r / 10) * TAU, d = 3 + b * 0.9;
+            p.px(sx + Math.cos(th) * d, sy + 4 + Math.sin(th) * d * 0.8, r % 2 ? 'glint' : 'o', 1 - b / 10);
+          }
+        }
+        // Clattering: little marks off the bill as it snaps.
+        if (on && a >= CLACK[0] && a < CLACK[1] && !calm && (a >> 1) % 2) {
+          for (const ox of [-3, 3]) p.px(tip[0] + ox, tip[1] - 1, 'f');
+          p.px(tip[0], tip[1] - 3, 'f');
+        }
+        // Startled: a ! over its head, and a feather shaken loose.
+        if (pop && a >= POP + 1 && a < POP + 12) {
+          const [hx, hy] = P.h;
+          for (const oy of [-9, -8, -7, -5]) p.px(hx + 4, hy + oy, 'r');
+        }
+        if (pop && a >= POP && a < END && !calm) {
+          const t = a - POP, fx = 60 + Math.sin(t * 0.3) * 3, fy = 24 + t * 0.5;
+          if (fy < GROUND - 1) { p.px(fx, fy, 'w'); p.px(fx + 1, fy, 'w'); p.px(fx + 2, fy - 1, 'k'); p.px(fx - 1, fy + 1, '#'); }
         }
       },
     });
