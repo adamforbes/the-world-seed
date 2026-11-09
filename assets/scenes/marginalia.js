@@ -2025,33 +2025,89 @@
     // of a neck, and a vermilion bill and legs. Its neck bends, so body, neck
     // and head are worked out afresh each frame as one shape, with a single
     // outline round all three.
-    const inBody = (x, y) => ((x - 57) / 9) ** 2 + ((y - 30) / 5) ** 2 < 1;
-    const inTail = (x, y) => x >= 63 && x <= 69 && y >= 28 + (x - 63) * 0.5 && y <= 31 + (x - 63) * 0.4;
     const NECK = [51, 27], HEAD = 2.7, BILL = 10;
-    // Where its head is, the bend of its neck, which way its bill points
-    // (radians, 0 is right, y is down) and how far it's open.
+    // A pose: where its head is (h), the bend of its neck (c), which way its
+    // bill points (a, radians, 0 is right, y is down), how far it's open (o),
+    // and how far its whole body is shifted (b).
+    const pose = (h, c, a, o = 0, b = [0, 0]) => ({ h, c, a, o, b });
+    const { PI } = Math;
     const POSE = {
-      rest: { h: [48, 15], c: [45, 23], a: Math.PI - 0.3, o: 0 },
-      dip: { h: [38, 24], c: [44, 15], a: Math.PI / 2 + 0.3, o: 0 },
-      clatter: { h: [54, 16], c: [47, 22], a: -Math.PI / 2 + 0.35, o: 0 },
-      startle: { h: [44, 18], c: [44, 22], a: Math.PI / 2 + 0.75, o: 1 },
+      rest: pose([48, 15], [45, 23], PI - 0.3),
+      // Gathering itself before it moves: up and back.
+      antic: pose([53, 11], [48, 20], PI + 0.05, 0, [2, -1]),
+      dip: pose([38, 24], [44, 15], PI / 2 + 0.3, 0, [-1, 1]),
+      dipPast: pose([37, 26], [43, 16], PI / 2 + 0.22, 0, [-1, 2]),
+      clatter: pose([54, 17], [47, 23], -PI / 2 + 0.4),
+      peek: pose([46, 18], [45, 24], PI - 0.75),
+      stare: pose([40, 22], [44, 19], PI / 2 + 0.6, 0.25, [-1, 1]),
+      startle: pose([51, 15], [47, 21], PI + 0.3, 1, [0, -3]),
+      proud: pose([49, 12], [46, 21], PI - 0.05, 0, [0, -1]),
+      look0: pose([45, 17], [45, 24], PI - 1.05),
+      look1: pose([46, 16], [45, 23], PI - 0.7),
     };
-    const mix = (A, B, t) => ({ h: [lerp(A.h[0], B.h[0], t), lerp(A.h[1], B.h[1], t)], c: [lerp(A.c[0], B.c[0], t), lerp(A.c[1], B.c[1], t)], a: lerp(A.a, B.a, t), o: lerp(A.o, B.o, t) });
+    const lerp2 = (A, B, t) => [lerp(A[0], B[0], t), lerp(A[1], B[1], t)];
+    const mix = (A, B, t) => ({ h: lerp2(A.h, B.h, t), c: lerp2(A.c, B.c, t), a: lerp(A.a, B.a, t), o: lerp(A.o, B.o, t), b: lerp2(A.b, B.b, t) });
+    // Easing, the animator's spacing: ease in and out, slow in, fast out, and
+    // an overshoot that settles back.
+    const EASE = {
+      inOut: smooth,
+      in: (t) => t * t * t,
+      out: (t) => 1 - (1 - t) ** 3,
+      back: (t) => 1 + 2.7 * (t - 1) ** 3 + 1.7 * (t - 1) ** 2,
+      snap: (t) => (t < 1 ? 0 : 1),
+    };
+    // Keys: [frame, pose, easing into it].
+    const WITH_TWIN = [
+      [0, 'rest'], [3, 'antic', 'out'], [7, 'dipPast', 'in'], [9, 'dip', 'out'], [15, 'rest', 'back'],
+      [18, 'clatter', 'back'], [27, 'clatter'], [31, 'rest', 'inOut'],
+      [35, 'peek', 'out'], [37, 'peek'], [40, 'rest', 'out'], [42, 'rest'],
+      [44, 'stare', 'in'], [46, 'startle', 'back'], [52, 'startle'], [57, 'rest', 'inOut'],
+      [58, 'look1', 'out'], [61, 'look1'], [62, 'look0', 'out'], [64, 'look0'], [65, 'look1', 'out'], [66, 'look1'],
+      [68, 'antic', 'out'], [72, 'dip', 'in'], [74, 'dip'], [82, 'rest', 'back'],
+    ];
+    const NO_TWIN = [
+      ...WITH_TWIN.filter(([f]) => f <= 31),
+      [36, 'proud', 'back'], [50, 'proud'], [56, 'rest', 'inOut'], [66, 'rest'],
+      ...WITH_TWIN.filter(([f]) => f >= 68),
+    ];
+    const SET = 7, CLACK = [18, 27], POP = 35, TAKE = 46, GRAB = 74, END = 84;
+    function poseAt(a, twin) {
+      const keys = twin ? WITH_TWIN : NO_TWIN;
+      let i = 0;
+      while (i < keys.length - 1 && keys[i + 1][0] <= a) i++;
+      const [f0, n0] = keys[i], next = keys[i + 1];
+      let P = next ? mix(POSE[n0], POSE[next[1]], EASE[next[2] || 'snap']((a - f0) / (next[0] - f0))) : POSE[n0];
+      // Clattering, the bill snaps open and shut and the body bobs with it.
+      if (a >= CLACK[0] && a < CLACK[1]) {
+        const o = ((a - CLACK[0]) >> 1) % 2;
+        P = { ...P, o, b: [P.b[0], P.b[1] + o] };
+      }
+      // Startled, it shakes.
+      if (twin && a >= TAKE && a < TAKE + 6) P = { ...P, b: [P.b[0] + (a % 2 ? 1 : -1), P.b[1]] };
+      return P;
+    }
+    // A pose placed: head and neck moved with the body.
+    const placed = (P) => ({ ...P, h: [P.h[0] + P.b[0], P.h[1] + P.b[1]], c: [P.c[0] + P.b[0], P.c[1] + P.b[1]] });
     const tipOf = (P) => [P.h[0] + Math.cos(P.a) * (BILL + 2), P.h[1] + Math.sin(P.a) * (BILL + 2)];
-    function stork(p, P, blink) {
-      const neck = new Set();
+
+    function stork(p, P, eye) {
+      const [bx, by] = P.b;
+      const inBody = (x, y) => ((x - 57 - bx) / 9) ** 2 + ((y - 30 - by) / 5) ** 2 < 1;
+      const inTail = (x, y) => { const u = x - 63 - bx, v = y - by; return u >= 0 && u <= 6 && v >= 28 + u * 0.5 && v <= 31 + u * 0.4; };
+      const n0 = [NECK[0] + bx, NECK[1] + by], neck = new Set();
       for (let k = 0; k <= 30; k++) {
         const t = k / 30, u = 1 - t;
-        const nx = u * u * NECK[0] + 2 * u * t * P.c[0] + t * t * P.h[0], ny = u * u * NECK[1] + 2 * u * t * P.c[1] + t * t * P.h[1];
+        const nx = u * u * n0[0] + 2 * u * t * P.c[0] + t * t * P.h[0], ny = u * u * n0[1] + 2 * u * t * P.c[1] + t * t * P.h[1];
         for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (dx * dx + dy * dy <= 3.2) neck.add(Math.round(nx + dx) + ',' + Math.round(ny + dy));
       }
       const inside = (x, y) => inBody(x, y) || inTail(x, y) || neck.has(x + ',' + y) || (x - P.h[0]) ** 2 + (y - P.h[1]) ** 2 < HEAD * HEAD;
-      for (let y = 4; y < 40; y++) for (let x = 28; x < 72; x++) {
+      for (let y = 2; y < 40; y++) for (let x = 26; x < 74; x++) {
         if (!inside(x, y)) continue;
         const rim = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
-        p.px(x, y, rim ? '#' : inTail(x, y) || (inBody(x, y) && x + (y - 30) * 1.5 > 60) ? 'k' : 'w');
+        p.px(x, y, rim ? '#' : inTail(x, y) || (inBody(x, y) && x - bx + (y - by - 30) * 1.5 > 60) ? 'k' : 'w');
       }
-      // The bill, two mandibles that part as it opens, and the eye above it.
+      // The bill, two mandibles that part as it opens, and the eye above it:
+      // a dot, shut for a blink, wide when startled.
       const d = [Math.cos(P.a), Math.sin(P.a)];
       const s0 = [P.h[0] + d[0] * 1.5, P.h[1] + d[1] * 1.5];
       const jaws = P.o > 0.05 ? [P.a + 0.32 * P.o, P.a - 0.32 * P.o] : [P.a];
@@ -2063,14 +2119,16 @@
           else for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) p.px(x + ox, y + oy, '#');
         }
       }
-      if (!blink) p.px(P.h[0] + d[0] * 0.8 - d[1] * 1.4, P.h[1] + d[1] * 0.8 + d[0] * 1.4 * (d[0] < 0 ? -1 : 1), '#');
+      const ex = Math.round(P.h[0] + (d[0] < 0 ? -1 : 1)), ey = Math.round(P.h[1] - 1);
+      if (eye === 'wide') for (const [ox, oy] of [[0, 0], [1, 0], [0, -1], [1, -1]]) p.px(ex + ox, ey + oy, '#');
+      else if (eye !== 'shut') p.px(ex, ey, '#');
     }
     // A wing flung open from the shoulder, up and back, by `k` (0 to 1): a
     // fan of white coverts edged with long black primaries, fingered at the
     // tip.
-    function wing(p, k) {
-      if (k <= 0) return;
-      const S = [57, 27], t0 = -1.55, t1 = t0 + 1.15 * k, L = 6 + 9 * k;
+    function wing(p, k, [bx, by]) {
+      if (k <= 0.05) return;
+      const S = [58 + bx, 26 + by], t0 = -1.7, t1 = t0 + 1.25 * Math.min(k, 1.1), L = 7 + 12 * Math.min(k, 1.1);
       const reach = (th) => {
         const f = (th - t0) / (t1 - t0);
         return L * (1 - 0.25 * f) - (((th - t0) / 0.19) % 1 > 0.7 && f < 0.95 ? 2 : 0);
@@ -2079,20 +2137,34 @@
         const dx = x - S[0], dy = y - S[1], th = Math.atan2(dy, dx), r = Math.hypot(dx, dy);
         return th >= t0 && th <= t1 && r <= reach(th);
       };
-      for (let y = S[1] - 17; y <= S[1] + 2; y++) for (let x = S[0] - 2; x <= S[0] + 17; x++) {
+      for (let y = S[1] - 22; y <= S[1] + 2; y++) for (let x = S[0] - 4; x <= S[0] + 22; x++) {
         if (!inside(x, y)) continue;
         const rim = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
-        p.px(x, y, rim ? '#' : Math.hypot(x - S[0], y - S[1]) > L * 0.62 ? 'k' : 'w');
+        p.px(x, y, rim ? '#' : Math.hypot(x - S[0], y - S[1]) > L * 0.68 ? 'k' : 'w');
       }
     }
-    // It stands on one leg, and puts the other down when you come near.
-    const STAND = [[55, 34], [56, 41], [55, BASE - 2]];
-    const TUCK = [[58, 34], [61, 38], [58, 40]];
-    const DOWN = [[58, 34], [60, 41], [60, BASE - 2]];
-    function leg(p, pts) {
-      for (let i = 1; i < pts.length; i++) p.line(...pts[i - 1], ...pts[i], 'r');
-      const [x, y] = pts[pts.length - 1];
-      if (y === BASE - 2) for (let dx = -3; dx <= 1; dx++) p.px(x + dx, BASE - 1, 'r');
+    // How open its wings are: lifted as it clatters, flapping with each snap;
+    // burst open in the take, quivering; folded again after.
+    function flareAt(a, twin) {
+      if (a >= CLACK[0] - 1 && a < CLACK[1] + 1) return ((a - CLACK[0]) >> 1) % 2 ? 0.5 : 0.3;
+      if (!twin || a < TAKE - 1) return 0;
+      if (a < TAKE + 1) return EASE.out((a - TAKE + 2) / 3) * 1.1;
+      if (a < TAKE + 6) return a % 2 ? 1 : 0.88;
+      return clamp(1 - (a - TAKE - 6) / 4);
+    }
+    // Its legs: one tucked up at rest, both down when it's busy or near you.
+    // The feet leave the ground when it jumps.
+    const HIPS = [[55, 34], [58, 34]];
+    function legs(p, b, down, air) {
+      const foot = BASE - 2 - air;
+      const one = (hip, knee, end, pad) => {
+        const h = [hip[0] + b[0], hip[1] + b[1]];
+        p.line(...h, ...knee, 'r'); p.line(...knee, ...end, 'r');
+        if (pad) for (let dx = -3; dx <= 1; dx++) p.px(end[0] + dx, end[1] + 1, 'r');
+      };
+      one(HIPS[0], [56 + b[0], 41 + Math.min(b[1], 0) - air], [55, foot], true);
+      if (down) one(HIPS[1], [60 + b[0], 41 + Math.min(b[1], 0) - air], [60, foot], true);
+      else one(HIPS[1], [61 + b[0], 38 + b[1]], [58 + b[0], 40 + b[1]], false);
     }
     // The bundle: the baby's banded linen, gathered into a gold knot with its
     // corners sticking up, and a little face peeking out.
@@ -2121,23 +2193,34 @@
         .#pmmmp#.
         ..#####..
       `),
+      glee: art(`
+        ..#####..
+        .#kkkpp#.
+        #ppppppp#
+        #p#ppp#p#
+        #rpppppr#
+        .#pmmmp#.
+        ..#mmm#..
+      `),
     };
-    const SH = 11;
+    // Squashed (sq > 0) it's shorter and wider; stretched (sq < 0), taller
+    // and thinner. Its height for a squash, so it can sit on the ground.
+    const SH = 11, tall = (sq) => Math.round(SH * (1 - sq * 0.4));
     const sling = (j) => (j < 2 ? 1.5 + j * 2 : j < 8 ? 5 : 5 - (j - 7) * 1.2);
-    const inSling = (x, j) => j >= 0 && j < SH && Math.abs(x) <= sling(j);
-    // Drawn from the knot at kx, ky.
-    function bundle(p, kx, ky, { awake = false, wave = 0 } = {}) {
+    function bundle(p, kx, ky, { face = 'asleep', wave = 0, sq = 0 } = {}) {
       kx = Math.round(kx); ky = Math.round(ky);
-      for (let j = 0; j < SH; j++) for (let x = -6; x <= 6; x++) {
-        if (!inSling(x, j)) continue;
-        const rim = !inSling(x - 1, j) || !inSling(x + 1, j) || !inSling(x, j - 1) || !inSling(x, j + 1);
+      const H = tall(sq), wf = 1 + sq * 0.4;
+      const inS = (x, j) => j >= 0 && j < H && Math.abs(x) <= sling((j * SH) / H) * wf;
+      for (let j = 0; j < H; j++) for (let x = -8; x <= 8; x++) {
+        if (!inS(x, j)) continue;
+        const rim = !inS(x - 1, j) || !inS(x + 1, j) || !inS(x, j - 1) || !inS(x, j + 1);
         const a = (((x + j) % 6) + 6) % 6, b = (((x - j) % 6) + 6) % 6;
         p.px(kx + x, ky + 1 + j, rim ? '#' : j > 2 && (a === 0 || b === 0) ? 'r' : 'w');
       }
       p.sprite(KNOT, kx - 4, ky - 3);
-      p.sprite(awake ? FACE.awake : FACE.asleep, kx - 9, ky + 2);
+      p.sprite(FACE[face], kx - 9, ky + 2 - Math.round(sq * 1.5));
       // Awake, a little hand waves from the top of the cloth.
-      if (awake) {
+      if (face !== 'asleep') {
         const hy = ky + 1 - wave;
         p.px(kx - 2, ky + 3, 'r'); p.px(kx - 2, hy + 1, 'r');
         p.px(kx - 2, hy, 'p'); p.px(kx - 1, hy, 'p'); p.px(kx - 2, hy - 1, 'p');
@@ -2145,30 +2228,19 @@
     }
     // Where the babies are set down: the first under its bill, the others
     // beside it.
-    const KY = GROUND - SH, SPOTS = [[35, KY], [23, KY], [11, KY]];
-    const hop = (A, B, t, h) => [lerp(A[0], B[0], t), lerp(A[1], B[1], t) - Math.sin(t * Math.PI) * h];
-    // The steps of a delivery.
-    const SET = 9, CLACK = [20, 30], POP = 34, LOOK = [50, 62], GRAB = 72, END = 84;
-    function poseAt(a, pop, look) {
-      const { rest, dip, clatter, startle } = POSE;
-      if (a < SET - 1) return mix(rest, dip, smooth(a / (SET - 1)));
-      if (a < 10) return dip;
-      if (a < 16) return mix(dip, rest, smooth((a - 10) / 6));
-      if (a < CLACK[0]) return mix(rest, clatter, smooth((a - 16) / 4));
-      if (a < CLACK[1]) return { ...clatter, o: (a >> 1) % 2 };
-      if (a < POP) return mix(clatter, rest, smooth((a - CLACK[1]) / 4));
-      // A double take: its head snaps down at the new baby, bill agape.
-      if (pop && a < POP + 3) return mix(rest, startle, (a - POP) / 3);
-      if (pop && a < LOOK[0]) return startle;
-      if (pop && a < LOOK[0] + 4) return mix(startle, rest, smooth((a - LOOK[0]) / 4));
-      // Then it looks from one baby to the other.
-      if (a < LOOK[1]) return { ...rest, a: rest.a + (look ? 0.35 : -0.05), h: [rest.h[0] - (look ? 2 : 0), rest.h[1] + (look ? 2 : 0)] };
-      if (a < GRAB) return mix(rest, dip, smooth((a - LOOK[1]) / (GRAB - LOOK[1])));
-      return mix(dip, rest, smooth((a - GRAB) / (END - GRAB)));
+    const SPOTS = [35, 23, 11];
+    // A hop from x0 to x1 over `t` (0 to 1), `h` high: a crouch, a stretched
+    // leap, a squashed landing.
+    function hopAt(x0, x1, t, h) {
+      if (t <= 0) return { x: x0, y: 0, sq: 0 };
+      if (t < 0.15) return { x: x0, y: 0, sq: 0.5 };
+      if (t < 0.85) { const u = (t - 0.15) / 0.7; return { x: lerp(x0, x1, EASE.inOut(u)), y: -Math.sin(u * PI) * h, sq: -0.35 * Math.sin(u * PI) }; }
+      if (t < 1) return { x: x1, y: 0, sq: 0.5 };
+      return { x: x1, y: 0, sq: 0 };
     }
 
     drollery('bonus', {
-      span: [1, 2, 70, 50],
+      span: [2, 3, 72, 51],
       h: 54,
       make: () => ({ n: 1, from: 1, to: 1, at: -999, blinkAt: 30 }),
       update(st, step) {
@@ -2182,63 +2254,72 @@
         st.at = step; st.from = st.n; st.to = Math.min(3, st.n + 1);
       },
       draw(p, st, { step, calm, pointer }) {
-        const a = step - st.at, on = a >= 0 && a < END, pop = on && st.to > st.from;
-        const n = on ? (a >= POP && pop ? st.to : st.from) : st.n;
+        const a = step - st.at, on = a >= 0 && a < END, twin = on && st.to > st.from;
+        const n = on ? (a >= POP && twin ? st.to : st.from) : st.n;
         const near = pointer && !on;
         const wave = calm ? 0 : (step >> 2) % 2;
         for (let x = 50; x <= 64; x++) p.px(x, BASE - 1, 'f');
-        let P = on ? poseAt(a, pop, (a >> 3) % 2) : POSE.rest;
+        let P = placed(on ? poseAt(a, twin) : POSE.rest);
         // Near the pointer it tips its bill toward it.
         if (near) P = { ...P, a: P.a + clamp((pointer[1] - P.h[1]) / 60, -0.25, 0.25) };
-        // Startled, its wings fly open; clattering, they lift a little.
-        const flare = !on || calm ? 0 : a >= POP && a < LOOK[0] && pop ? clamp(1 - (a - POP - 6) / 10) : a >= CLACK[0] && a < CLACK[1] ? 0.45 : 0;
-        leg(p, near || flare > 0 ? DOWN : TUCK);
-        leg(p, STAND);
-        wing(p, flare);
-        stork(p, P, !calm && step - st.blinkAt >= 0 && step - st.blinkAt < 3);
-        // The babies: held from its bill, splayed from one knot, or on the ground.
+        const air = twin && a >= TAKE && a < TAKE + 3 ? [2, 3, 1][a - TAKE] : 0;
+        legs(p, P.b, near || on, air);
+        wing(p, on && !calm ? flareAt(a, twin) : 0, P.b);
+        const eye = twin && a >= TAKE - 1 && a < TAKE + 8 ? 'wide' : !calm && step - st.blinkAt >= 0 && step - st.blinkAt < 3 ? 'shut' : 'open';
+        // On its fastest moves, a smear: a faint trail behind the bill.
+        if (on && !calm && a > 0) {
+          const now = tipOf(P), was = tipOf(placed(poseAt(a - 1, twin)));
+          if (Math.hypot(now[0] - was[0], now[1] - was[1]) > 3.5) p.line(was[0], was[1], now[0], now[1], 'f');
+        }
+        stork(p, P, eye);
+        // Held, the babies hang from its bill, splayed from one knot, and
+        // swing behind its moves.
         const tip = tipOf(P), knot = [tip[0], tip[1] + 2];
-        const held = !on || a < SET || a >= GRAB;
-        if (held) {
+        if (!on || a < SET || a >= GRAB) {
+          let lag = 0;
+          if (on) { const prev = tipOf(placed(poseAt(Math.max(0, a - 2), twin))); lag = clamp((prev[0] - tip[0]) * 0.09, -0.6, 0.6); }
           const sway = calm ? 0 : near ? ((step >> 1) % 2 ? 0.07 : -0.07) : Math.sin((step / 60) * TAU) * 0.08;
           for (let i = 0; i < n; i++) {
-            const th = (i - (n - 1) / 2) * 0.5 + sway;
-            p.turn(p.capture(() => bundle(p, knot[0], knot[1], { awake: near, wave: (wave + i) % 2 })), Math.round(knot[0]), Math.round(knot[1]), th);
+            const th = (i - (n - 1) / 2) * 0.5 + sway + lag;
+            p.turn(p.capture(() => bundle(p, knot[0], knot[1], { face: near ? 'awake' : 'asleep', wave: (wave + i) % 2 })), Math.round(knot[0]), Math.round(knot[1]), th);
           }
         } else {
           for (let i = 0; i < n; i++) {
-            let at = SPOTS[i];
-            // Carried ones hop out to their spots once they're down, and back
-            // to be gathered up.
-            if (i > 0 && i < st.from && a < 18) at = hop(SPOTS[0], SPOTS[i], clamp((a - 10) / 8), 6);
-            if (i > 0 && a >= LOOK[1]) at = hop(SPOTS[i], SPOTS[0], clamp((a - LOOK[1]) / 8), 6);
-            // The new one bursts out of the last and tumbles over to its spot.
-            if (i === n - 1 && pop && a >= POP && a < POP + 12) at = hop(SPOTS[i - 1], SPOTS[i], clamp((a - POP) / 12), 12);
-            const wiggle = !calm && a >= CLACK[1] && a < POP && i === n - 1 ? (step % 2 ? 1 : -1) : 0;
-            bundle(p, at[0] + wiggle, at[1], { awake: true, wave: (wave + i) % 2 });
+            let m = { x: SPOTS[i], y: 0, sq: 0 };
+            // Set down with a bump.
+            if (i === 0 && a < SET + 4) m.sq = [0.45, 0.3, -0.15, 0][a - SET];
+            // Carried ones hop out to their spots, and back to be gathered.
+            if (i > 0 && i < st.from && a < 20) m = hopAt(SPOTS[0], SPOTS[i], (a - SET - 1 - i * 2) / 9, 6);
+            if (i > 0 && a >= 66) m = hopAt(SPOTS[i], SPOTS[0], (a - 66 - (i - 1) * 2) / 7, 6);
+            // The last one, before the pop: it wriggles and swells.
+            if (twin && i === st.from - 1 && a >= 31 && a < POP + 2) m.sq = a < POP ? (a % 2 ? 0.25 : -0.1) * (1 + (a - 31) / 3) : -0.4;
+            // The new one bursts out of it, stretched, and tumbles over.
+            if (twin && i === n - 1 && a >= POP) m = hopAt(SPOTS[i - 1], SPOTS[i], (a - POP + 2) / 14, 13);
+            const face = twin && a >= TAKE && a < 66 ? 'glee' : 'awake';
+            bundle(p, m.x, GROUND - tall(m.sq) + m.y, { face, wave: (wave + i) % 2, sq: m.sq });
           }
         }
         // The pop: a burst of sparks off the last bundle.
-        if (pop && a >= POP && a < POP + 10 && !calm) {
-          const [sx, sy] = SPOTS[st.from - 1], b = a - POP;
+        if (twin && a >= POP && a < POP + 10 && !calm) {
+          const sx = SPOTS[st.from - 1], b = a - POP;
           for (let r = 0; r < 10; r++) {
-            const th = (r / 10) * TAU, d = 3 + b * 0.9;
-            p.px(sx + Math.cos(th) * d, sy + 4 + Math.sin(th) * d * 0.8, r % 2 ? 'glint' : 'o', 1 - b / 10);
+            const th = (r / 10) * TAU, d = 3 + b * 1.1;
+            p.px(sx + Math.cos(th) * d, GROUND - 7 + Math.sin(th) * d * 0.8, r % 2 ? 'glint' : 'o', 1 - b / 10);
           }
         }
         // Clattering: little marks off the bill as it snaps.
-        if (on && a >= CLACK[0] && a < CLACK[1] && !calm && (a >> 1) % 2) {
+        if (on && a >= CLACK[0] && a < CLACK[1] && !calm && P.o > 0.5) {
           for (const ox of [-3, 3]) p.px(tip[0] + ox, tip[1] - 1, 'f');
-          p.px(tip[0], tip[1] - 3, 'f');
+          p.px(tip[0], tip[1] - 2, 'f');
         }
-        // Startled: a ! over its head, and a feather shaken loose.
-        if (pop && a >= POP + 1 && a < POP + 12) {
-          const [hx, hy] = P.h;
-          for (const oy of [-9, -8, -7, -5]) p.px(hx + 4, hy + oy, 'r');
+        // The take: a ! over its head, and a feather shaken loose.
+        if (twin && a >= TAKE && a < TAKE + 10) {
+          const [hx, hy] = P.h, pop = a < TAKE + 2 ? -1 : 0;
+          for (const oy of [-7, -6, -5, -3]) p.px(hx + 4, hy + oy + pop, 'r');
         }
-        if (pop && a >= POP && a < END && !calm) {
-          const t = a - POP, fx = 60 + Math.sin(t * 0.3) * 3, fy = 24 + t * 0.5;
-          if (fy < GROUND - 1) { p.px(fx, fy, 'w'); p.px(fx + 1, fy, 'w'); p.px(fx + 2, fy - 1, 'k'); p.px(fx - 1, fy + 1, '#'); }
+        if (twin && a >= TAKE && !calm) {
+          const t = a - TAKE, fx = 62 + Math.sin(t * 0.35) * 3, fy = 20 + t * 0.55, tilt = Math.cos(t * 0.35) > 0 ? 1 : -1;
+          if (fy < GROUND - 1) { p.px(fx, fy, 'w'); p.px(fx + 1, fy + (tilt > 0 ? 0 : 1), 'w'); p.px(fx + 2, fy - tilt, 'k'); p.px(fx - 1, fy + tilt, '#'); }
         }
       },
     });
