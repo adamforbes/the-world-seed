@@ -198,7 +198,7 @@
   // ---------- Places: a mango tree ----------
 
   {
-    const BASE = 58, TRUNK = 30;
+    const BASE = 54, TRUNK = 30;
     const LOBES = [[30, 20, 10], [21, 27, 8], [39, 27, 8], [30, 30, 8], [24, 17, 6.5], [36, 17, 6.5]];
     const inCanopy = (x, y) => LOBES.some(([cx, cy, r]) => (x - cx) ** 2 + (y - cy) ** 2 < r * r);
     const CANOPY = [];
@@ -232,8 +232,8 @@
     }
 
     drollery('places', {
-      span: [2, 10, 60, 58],
-      h: 64,
+      span: [3, 11, 59, 54],
+      h: 60,
       make: () => ({ tree: SPOTS.map(() => -1), apples: [], claimed: { '-1': 0, 1: 0 }, leaves: [], shakeAt: -99 }),
       update(st, step, pointer) {
         if (st.leaves.length < 14 && R('fall', step) < (pointer ? 0.07 : 0.0025)) {
@@ -765,7 +765,7 @@
   // ---------- Nations: a flag ----------
 
   {
-    const BASE = 58, POLE = 26, HX = 27, HY = 11, FW = 26, FH = 15;
+    const BASE = 50, POLE = 26, HX = 27, HY = 11, FW = 26, FH = 15;
     const EMBLEMS = {
       crown: art(`
         E..E..E
@@ -855,8 +855,8 @@
     const STRIKE = 84;
 
     drollery('nations', {
-      span: [10, 0, 66, 58],
-      h: 64,
+      span: [7, 0, 69, 50],
+      h: 56,
       make: () => ({ design: { field: 'r', pattern: 'plain', emblem: 'crown' }, e: 0, strike: null, flags: 0 }),
       update(st, step, pointer) {
         const stir = (step % 110) < 16 ? 0.16 : 0;
@@ -874,8 +874,8 @@
         st.strike = { born: step, e: st.e, hit: Math.max(3, L - 2), next: pickDesign(st.design, ++st.flags) };
       },
       draw(p, st, { step, calm }) {
-        for (const [y, x0, x1] of [[57, 21, 31], [56, 23, 29], [55, 25, 27]]) for (let x = x0; x <= x1; x++) p.px(x, y, y === 55 || x === x0 || x === x1 ? '#' : 'f');
-        for (let y = 9; y < 55; y++) p.px(POLE, y, '#');
+        for (const [y, x0, x1] of [[49, 21, 31], [48, 23, 29], [47, 25, 27]]) for (let x = x0; x <= x1; x++) p.px(x, y, y === 47 || x === x0 || x === x1 ? '#' : 'f');
+        for (let y = 9; y < 47; y++) p.px(POLE, y, '#');
         p.sprite(art(`
           .g.
           ggg
@@ -936,7 +936,7 @@
         // The new flag goes up the pole.
         if (a >= 44) {
           const k = smooth(clamp((a - 44) / 30));
-          flag(p, s.next, 0, step, Math.round(lerp(40, HY, k)));
+          flag(p, s.next, 0, step, Math.round(lerp(30, HY, k)));
         }
       },
     });
@@ -945,45 +945,42 @@
   // ---------- Qualities & Relationships: a portrait that is repainted ----------
 
   {
-    const BASE = 61, NAIL = [39.5, 2];
+    const BASE = 53, NAIL = [39.5, 2];
     // The portrait inside its frame, and the frame and plaque round it.
-    const PX = 28, PY = 13, PW = 24, PH = 30;
-    const FX0 = PX - 4, FY0 = PY - 4, FX1 = PX + PW + 3, FY1 = PY + PH + 3;
-    const PLAQUE = [25, 49, 54, 57];
+    const PX = 30, PY = 10, PW = 20, PH = 27;
+    const FX0 = PX - 3, FY0 = PY - 3, FX1 = PX + PW + 2, FY1 = PY + PH + 2;
+    const PLAQUE = [24, 42, 55, 49];
     // A head and shoulders against a background (B): hair (H), skin, eyes
     // (E, drawn on their own so they can follow you), a mouth (M), a robe
     // (R) and its collar (C).
     const BUST = art(`
-      BBBBBBBBBBBBBBBBBBBBBBBB
-      BBBBBBBBBBBBBBBBBBBBBBBB
-      BBBBBBBBBBBBBBBBBBBBBBBB
-      BBBBBBBBBBBBBBBBBBBBBBBB
-      BBBBBBBBBBBBBBBBBBBBBBBB
-      BBBBBBBBBBBBBBBBBBBBBBBB
-      BBBBBBBBB######BBBBBBBBB
-      BBBBBBB##HHHHHH##BBBBBBB
-      BBBBBB#HHHHHHHHHH#BBBBBB
-      BBBBBB#HppppppppH#BBBBBB
-      BBBBBB#pppppppppp#BBBBBB
-      BBBBBB#p###pp###p#BBBBBB
-      BBBBBB#pEEEppEEEp#BBBBBB
-      BBBBBB#pEEEppEEEp#BBBBBB
-      BBBBBB#ppppp#pppp#BBBBBB
-      BBBBBB#pppp##pppp#BBBBBB
-      BBBBBB#pppppppppp#BBBBBB
-      BBBBBBB#ppMMMMpp#BBBBBBB
-      BBBBBBB#pppppppp#BBBBBBB
-      BBBBBBBB#pppppp#BBBBBBBB
-      BBBBBBBBB#pppp#BBBBBBBBB
-      BBBBBBBBBB#pp#BBBBBBBBBB
-      BBBBBB##CCCCCCCC##BBBBBB
-      BBBB##RRCCCCCCCCRR##BBBB
-      BBB#RRRRRCCCCCCRRRRR#BBB
-      BB#RRRRRRRCCCCRRRRRRR#BB
-      B#RRRRRRRRRCCRRRRRRRRR#B
-      B#RRRRRRRRRRRRRRRRRRRR#B
-      #RRRRRRRRRRRRRRRRRRRRRR#
-      #RRRRRRRRRRRRRRRRRRRRRR#
+      BBBBBBBBBBBBBBBBBBBB
+      BBBBBBBBBBBBBBBBBBBB
+      BBBBBBBBBBBBBBBBBBBB
+      BBBBBBBBBBBBBBBBBBBB
+      BBBBBBBBBBBBBBBBBBBB
+      BBBBBBB######BBBBBBB
+      BBBBB##HHHHHH##BBBBB
+      BBBB#HHHHHHHHHH#BBBB
+      BBBB#HppppppppH#BBBB
+      BBBB#pppppppppp#BBBB
+      BBBB#p###pp###p#BBBB
+      BBBB#pEEEppEEEp#BBBB
+      BBBB#pEEEppEEEp#BBBB
+      BBBB#ppppp#pppp#BBBB
+      BBBB#pppp##pppp#BBBB
+      BBBB#pppppppppp#BBBB
+      BBBBB#ppMMMMpp#BBBBB
+      BBBBB#pppppppp#BBBBB
+      BBBBBB#pppppp#BBBBBB
+      BBBBBBB#pppp#BBBBBBB
+      BBBBBBBB#pp#BBBBBBBB
+      BBBB##CCCCCCCC##BBBB
+      BB##RRCCCCCCCCRR##BB
+      B#RRRRRCCCCCCRRRRR#B
+      #RRRRRRRCCCCRRRRRRR#
+      RRRRRRRRRCCRRRRRRRRR
+      RRRRRRRRRRRRRRRRRRRR
     `);
     // Painted over the bust: the king's crown and beard, the tyrant's spiky
     // crown and scowl, the saint's hands at prayer, and the chalk a vandal
@@ -1052,10 +1049,10 @@
     // the same sitter, repainted: the Wise king, the Holy saint, the Cruel
     // tyrant, and that tyrant's portrait defaced once they had Fallen.
     const SITTERS = [
-      { word: 'WISE', art: stamp(BUST, [[CROWN, 7, 2], [BEARD, 6, 16, { D: 'w' }]]), map: { B: 'v', H: 'w', R: 'r', C: 'w', M: 'm' }, eye: 'w', pupil: '#' },
-      { word: 'HOLY', art: stamp(BUST, [[PRAYER, 10, 24]]), map: { B: 'b', H: 'm', R: 'm', C: 'w', M: 'm' }, eye: 'w', pupil: '#', halo: true, up: true },
-      { word: 'CRUEL', art: stamp(BUST, [[SPIKES, 6, 1], [BEARD, 6, 16, { D: 'k' }], [SCOWL, 6, 10]]), map: { B: 'r', H: 'k', R: 'k', C: 'g', M: '#', '#': 'e' }, eye: 'k', pupil: 'r' },
-      { word: 'FALLEN', art: stamp(BUST, [[BEARD, 6, 16, { D: 'k' }], [SCOWL, 6, 10], [HORNS, 4, 1], [MOUSTACHE, 6, 14]]), map: { B: 'r', H: 'k', R: 'k', C: 'g', M: '#', '#': 'e' }, eye: 'k', pupil: 'r', torn: true },
+      { word: 'WISE', art: stamp(BUST, [[CROWN, 5, 1], [BEARD, 4, 15, { D: 'w' }]]), map: { B: 'v', H: 'w', R: 'r', C: 'w', M: 'm' }, eye: 'w', pupil: '#' },
+      { word: 'HOLY', art: stamp(BUST, [[PRAYER, 8, 21]]), map: { B: 'b', H: 'm', R: 'm', C: 'w', M: 'm' }, eye: 'w', pupil: '#', halo: true, up: true },
+      { word: 'CRUEL', art: stamp(BUST, [[SPIKES, 4, 0], [BEARD, 4, 15, { D: 'k' }], [SCOWL, 4, 9]]), map: { B: 'r', H: 'k', R: 'k', C: 'g', M: '#', '#': 'e' }, eye: 'k', pupil: 'r' },
+      { word: 'FALLEN', art: stamp(BUST, [[BEARD, 4, 15, { D: 'k' }], [SCOWL, 4, 9], [HORNS, 2, 0], [MOUSTACHE, 4, 13]]), map: { B: 'r', H: 'k', R: 'k', C: 'g', M: '#', '#': 'e' }, eye: 'k', pupil: 'r', torn: true },
     ];
     // A tiny capital alphabet, for the plaque.
     const FONT = {
@@ -1078,7 +1075,7 @@
     // The sitter, pixel by pixel, keeping only the rows `keep` allows.
     function sitter(p, s, look, keep = () => true) {
       const put = (x, y, ink) => { if (keep(y)) p.px(x, y, ink); };
-      const [hx, hy] = [PX + 11.5, PY + 9];
+      const [hx, hy] = [PX + 9.5, PY + 8];
       s.art.forEach((row, j) => [...row].forEach((ch, i) => {
         if (s.torn && torn(i, j)) return;
         const x = PX + i, y = PY + j;
@@ -1089,7 +1086,7 @@
           if (d < 9.5) return put(x, y, d > 8.5 ? '#' : 'o');
         }
         if (ch === 'E') {
-          const [ex, ey] = [i < 12 ? i - 8 : i - 13, j - 12];
+          const [ex, ey] = [i < 10 ? i - 6 : i - 11, j - 11];
           let c = s.eye;
           if (look.shut) c = ey === 1 ? '#' : 'p';
           else if (ex === look.x && (look.y === null || look.y === ey)) c = s.pupil;
@@ -1108,8 +1105,8 @@
       p.line(NAIL[0] + 1, NAIL[1] + 1, FX1 - 5, FY0 - 1, 'f');
       for (let y = FY0; y <= FY1; y++) for (let x = FX0; x <= FX1; x++) {
         const d = Math.min(x - FX0, FX1 - x, y - FY0, FY1 - y);
-        if (d > 3) continue;
-        if (d === 0 || d === 3) p.px(x, y, '#');
+        if (d > 2) continue;
+        if (d === 0 || d === 2) p.px(x, y, '#');
         else if (d === 1) p.px(x, y, (x + y) % 3 === 0 ? 'o' : 'g');
         else p.px(x, y, 'g');
       }
@@ -1130,8 +1127,8 @@
     `);
 
     drollery('qualities', {
-      span: [19, 0, 60, 59],
-      h: 64,
+      span: [23, 1, 57, 50],
+      h: 56,
       make: () => ({ at: 0, was: 0, paintAt: -999, blinkAt: 50 }),
       update(st, step) { if (step > st.blinkAt + 3) st.blinkAt = step + 60 + Math.floor(R('blink', step) * 90); },
       click(st, step) {
@@ -1147,7 +1144,7 @@
         // to heaven until you come near.
         const look = { x: 1, y: now.up ? 0 : null, shut: !calm && !painting && step - st.blinkAt >= 0 && step - st.blinkAt < 3 };
         if (pointer) {
-          const dx = pointer[0] - (PX + 11.5), dy = pointer[1] - (PY + 12.5);
+          const dx = pointer[0] - (PX + 9.5), dy = pointer[1] - (PY + 11.5);
           look.x = dx < -5 ? 0 : dx > 5 ? 2 : 1;
           look.y = dy < -6 ? 0 : dy > 6 ? 1 : null;
         }
@@ -1191,35 +1188,31 @@
   // ---------- Naming: a swaddled baby ----------
 
   {
-    const BASE = 66, MID = 39.5, HX = 29, HY = 20;
+    const BASE = 60, MID = 39.5, HX = 31, HY = 25;
     // A chubby sleeping baby: a tuft of dark hair (h), closed eyes (E), rosy
     // cheeks (C) and a little mouth (M).
     const HEAD = art(`
-      .........#..#.........
-      ........#h##h#........
-      ......##hhhhhh##......
-      ....##pphhhhhhpp##....
-      ...#pppppppppppppp#...
-      ..#pppppppppppppppp#..
-      ..#pppppppppppppppp#..
-      .#pppppppppppppppppp#.
-      .#pppppppppppppppppp#.
-      .#ppppEpEppppEpEpppp#.
-      .#pppppEppppppEppppp#.
-      .#ppCCppppppppppCCpp#.
-      .#ppCCppppppppppCCpp#.
-      ..#pppppppMMppppppp#..
-      ..#pppppppppppppppp#..
-      ...#pppppppppppppp#...
-      ....##pppppppppp##....
-      ......##########......
+      .......#..#.......
+      ......#h##h#......
+      ....##hhhhhh##....
+      ...#pphhhhhhpp#...
+      ..#pppppppppppp#..
+      .#pppppppppppppp#.
+      .#pppppppppppppp#.
+      .#ppEpEppppEpEpp#.
+      .#pppEppppppEppp#.
+      .#pCCppppppppCCp#.
+      ..#pppppMMppppp#..
+      ..#pppppppppppp#..
+      ...##pppppppp##...
+      .....########.....
     `);
     // The swaddle: a linen bundle from the chin down, round at the shoulders
     // and tapering to the feet, bound with criss-crossed vermilion bands.
-    const UY = HY + 15, UH = 26, CUSHION = UY + UH;
+    const UY = HY + 11, UH = 20, CUSHION = UY + UH;
     const half = (j) => {
       const t = j / (UH - 1);
-      return t < 0.15 ? 9 + (t / 0.15) * 4 : t < 0.7 ? 13 : 13 - ((t - 0.7) / 0.3) ** 2 * 7;
+      return t < 0.15 ? 7 + (t / 0.15) * 3 : t < 0.7 ? 10 : 10 - ((t - 0.7) / 0.3) ** 2 * 5;
     };
     const inBundle = (x, y) => y >= UY && y < UY + UH && Math.abs(x - MID) <= half(y - UY);
     function bundleInk(x, y) {
@@ -1230,7 +1223,7 @@
       return j > 4 && (a === 0 || b === 0) ? 'r' : 'w';
     }
     // Under it, crying, a little red gown with a gold hem, and bare feet.
-    const gownHalf = (j) => 7 + j * 0.2;
+    const gownHalf = (j) => 5.5 + j * 0.2;
     const inGown = (x, y) => y >= UY && y < UY + UH - 3 && Math.abs(x - MID) <= gownHalf(y - UY);
     function gownInk(x, y) {
       if (!inGown(x - 1, y) || !inGown(x + 1, y) || !inGown(x, y - 1) || !inGown(x, y + 1)) return '#';
@@ -1245,7 +1238,7 @@
     // A chubby arm in a red sleeve, with a little hand.
     function arm(p, [x0, y0], [x1, y1]) {
       const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2);
-      for (const [r, ink] of [[2.8, '#'], [1.9, 'r']]) for (let k = 0; k <= n; k++) {
+      for (const [r, ink] of [[2.4, '#'], [1.6, 'r']]) for (let k = 0; k <= n; k++) {
         const x = lerp(x0, x1, k / n), y = lerp(y0, y1, k / n);
         for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (dx * dx + dy * dy <= r * r) p.px(x + dx, y + dy, ink);
       }
@@ -1314,11 +1307,11 @@
       gg......gg
     `)];
     // The carpet hovers here while the baby cries.
-    const HOVER = [MID, 11], BURST = 10, WRAP = 30, CLOTH = 36;
+    const HOVER = [MID, HY - 8], BURST = 10, WRAP = 30, CLOTH = 28;
 
     drollery('naming', {
-      span: [2, 1, 78, 66],
-      h: 70,
+      span: [11, 8, 70, 63],
+      h: 64,
       make: () => ({ mode: 'sleep', at: -999, soothed: false, starAt: -999, zs: [], tears: [], nextZ: 20 }),
       update(st, step, pointer) {
         const a = step - st.at;
@@ -1332,7 +1325,7 @@
         st.zs = st.zs.filter((z) => step - z.born < 80);
         if (st.mode === 'cry' && step % 4 === 0) {
           const side = (step / 4) % 2 ? 1 : -1;
-          st.tears.push({ x: HX + (side > 0 ? 15 : 6), y: HY + 10, vx: side * (0.7 + R('tear', step) * 0.6), vy: -0.8 });
+          st.tears.push({ x: HX + (side > 0 ? 13 : 4), y: HY + 8, vx: side * (0.7 + R('tear', step) * 0.6), vy: -0.8 });
         }
         for (const t of st.tears) { t.vy += 0.2; t.x += t.vx; t.y += t.vy; }
         st.tears = st.tears.filter((t) => t.y < BASE);
@@ -1349,11 +1342,11 @@
       draw(p, st, { step, calm }) {
         const a = step - st.at, mode = st.mode;
         // The cushion: lapis, edged and tasselled in gold.
-        for (let y = CUSHION; y < BASE; y++) for (let x = 15; x <= 64; x++) {
-          const edge = y === CUSHION || y === BASE - 1 || x === 15 || x === 64;
+        for (let y = CUSHION; y < BASE; y++) for (let x = 23; x <= 56; x++) {
+          const edge = y === CUSHION || y === BASE - 1 || x === 23 || x === 56;
           p.px(x, y, edge ? '#' : y === CUSHION + 1 ? 'g' : 'b');
         }
-        for (const x of [14, 65]) for (let y = CUSHION + 1; y <= CUSHION + 3; y++) p.px(x, y, 'g');
+        for (const x of [22, 57]) for (let y = CUSHION + 1; y <= CUSHION + 2; y++) p.px(x, y, 'g');
         // How much of it is swaddled, from the feet up, and where the carpet is.
         let wrapped = 1, cloth = null;
         const ph = step * 0.35;
@@ -1371,11 +1364,11 @@
           if (u < 0.25) {
             const s = smooth(u / 0.25);
             wrapped = 0;
-            cloth = { x: lerp(HOVER[0], MID - 17, s), y: lerp(HOVER[1], UY + UH - 4, s) - Math.sin(s * Math.PI) * 6, len: CLOTH, tilt: lerp(0, 10, s), front: true };
+            cloth = { x: lerp(HOVER[0], MID - 13, s), y: lerp(HOVER[1], UY + UH - 4, s) - Math.sin(s * Math.PI) * 6, len: CLOTH, tilt: lerp(0, 10, s), front: true };
           } else {
             const v = (u - 0.25) / 0.75, phi = v * TAU * 2.5;
             wrapped = smooth(v);
-            cloth = { x: MID - 17 * Math.cos(phi), y: UY + UH - 4 - wrapped * (UH - 6), len: 4 + (CLOTH - 4) * (1 - wrapped), tilt: 6 * Math.cos(phi), front: Math.sin(phi) > 0, phi };
+            cloth = { x: MID - 13 * Math.cos(phi), y: UY + UH - 4 - wrapped * (UH - 6), len: 4 + (CLOTH - 4) * (1 - wrapped), tilt: 6 * Math.cos(phi), front: Math.sin(phi) > 0, phi };
           }
         }
         const crying = mode === 'burst' || mode === 'cry';
@@ -1385,26 +1378,26 @@
         if (cloth && !cloth.front) carpet(p, cloth.x, cloth.y, cloth.len, ph, cloth.tilt);
         // Under the swaddle: the gown, kicking feet and flailing arms.
         if (wrapped < 1) {
-          for (let y = UY; y < UY + UH - 3; y++) for (let x = MID - 13; x <= MID + 13; x++) {
+          for (let y = UY; y < UY + UH - 3; y++) for (let x = MID - 10; x <= MID + 10; x++) {
             if (inGown(x, y) && y < line) p.px(x, y + hop, gownInk(x, y));
           }
           const kick = crying && !calm ? (step >> 2) % 2 : 0;
           if (line > UY + UH - 3) {
-            p.sprite(FOOT, Math.round(MID) - 7, UY + UH - 3 - kick);
-            p.sprite(FOOT, Math.round(MID) + 3, UY + UH - 3 - (1 - kick));
+            p.sprite(FOOT, Math.round(MID) - 6, UY + UH - 3 - kick);
+            p.sprite(FOOT, Math.round(MID) + 2, UY + UH - 3 - (1 - kick));
           }
-          if (line > UY + 8) {
+          if (line > UY + 6) {
             const tuck = clamp(wrapped / 0.6), flail = (step >> 2) % 2;
             for (const side of [-1, 1]) {
               const up = (side > 0) === !!flail;
-              const hx = lerp(MID + side * (up ? 15 : 17), MID + side * 5, tuck), hy = lerp(UY + (up ? -6 : 3), UY + 9, tuck);
-              arm(p, [MID + side * 6, UY + 4 + hop], [hx, hy + hop]);
+              const hx = lerp(MID + side * (up ? 12 : 13), MID + side * 4, tuck), hy = lerp(UY + (up ? -5 : 2), UY + 7, tuck);
+              arm(p, [MID + side * 5, UY + 3 + hop], [hx, hy + hop]);
             }
           }
         }
         // The swaddle itself.
         if (wrapped > 0) {
-          for (let y = Math.ceil(line); y < UY + UH; y++) for (let x = MID - 13; x <= MID + 13; x++) {
+          for (let y = Math.ceil(line); y < UY + UH; y++) for (let x = MID - 10; x <= MID + 10; x++) {
             if (inBundle(x, y)) p.px(x, y, bundleInk(x, y));
           }
         }
@@ -1413,7 +1406,7 @@
           // Mouth wide open, tears flying.
           for (let oy = 0; oy < 3; oy++) for (let ox = 0; ox < 4; ox++) {
             if ((ox === 0 || ox === 3) && oy !== 1) continue;
-            p.px(HX + 9 + ox, HY + 12 + oy + hop, 'm');
+            p.px(HX + 7 + ox, HY + 9 + oy + hop, 'm');
           }
           for (const t of st.tears) { p.px(t.x, t.y, 'b'); p.px(t.x, t.y - 1, 'b'); }
         }
@@ -1428,12 +1421,12 @@
           }
           if (!calm) for (let k = 1; k <= 4; k++) {
             const ph2 = cloth.phi - k * 0.5;
-            p.px(MID - 19 * Math.cos(ph2), cloth.y + k * 1.5 + Math.sin(k * 3 + step) * 2, k % 2 ? 'glint' : 'g', 1 - k / 5);
+            p.px(MID - 15 * Math.cos(ph2), cloth.y + k * 1.5 + Math.sin(k * 3 + step) * 2, k % 2 ? 'glint' : 'g', 1 - k / 5);
           }
         }
         for (const z of st.zs) {
           const t = step - z.born;
-          p.sprite(Z[z.big], HX + 23 + t * 0.15 + Math.sin(t * 0.1) * 3, HY - 2 - t * 0.2, { alpha: t < 10 ? t / 10 : clamp(1 - (t - 50) / 30) });
+          p.sprite(Z[z.big], HX + 19 + t * 0.15 + Math.sin(t * 0.1) * 3, HY - 2 - t * 0.2, { alpha: t < 10 ? t / 10 : clamp(1 - (t - 50) / 30) });
         }
         const s = step - st.starAt;
         if (s >= 0 && s < 72) {
@@ -1660,7 +1653,7 @@
   // ---------- Narration: a fortune-teller at a fire ----------
 
   {
-    const BASE = 66, FX = 46, TX = 8;
+    const BASE = 60, FX = 46, TX = 8;
     // A hooded fortune-teller in one long maroon cloak, standing in profile
     // with her hands held out to the fire. The cloak's reaching sleeve is
     // rows 19 to 21.
@@ -1689,17 +1682,11 @@
       .emmmmmmmmmmmmmmmmeee.
       .emmmmmmmmmmmmmmmme...
       .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmme...
       .emmmmmmmmmmmmmmmmme..
       .emmmmmmmmmmmmmmmmme..
       emmmmmmmmmmmmmmmmmme..
       emmmmmmmmmmmmmmmmmme..
       emmmmmmmmmmmmmmmmmme..
-      emmmmmmmmmmmmmmmmmmme.
-      emmmmmmmmmmmmmmmmmmme.
       emmmmmmmmmmmmmmmmmmme.
       emmmmmmmmmmmmmmmmmmme.
       emmmmmmmmmmmmmmmmmmme.
@@ -1816,8 +1803,8 @@
     ];
 
     drollery('narration', {
-      span: [7, 2, 68, 66],
-      h: 70,
+      span: [8, 3, 67, 60],
+      h: 64,
       make: () => ({ puffs: [], raiseAt: -999, next: 0 }),
       update(st, step) { st.puffs = st.puffs.filter((q) => step - q.born < 74); },
       click(st, step) {
@@ -1853,7 +1840,7 @@
         // Pictures in the smoke, forming, rising and coming apart before the top.
         for (const q of st.puffs) {
           const a = step - q.born, [w, h] = size(q.shape);
-          const x0 = FX - (w >> 1) + a * 0.06, y0 = BASE - 34 - h - a * 0.12;
+          const x0 = FX - (w >> 1) + a * 0.06, y0 = BASE - 28 - h - a * 0.12;
           q.shape.forEach((row, j) => [...row].forEach((ch, i) => {
             if (ch === '.') return;
             const r = R('wisp', i, j, q.born);
@@ -2042,7 +2029,7 @@
   // ---------- Bonus Naming: a stork with a bundle ----------
 
   {
-    const BASE = 66;
+    const BASE = 60;
     // The stork, facing left: a white body with black flight feathers, an S
     // of a neck, and a vermilion bill and legs. Body, neck and head are one
     // shape, so a single outline runs round all three.
@@ -2144,8 +2131,8 @@
     const DROP = 16, TOSS = 22, TWINS = 100, FADE = 16;
 
     drollery('bonus', {
-      span: [4, 12, 72, 66],
-      h: 70,
+      span: [4, 15, 72, 60],
+      h: 64,
       make: () => ({ mode: 'hold', at: -999 }),
       update(st, step) {
         const a = step - st.at;
