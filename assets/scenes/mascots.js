@@ -16,7 +16,7 @@
 
 (function () {
   const { TAU, clamp, lerp, smooth } = SceneKit;
-  const { drollery, art, size, R } = Margins;
+  const { drollery, art, size, squash, R } = Margins;
 
   // Fades a figure out as it nears the sides, so nothing meets the frame.
   const inside = (x, w, lo = 4, hi = 76) => clamp(Math.min(x - lo, hi - (x + w)) / 6);
@@ -98,8 +98,10 @@
       p.px(fx - face, fy, '#');
     }
 
+    const CLENCH = 4;
+
     drollery('myth', {
-      span: [3, 14, 80, 58],
+      span: [5, 14, 80, 58],
       h: 64,
       make: () => ({ x: 24, dir: 1, face: 1, rest: 0, buds: [] }),
       update(st, step, pointer) {
@@ -115,16 +117,20 @@
         for (const b of st.buds) if (step - b.born > 14) b.x += b.dir * 0.35;
         st.buds = st.buds.filter((b) => inside(b.x, 7) > 0 || step - b.born < 20);
       },
+      // A click: it squats and clenches, then gives one huge beat, and a bud
+      // pops off, stretched, lands squashed and toddles away.
       click(st, step) {
-        if (st.buds.length >= 4) return;
+        if (st.buds.length >= 4 || step - (st.clench ?? -99) < CLENCH + 3) return;
         const dir = st.face, x = st.x + HW / 2 + dir * 9;
-        st.buds.push({ born: step, sx: x, sy: TOP + 14, x: x + dir * 8, dir });
+        st.clench = step;
+        st.buds.push({ born: step + CLENCH, sx: x, sy: TOP + 14, x: x + dir * 8, dir });
       },
       draw(p, st, { step, calm, pointer }) {
-        const walking = !pointer && step >= st.rest && !calm;
-        const x = Math.round(st.x), bob = walking && (step >> 2) % 2 ? 1 : 0;
+        const c = step - (st.clench ?? -99), clenching = !calm && c >= 0 && c < CLENCH, pumping = !calm && c >= CLENCH && c < CLENCH + 3;
+        const walking = !pointer && step >= st.rest && !calm && !clenching && !pumping;
+        const x = Math.round(st.x), bob = clenching ? 2 : pumping ? -1 : walking && (step >> 2) % 2 ? 1 : 0;
         const cycle = pointer ? 12 : 26, ph = step % cycle;
-        const swell = !calm && (ph < 3 || (ph >= 5 && ph < 7)) ? 1 : 0;
+        const swell = clenching ? 0 : pumping ? 2 : !calm && (ph < 3 || (ph >= 5 && ph < 7)) ? 1 : 0;
         const stride = walking ? (Math.floor(step / 6) % 2 ? 2 : -2) : 0;
         const flip = st.face < 0;
         HIPS.forEach(([hx, hy], i) => leg(p, flip ? x + HW - 1 - hx : x + hx, TOP + hy - bob, st.face, i ? -stride : stride));
@@ -133,6 +139,7 @@
         // Its buds pop out of its side and toddle off.
         for (const b of st.buds) {
           const a = step - b.born;
+          if (a < 0) continue;
           let bx = b.x, by = BASE - 8;
           if (a < 14) {
             const k = smooth(a / 14);
@@ -141,7 +148,11 @@
           }
           const al = a < 14 ? 1 : inside(bx, 7), tod = a >= 14 && (step >> 2) % 2 ? 1 : 0;
           const ix = Math.round(bx);
-          p.sprite(BUD, ix, Math.round(by) - tod, { alpha: al });
+          // Stretched in the air, squashed as it lands, and with a little
+          // squash on every step.
+          const k = calm ? 1 : a < 2 ? 0.8 : a < 11 ? 1.4 : a < 14 ? 1 : a < 16 ? 0.6 : tod ? 1 : 0.8;
+          const rows = k === 1 ? BUD : squash(BUD, k);
+          p.sprite(rows, ix, Math.round(by) - tod + BUD.length - rows.length, { alpha: al });
           if (a >= 14) { p.px(ix + 2 + tod, BASE - 2, '#', al); p.px(ix + 4 - tod, BASE - 2, '#', al); p.px(ix + 3, BASE - 3, '#', al); }
         }
       },
@@ -179,6 +190,10 @@
       ..#gvgvgvgvgv#..
       ..#mrrrrrrrrr#..
       ..#mrrrrrrrrr#..
+      ..#mrrrrrrrrr#..
+      ..#mrrrrrrrrr#..
+      .#mmrrrrrrrrrr#.
+      .#mmrrrrrrrrrr#.
       .#mmrrrrrrrrrr#.
       .#mmrrrrrrrrrr#.
       .#mmrrrrrrrrrr#.
@@ -197,10 +212,13 @@
     const rune = (i) => [0, 1, 2].map((j) => R('rune', i, j) < 0.65);
     const lift = (i) => 18 + i * 2;
     // How far the scroll is open (0 to 1) at a step into a reading.
-    const open = (a) => (a < 0 || a >= READ ? 0 : a < 12 ? smooth(a / 12) : a < 64 ? 1 : 1 - smooth((a - 64) / 12));
+    // He draws the scroll in a little first, then snaps it open past full
+    // width and lets it settle back.
+    const back = (t) => 1 + 2.7 * (t - 1) ** 3 + 1.7 * (t - 1) ** 2;
+    const open = (a) => (a < 0 || a >= READ ? 0 : a < 3 ? -0.15 * (a / 3) : a < 9 ? lerp(-0.15, 1, back((a - 3) / 6)) : a < 64 ? 1 : 1 - smooth((a - 64) / 12));
 
     drollery('antiquity', {
-      span: [9, 9, 64, 66],
+      span: [10, 10, 63, 66],
       h: 72,
       make: () => ({ readAt: -999 }),
       click(st, step) { if (step - st.readAt >= READ) st.readAt = step; },
@@ -212,7 +230,10 @@
           const y = 64 - age * 0.32;
           if (y > 6) p.px(10 + R('mx', i) * 60 + Math.sin(age * 0.05 + i) * 2, y, 'g', clamp(Math.min(age / 20, (y - 6) / 12)) * 0.8);
         }
-        p.sprite(ROBE, RX, RY);
+        // As the gem swallows the runes he's lifted onto his toes, and the gem
+        // pops up off his shoulders and drops back.
+        const hop = calm ? 0 : a >= 58 && a < 61 ? -1 : 0, pop = calm ? 0 : [-2, -3, -1, 1, 0][a - 58] ?? 0;
+        p.sprite(ROBE, RX, RY + hop);
 
         // Arms in wide sleeves, holding the scroll; they spread to open it and
         // raise it a little at a hover.
@@ -261,7 +282,7 @@
         // The gem head: its bright facets shimmer, blaze at a hover, flash at
         // the end of a reading.
         const shimmer = !calm && (step >> 4) % 3 === 0;
-        p.sprite(GEM, EX, EY, { map: { G: pointer || shimmer || flare ? 'glint' : 'g', g: flare > 0.5 ? 'glint' : 'g' } });
+        p.sprite(GEM, EX, EY + hop + pop, { map: { G: pointer || shimmer || flare ? 'glint' : 'g', g: flare > 0.5 ? 'glint' : 'g' } });
       },
     });
   }
@@ -291,9 +312,13 @@
       .....#kkggkk#.....
       .....#kgkkgk#.....
       ......#kkkk#......
+      ......#kkkk#......
       .....#kkgkkk#.....
       ....#kkkkkkkk#....
       ....#kkk##kkk#....
+      ...#kkk#..#kkk#...
+      ...#kkk#..#kkk#...
+      ...#kkk#..#kkk#...
       ...#kkk#..#kkk#...
       ...#kkk#..#kkk#...
       ...#kkk#..#kkk#...
@@ -359,7 +384,7 @@
     }
 
     drollery('ruin', {
-      span: [21, 6, 56, 52],
+      span: [21, 3, 60, 52],
       h: 56,
       make: () => ({ bonkAt: -999, blinkAt: 30, combo: 0 }),
       update(st, step) { if (step > st.blinkAt + 4) st.blinkAt = step + 60 + Math.floor(R('blink', step) * 90); },
@@ -406,6 +431,16 @@
           for (let k = 0; k < 10; k++) {
             const th = (k / 10) * TAU + 0.3;
             for (let r = 3 + t; r < 7 + t * 2.5; r++) p.px(cx + Math.cos(th) * r, cy + Math.sin(th) * r * 0.7, k % 2 ? 'glint' : 'o', 1 - t / 4);
+          }
+        }
+        // The blow drives her down: dust kicks out from her boots and a ring
+        // runs out along the ground.
+        if (bonking && a >= HIT && a < HIT + 6 && !calm) {
+          const t = a - HIT;
+          for (const s of [-1, 1]) {
+            p.px(WX + 9 + s * (8 + t * 2), BASE - 1 - (t > 1), 'f');
+            p.px(WX + 9 + s * (9 + t * 2), BASE - 2 - (t > 2), 'f', 0.6);
+            p.px(WX + 9 + s * (5 + t * 3), BASE - 1, 'o', 1 - t / 6);
           }
         }
         // Pumped: steam off her head.
@@ -512,7 +547,7 @@
     }
 
     drollery('promise', {
-      span: [2, 2, 78, 64],
+      span: [6, 3, 68, 66],
       h: 72,
       make: () => ({ x: HOME, face: 1, move: null, rest: 0, flyAt: -999, blinkAt: 40 }),
       // It won't let the pointer near: it hops back out of the way, and once
@@ -522,6 +557,7 @@
         if (st.move && step - st.move.at >= st.move.dur) {
           st.x = st.move.to;
           st.move = null;
+          st.landAt = step;
           st.rest = step + 6;
         }
         if (!pointer || st.move || step < st.rest || step - st.flyAt < FLY) return;
@@ -578,12 +614,17 @@
           near = -2.3 + shake;
           far = -1.75 - shake;
         } else if (!pointer && !calm && R('look', Math.floor(step / 120)) < 0.3) face = -1;
-        const bx = Math.round(x), by = BY0 - lift;
+        // Landing, it squashes for a couple of frames: after a hop, a flip over
+        // the pointer, or the leap at a click.
+        const land = step - (st.landAt ?? -99), leapEnd = f - 24;
+        const sq = calm ? 1 : (land >= 0 && land < 2) || (leapEnd >= 0 && leapEnd < 2) ? 0.88 : st.move && step - st.move.at < 1 ? 0.92 : 1;
+        const rowsB = sq === 1 ? BIRD : squash(BIRD, sq);
+        const bx = Math.round(x), by = BASE - rowsB.length - lift;
         const X = (v) => (face > 0 ? v : 2 * bx + BW - 1 - v);
         const sh = [bx + SHOULDER[0], by + SHOULDER[1]];
         if (far !== null) wing(p, [sh[0] + 3, sh[1] - 2], far, X, true, span);
         const eye = !calm && step - st.blinkAt >= 0 && step - st.blinkAt < 3 ? 'k' : 'b';
-        BIRD.forEach((row, j) => {
+        rowsB.forEach((row, j) => {
           for (let i = 0; i < BW; i++) {
             const ch = row[i];
             if (ch === '.') continue;

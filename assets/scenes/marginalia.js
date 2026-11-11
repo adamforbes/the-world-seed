@@ -23,8 +23,8 @@
 //   m-journey    a pilgrim who walks off and comes back with a souvenir
 //   m-narration  a fortune-teller whose fire smokes out pictures
 //   m-card       a face-down card that peeks, and flips to a random suit
-//   m-bonus      a stork with a swaddled bundle in its bill, which it drops,
-//                and out tumbles a second: twins
+//   m-bonus      a stork that sets down a swaddled baby, clatters its bill,
+//                and does a double-take when a twin pops out
 //   m-legacy     a statue that crumbles under a pigeon, then rises as one
 
 (function () {
@@ -69,6 +69,14 @@
     return rows.map((r) => r.padEnd(n, '.'));
   };
   const size = (a) => [a[0].length, a.length];
+  // A sprite squashed (k < 1) or stretched (k > 1) top to bottom, for squash
+  // and stretch: rows dropped from or doubled through its middle, so its top
+  // and bottom rows stay as they are.
+  function squash(rows, k) {
+    const h = rows.length, H = Math.max(2, Math.round(h * k));
+    if (H === h) return rows;
+    return Array.from({ length: H }, (_, j) => rows[j === 0 ? 0 : j === H - 1 ? h - 1 : Math.round((j * (h - 1)) / (H - 1))]);
+  }
 
   // Every figure is drawn at the same pixel size, so they sit together on
   // the page as one set.
@@ -193,12 +201,12 @@
   }
 
   // For the Era mascots in mascots.js, which are made the same way.
-  window.Margins = { drollery, art, size, R, W, INKS };
+  window.Margins = { drollery, art, size, squash, R, W, INKS };
 
   // ---------- Places: a mango tree ----------
 
   {
-    const BASE = 58, TRUNK = 30;
+    const BASE = 54, TRUNK = 30;
     const LOBES = [[30, 20, 10], [21, 27, 8], [39, 27, 8], [30, 30, 8], [24, 17, 6.5], [36, 17, 6.5]];
     const inCanopy = (x, y) => LOBES.some(([cx, cy, r]) => (x - cx) ** 2 + (y - cy) ** 2 < r * r);
     const CANOPY = [];
@@ -219,6 +227,21 @@
       ooor
       .or.
     `);
+    // Falling fast, stretched; landing, squashed flat.
+    const FALLING = art(`
+      ..#.
+      .oo.
+      .Go.
+      oooo
+      ooor
+      .or.
+    `);
+    const LANDED = art(`
+      ...#.
+      .ooo.
+      oGoooo
+      .ooorr
+    `);
     // Where fallen apples come to rest, outward from the trunk, a second row
     // on top once there are two to sit on.
     const PILE = {};
@@ -232,8 +255,8 @@
     }
 
     drollery('places', {
-      span: [2, 10, 60, 58],
-      h: 64,
+      span: [2, 10, 60, 54],
+      h: 60,
       make: () => ({ tree: SPOTS.map(() => -1), apples: [], claimed: { '-1': 0, 1: 0 }, leaves: [], shakeAt: -99 }),
       update(st, step, pointer) {
         if (st.leaves.length < 14 && R('fall', step) < (pointer ? 0.07 : 0.0025)) {
@@ -247,16 +270,24 @@
           a.y += a.vy;
           if (a.y >= a.sy) {
             a.y = a.sy;
-            if (!a.bounced && a.vy > 2) { a.vy = -a.vy * 0.3; a.bounced = true; }
+            a.hit = step;
+            if (!a.bounced && a.vy > 2) { a.vy = -a.vy * 0.35; a.bounced = true; }
             else { a.done = true; a.at = step; }
           }
           const k = a.bounced ? 1 : clamp((a.y - a.y0) / (a.sy - a.y0));
           a.x = lerp(a.x0, a.sx, k);
         }
         st.apples = st.apples.filter((a) => a.slot || !a.done || step - a.at < 24);
+        for (const l of st.leaves) if (l.vx && step >= l.born) { l.x += l.vx; l.vx *= 0.82; }
       },
+      // A click: the tree gathers itself, then shakes hard, flinging leaves,
+      // and a mango tugs at its stalk and drops.
       click(st, step) {
         st.shakeAt = step;
+        for (let k = 0; k < 7; k++) {
+          const [x, y] = CANOPY[Math.floor(R('fling', step, k) * CANOPY.length)];
+          st.leaves.push({ x, y, born: step + 3, land: (BASE - 1 - y) / 0.22, vx: (x < TRUNK ? -1 : 1) * (0.5 + R('flingv', step, k) * 0.7) });
+        }
         const ready = st.tree.map((back, i) => (step >= back ? i : -1)).filter((i) => i >= 0);
         if (!ready.length) return;
         const i = ready[Math.floor(R('pick', step) * ready.length)];
@@ -264,15 +295,21 @@
         const [x0, y0] = SPOTS[i];
         const side = x0 + 1 < TRUNK ? -1 : 1;
         const slot = PILE[side][st.claimed[side]++];
-        st.apples.push({ x0, y0, x: x0, y: y0, vy: 0, side, slot, sx: slot ? slot[0] : x0, sy: slot ? slot[1] : BASE - 5, born: step + 3 });
+        st.apples.push({ x0, y0, x: x0, y: y0, vy: 0, side, slot, sx: slot ? slot[0] : x0, sy: slot ? slot[1] : BASE - 5, born: step + 6, from: step });
       },
       draw(p, st, { step, calm, pointer }) {
         const shake = step - st.shakeAt;
+        // The shake: a lean back and a squash down to gather itself, a whip
+        // the other way, then a quick shudder dying away. Higher up sways more.
         const sway = (y) => {
           const w = (BASE - y) / 40;
-          if (shake < 16) return Math.round(Math.sin(shake * 1.9) * 2.4 * w * (1 - shake / 18));
-          return pointer && !calm ? Math.round(Math.sin(step * 0.55) * 0.9 * w) : 0;
+          if (calm) return 0;
+          if (shake < 3) return Math.round(-1.6 * w * (shake + 1) / 3);
+          if (shake < 26) return Math.round(Math.cos((shake - 3) * 1.25) * 5 * w * Math.exp(-(shake - 3) / 7));
+          return pointer ? Math.round(Math.sin(step * 0.55) * 0.9 * w) : 0;
         };
+        // The canopy squashes down as it gathers, and springs up on the whip.
+        const lift = calm ? 0 : shake < 3 ? 1 : shake < 5 ? -1 : 0;
         for (let y = 34; y < BASE; y++) {
           const half = y >= BASE - 1 ? 3 : y >= BASE - 3 ? 2 : 1;
           for (let x = TRUNK - half; x <= TRUNK + half; x++) p.px(x, y, '#');
@@ -283,19 +320,31 @@
         for (const [x, y, edge] of CANOPY) {
           if (edge && rustle && R('rustle', x, y, step >> 2) < 0.35) continue;
           if (hung.some(([ax, ay]) => x >= ax - 1 && x <= ax + 4 && y >= ay && y <= ay + 5)) continue;
-          p.px(x + sway(y), y, 'v');
+          p.px(x + sway(y), y + lift, 'v');
         }
         st.tree.forEach((back, i) => {
           const [x, y] = SPOTS[i];
           if (step >= back) {
-            p.line(x + 2 + sway(y - 2), y - 2, x + 2 + sway(y), y, '#');
-            p.sprite(APPLE, x + sway(y + 2), y, { map: { G: 'glint' } });
-          } else if (step >= back - 36) p.px(x + 1 + sway(y + 2), y + 2, 'o');
+            p.line(x + 2 + sway(y - 2), y - 2 + lift, x + 2 + sway(y), y + lift, '#');
+            p.sprite(APPLE, x + sway(y + 2), y + lift, { map: { G: 'glint' } });
+          } else if (step >= back - 36) p.px(x + 1 + sway(y + 2), y + 2 + lift, 'o');
         });
         // An apple with no room left on the pile fades where it lands.
-        for (const a of st.apples) if (step >= a.born) p.sprite(APPLE, Math.round(a.x), Math.round(a.y), { alpha: a.slot || !a.done ? 1 : 1 - (step - a.at) / 24, map: { G: 'glint' } });
+        for (const a of st.apples) {
+          // Before it drops it tugs at its stalk, stretching it.
+          if (step < a.born) {
+            const t = step - a.from, tug = t >= 3 ? (t % 2 ? 1 : 0) + 1 : 0;
+            p.line(a.x0 + 2 + sway(a.y0 - 2), a.y0 - 2, a.x0 + 2 + sway(a.y0), a.y0 + tug, '#');
+            p.sprite(APPLE, a.x0 + sway(a.y0 + 2), a.y0 + tug, { map: { G: 'glint' } });
+            continue;
+          }
+          const sprite = a.hit !== undefined && step - a.hit < 2 ? LANDED : a.vy > 1.5 ? FALLING : APPLE;
+          const [, sh] = size(sprite);
+          p.sprite(sprite, Math.round(a.x) - (sprite === LANDED ? 1 : 0), Math.round(a.y) + 5 - sh, { alpha: a.slot || !a.done ? 1 : 1 - (step - a.at) / 24, map: { G: 'glint' } });
+        }
         for (const l of st.leaves) {
           const age = step - l.born, t = Math.min(age, l.land);
+          if (age < 0) continue;
           const x = l.x + Math.sin(t * 0.12 + l.x) * 2.5, y = l.y + t * 0.22;
           const alpha = clamp(1 - (age - l.land) / 70);
           p.px(x, y, 'v', alpha);
@@ -359,7 +408,7 @@
     const CAST = 50, REACH = 26;
 
     drollery('gods', {
-      span: [14, 2, 69, 60],
+      span: [15, 1, 68, 59],
       h: 64,
       make: () => ({ blinkAt: 40, castAt: -999 }),
       update(st, step) {
@@ -367,11 +416,23 @@
       },
       click(st, step) { if (step - st.castAt > CAST) st.castAt = step; },
       draw(p, st, { step, calm, pointer }) {
-        const a = step - st.castAt, casting = a >= 0 && a < CAST;
+        const a = step - st.castAt, casting = a >= 0 && a < CAST && !calm;
         const bob = calm ? 0 : Math.round(Math.sin((step / 84) * TAU) * 2);
-        const lift = casting ? Math.round(2 * smooth(clamp(a / 8)) * (1 - smooth(clamp((a - 34) / 12)))) : 0;
+        // The miracle, keyed: it sinks and squashes, gathering power, then
+        // shoots up stretched past its mark, hovers trembling, and comes down,
+        // dipping past rest before it settles.
+        const KEYS = [[0, 0], [4, -2], [7, 5], [11, 2], [34, 2], [44, -1], [48, 0]];
+        let lift = 0, k = 1;
+        if (casting) {
+          let n = 0;
+          while (n < KEYS.length - 2 && KEYS[n + 1][0] <= a) n++;
+          const [f0, v0] = KEYS[n], [f1, v1] = KEYS[n + 1];
+          lift = Math.round(lerp(v0, v1, smooth(clamp((a - f0) / (f1 - f0)))));
+          k = a < 4 ? 1 - 0.12 * (a / 4) : a < 9 ? 1.12 : a < 12 ? lerp(1.12, 1, (a - 9) / 3) : a >= 43 && a < 46 ? 0.92 : 1;
+        }
         const tremble = casting && a > 3 && a < 26 ? (step % 2 ? 1 : -1) : 0;
-        const hx = 28 + tremble, hy = 12 + bob - lift;
+        const rows = k === 1 ? HAND : squash(HAND, k), grow = rows.length - HAND.length;
+        const hx = 28 + tremble, hy = 12 + bob - lift - grow;
         const cx = hx + CX, cy = hy + CY;
         const burst = casting && a >= 8 && a < 38 ? a - 8 : -1;
 
@@ -394,17 +455,19 @@
           }
         }
         // Its shadow on the line, smaller as it rises.
-        const sw = 8 - bob - lift * 2;
+        const sw = Math.max(2, 8 - bob - lift * 2);
         for (let x = -sw; x <= sw; x++) p.px(cx + x, 58, 'f', Math.abs(x) > sw - 2 ? 0.5 : 1);
 
         const burning = burst >= 0 && burst < 16 && (burst < 8 || step % 2 === 0);
-        p.sprite(HAND, hx, hy, burning ? { map: { '#': 'r' } } : {});
+        p.sprite(rows, hx, hy, burning ? { map: { '#': 'r' } } : {});
 
         // The eye: lids for blinks, an iris that follows the pointer, rolling
         // back for the miracle.
         let dx = 0, dy = 0, lid = 0;
         if (casting) {
-          dy = a < 8 ? -Math.round(a * 0.7) : a < 36 ? -6 : -Math.round(6 - (a - 36) * 0.45);
+          // A squint as it gathers itself, then the eye rolls back.
+          if (a < 4) lid = 1;
+          dy = a < 4 ? 0 : a < 8 ? -Math.round((a - 3) * 1.5) : a < 36 ? -6 : -Math.round(6 - (a - 36) * 0.45);
         } else if (pointer) {
           dx = clamp(Math.round((pointer[0] - cx) / 6), -3, 3);
           dy = clamp(Math.round((pointer[1] - cy) / 8), -2, 2);
@@ -419,7 +482,7 @@
           let ink = ch === 'w' ? whites : '#';
           if (ch === 'w' && LIDS[lid] && LIDS[lid][j]) ink = LIDS[lid][j];
           else if (ch === 'w' && Math.abs(i - (4 + dx)) <= 1 && Math.abs(j - (3 + dy)) <= 1) ink = i === 4 + dx && j === 3 + dy ? '#' : 'b';
-          p.px(hx + EX + i, hy + EY + j, ink);
+          p.px(hx + EX + i, hy + Math.round(EY * k) + j, ink);
         }));
 
         // Sparks thrown off.
@@ -567,37 +630,78 @@
       },
     ];
 
+    // The shuffle, choreographed: each gnome that moves crouches, then
+    // leapfrogs to its new place, the one going furthest jumping highest
+    // over the others, stretched in the air with its hat trailing, and lands
+    // with a squash and a puff of dust. They go one after another.
+    const CROUCH = 3, STAGGER = 5;
+    const hopLen = (d) => Math.round(5 + Math.abs(d) / 5);
+    // Where gnome i is at frame a of a shuffle: x, how high, its squash, and
+    // how far its hat trails.
+    function hopAt(st, i, a) {
+      const x0 = st.from[i], x1 = st.to[i], d = x1 - x0;
+      if (!d) return { x: x0, y: 0, k: 1, hat: 0 };
+      const t0 = st.delay[i], D = hopLen(d), u = a - t0;
+      if (u < 0) return { x: x0, y: 0, k: 1, hat: 0 };
+      if (u < CROUCH) return { x: x0, y: 0, k: 0.9, hat: 0 };
+      const f = (u - CROUCH) / D;
+      if (f < 1) {
+        const h = Math.min(8, 3 + Math.abs(d) * 0.16);
+        return { x: lerp(x0, x1, smooth(f)), y: -Math.sin(f * Math.PI) * h, k: f < 0.35 || f > 0.7 ? 1.06 : 1, hat: -Math.sign(d) * (f < 0.8 ? 1 : 0) };
+      }
+      const l = u - CROUCH - D;
+      return { x: x1, y: 0, k: l < 2 ? 0.87 : l < 3 ? 1.04 : 1, hat: l < 2 ? Math.sign(d) : 0, land: l };
+    }
+    const shuffling = (st, a) => st.delay && a < Math.max(...st.to.map((x, i) => st.delay[i] + CROUCH + hopLen(x - st.from[i]) + 4));
+
     drollery('peoples', {
-      span: [8, 6, 72, 46],
+      span: [5, 5, 76, 46],
       h: 52,
-      make: () => ({ at: SLOTS.slice(), to: SLOTS.slice(), order: [0, 1, 2], moves: 0 }),
-      update(st) {
-        st.at = st.at.map((x, i) => (Math.abs(st.to[i] - x) < 1.6 ? st.to[i] : x + Math.sign(st.to[i] - x) * 1.5));
+      make: () => ({ at: SLOTS.slice(), from: SLOTS.slice(), to: SLOTS.slice(), delay: null, order: [0, 1, 2], moves: 0, t: -999 }),
+      update(st, step) {
+        if (st.delay && !shuffling(st, step - st.t)) { st.at = st.to.slice(); st.delay = null; }
       },
       click(st, step) {
-        if (st.at.some((x, i) => x !== st.to[i])) return;
+        if (st.delay) return;
         const perms = [[0, 1, 2], [0, 2, 1], [1, 0, 2], [1, 2, 0], [2, 0, 1], [2, 1, 0]].filter((q) => q.join() !== st.order.join());
         st.order = perms[Math.floor(R('shuffle', step, st.moves++) * perms.length)];
+        st.from = st.at.slice();
         st.to = st.order.map((s) => SLOTS[s]);
+        // The one with furthest to go goes first.
+        const by = [0, 1, 2].sort((a, b) => Math.abs(st.to[b] - st.from[b]) - Math.abs(st.to[a] - st.from[a]));
+        st.delay = [0, 0, 0];
+        by.forEach((g, n) => { st.delay[g] = n * STAGGER; });
+        st.t = step;
       },
       draw(p, st, { step, calm, pointer }) {
-        GNOMES.forEach((g, i) => {
-          const x = st.at[i], walking = x !== st.to[i];
+        const a = step - st.t, moving = !!st.delay;
+        // Highest in the air drawn last, so leaps go over.
+        const order = [0, 1, 2].map((i) => [i, moving ? hopAt(st, i, a) : { x: st.at[i], y: 0, k: 1, hat: 0 }]).sort((A, B) => B[1].y - A[1].y);
+        for (const [i, m] of order) {
+          const g = GNOMES[i], d = st.to[i] - st.from[i];
           let face = g.face;
-          if (walking) face = Math.sign(st.to[i] - x);
-          else if (pointer) face = pointer[0] >= x ? 1 : -1;
+          if (moving && d) face = Math.sign(d);
+          else if (pointer) face = pointer[0] >= m.x ? 1 : -1;
           else if (!calm && R('glance', i, Math.floor(step / 150)) < 0.3) face = -g.face;
-          let rows = g.art, y = 0;
-          if (walking) y = Math.floor(step / 3) % 2 ? -2 : 0;
-          else if (!calm) {
+          let rows = g.art, y = Math.round(m.y);
+          if (!moving && !calm) {
             if (i === 0) { const k = (step + 20) % 110; if (k < 10) y = -Math.round(Math.sin((k / 10) * Math.PI) * 6); }
             if (i === 1 && step % 90 < 30 && (step >> 2) % 2) rows = [...rows.slice(0, -4), ...g.tap];
             if (i === 2 && (step >> 4) % 2) rows = [...g.tip, ...rows.slice(6)];
           }
+          if (m.k !== 1) rows = squash(rows, m.k);
           const [w, h] = size(rows);
           const lamp = calm || R('lamp', step >> 1) > 0.3 ? 'o' : 'r';
-          p.sprite(rows, Math.round(x) - (w >> 1), BASE - h + y, { flip: face < 0, map: { H: g.hat, l: lamp } });
-        });
+          const x0 = Math.round(m.x) - (w >> 1), y0 = BASE - h + y;
+          // The hat, the rows above the brim, trails behind a leap.
+          const brim = rows.findIndex((r) => r.includes('#'));
+          rows.forEach((row, j) => p.sprite([row], x0 + (j < brim ? m.hat * (j < brim / 2 ? 2 : 1) : 0), y0 + j, { flip: face < 0, map: { H: g.hat, l: lamp } }));
+          // A puff of dust where it lands.
+          if (m.land !== undefined && m.land < 4 && !calm) for (const s of [-1, 1]) {
+            p.px(m.x + s * (w / 2 + m.land), BASE - 1 - (m.land > 1), 'f');
+            p.px(m.x + s * (w / 2 + m.land + 1), BASE - 2, 'f', 0.6);
+          }
+        }
       },
     });
   }
@@ -659,28 +763,49 @@
       rrrrr
       ..rr.
     `)];
-    const KX = 23, KY = 14, TUCK = 16;
+    const KX = 23, KY = 14, TUCK = 16, PLANT = 6;
+    // The lance from couched (u = 0) to planted (u = 1): swung upright close in
+    // front of the knight and lifted clear of the ground, then driven straight
+    // down into it, fast. Where its butt is and the angle it points.
+    const LANCE = { butt: [KX + 10, KY + 8], len: Math.hypot(27, 17), th: Math.atan2(-17, 27) };
+    const RAISED = [KX + 13, BASE - 13];
+    function lanceAt(u) {
+      const r = smooth(clamp(u / 0.6)), s = clamp((u - 0.6) / 0.4) ** 2;
+      return {
+        butt: [lerp(LANCE.butt[0], RAISED[0], r), lerp(LANCE.butt[1], RAISED[1], r) + (BASE - 1 - RAISED[1]) * s],
+        th: lerp(LANCE.th, -Math.PI / 2, r), r,
+      };
+    }
     // The helm on the knight's head (t = 0) and tucked under their arm (t = 1).
     const HEAD = [KX + 2, KY], ARM = [KX + 6, KY + 8];
+    // It's tugged down a pixel first, then pops up past where it settles.
     function helmAt(t) {
-      if (t < 0.3) return [HEAD[0], HEAD[1] - Math.round((t / 0.3) * 3)];
+      if (t < 0.1) return [HEAD[0], HEAD[1] + 1];
+      if (t < 0.3) { const u = (t - 0.1) / 0.2; return [HEAD[0], HEAD[1] - Math.round(u < 0.6 ? (u / 0.6) * 5 : 5 - ((u - 0.6) / 0.4) * 2)]; }
       const u = smooth((t - 0.3) / 0.7);
       return [Math.round(lerp(HEAD[0], ARM[0], u) + Math.sin(u * Math.PI) * 3), Math.round(lerp(HEAD[1] - 3, ARM[1], u))];
     }
 
-    // An eyestalk from its base, leaning toward the pointer.
-    function stalk(p, bx, by, len, pointer, ox) {
+    // An eyestalk from its base, leaning toward the pointer (or whatever it's
+    // looking at), its eye squinted shut for a blink.
+    function stalk(p, bx, by, len, pointer, ox, shut = false) {
       let tx = bx + ox, ty = by - len;
       if (pointer) {
         const vx = pointer[0] - bx, vy = pointer[1] - (by - len), m = Math.hypot(vx, vy) || 1;
         tx = bx + Math.round((vx / m) * 3); ty = by - len + Math.round((vy / m) * 2);
       }
       p.line(bx, by, tx, ty, '#');
-      p.px(tx, ty, '#'); p.px(tx + 1, ty, '#'); p.px(tx, ty - 1, '#'); p.px(tx + 1, ty - 1, '#');
+      p.px(tx, ty, '#'); p.px(tx + 1, ty, '#');
+      if (!shut) { p.px(tx, ty - 1, '#'); p.px(tx + 1, ty - 1, '#'); }
     }
+    // When the helm comes off, the mount turns its eyes back to its rider,
+    // holds the look, blinks slowly, and turns forward again: when it's
+    // looking, and how far round (0 to 1).
+    const RIDER = [KX + 4, KY + 3], GLANCE = [12, 18, 46, 52], BLINK = [32, 36];
+    const glance = (a) => (a < GLANCE[0] || a >= GLANCE[3] ? 0 : a < GLANCE[1] ? (a - GLANCE[0]) / (GLANCE[1] - GLANCE[0]) : a < GLANCE[2] ? 1 : 1 - (a - GLANCE[2]) / (GLANCE[3] - GLANCE[2]));
 
     drollery('actors', {
-      span: [11, 4, 62, 50],
+      span: [12, 2, 61, 51],
       h: 56,
       make: () => ({ off: false, at: -999 }),
       click(st, step) {
@@ -689,10 +814,25 @@
         st.at = step;
       },
       draw(p, st, { step, calm, pointer }) {
+        // The whole mount jolts down a pixel as the lance bites, and again as
+        // the helm clunks back on.
+        const a0 = step - st.at;
+        const jolt = !calm && ((st.off && a0 >= PLANT && a0 < PLANT + 2) || (!st.off && a0 >= TUCK - 1 && a0 < TUCK + 1)) ? 1 : 0;
+        const all = p.capture(() => this.scene(p, st, { step, calm, pointer }));
+        for (const [x, y, ink, al] of all) p.px(x, y + (ink === 'f' && y >= BASE - 2 ? 0 : jolt), ink, al);
+      },
+      scene(p, st, { step, calm, pointer }) {
         const d = calm ? 0 : Math.floor(step / 36) % 2;
         p.region(inBody(d), [10, 34, 56, 49], 'f', '#');
-        stalk(p, 47 + d, 35, 6, pointer, -1);
-        stalk(p, 51 + d, 35, 6, pointer, 1);
+        const a = step - st.at, w = st.off && !calm ? smooth(glance(a)) : 0;
+        const shut = w === 1 && a >= BLINK[0] && a < BLINK[1];
+        for (const [bx, ox] of [[47 + d, -1], [51 + d, 1]]) {
+          // Turning round, it looks at a point slid from where it was looking
+          // over to the rider.
+          const from = pointer || [bx + ox * 6, 35 - 40];
+          const look = w > 0 ? [lerp(from[0], RIDER[0], w), lerp(from[1], RIDER[1], w)] : pointer;
+          stalk(p, bx, 35, 6, look, ox, shut);
+        }
         p.region(inShell, [20, 26, 40, 46], 'g', '#');
         for (let th = 0.4; th < 13; th += 0.04) {
           const r = 0.6 + th * 0.62;
@@ -708,16 +848,28 @@
           const t = i / 40, u = 1 - t;
           p.px(u * u * (KX + 10) + 2 * u * t * 40 + t * t * (46 + d), u * u * (KY + 10) + 2 * u * t * 41 + t * t * 41, '#');
         }
-        // The lance and its pennant.
-        p.line(KX + 10, KY + 8, KX + 37, KY - 9, '#');
-        p.sprite(PENNANT[calm ? 0 : (step >> 3) % 2], KX + 29, KY - 6);
+        // The lance and its pennant: couched up to the right, or, while the
+        // helm is off, stabbed upright into the ground in front of the knight.
+        // It's planted in a few frames as the helm comes off, and pulled up and
+        // couched again as the helm goes back on.
+        const u = st.off ? clamp(a / PLANT) : 1 - clamp((a - (TUCK - PLANT)) / PLANT);
+        const { butt, th, r } = lanceAt(u);
+        const tip = [butt[0] + Math.cos(th) * LANCE.len, butt[1] + Math.sin(th) * LANCE.len];
+        p.line(butt[0], butt[1], tip[0], tip[1], '#');
+        p.sprite(PENNANT[calm ? 0 : (step >> 3) % 2], Math.round(tip[0] + lerp(-8, 1, r)), Math.round(tip[1] + lerp(3, 1, r)));
+        // A puff of dust where it bites in.
+        if (st.off && a >= PLANT - 1 && a < PLANT + 3) {
+          const k = a - PLANT + 1;
+          for (const ox of [-1 - k, 1 + k]) p.px(RAISED[0] + ox, BASE - 1 - (k > 1), 'f');
+        }
         p.sprite(KNIGHT, KX, KY + 7);
         // The helm comes off and goes under an arm: under it, another snail.
         // A second click puts it back on.
         const k = smooth(clamp((step - st.at) / TUCK)), t = st.off ? k : 1 - k;
         if (t > 0.05) {
           p.sprite(SNAILHEAD, KX + 2, KY + 2);
-          const len = Math.round(6 * clamp((t - 0.35) / 0.35));
+          // Its eyestalks spring out, overshooting a little.
+          const e = clamp((t - 0.35) / 0.35), len = Math.round(6 * (e < 1 ? e * (1 + 0.5 * Math.sin(e * Math.PI)) : 1));
           if (len > 1) { stalk(p, KX + 3, KY + 2, len, pointer, -1); stalk(p, KX + 6, KY + 2, len, pointer, 1); }
         }
         p.sprite(HELM, ...helmAt(t));
@@ -728,7 +880,7 @@
   // ---------- Nations: a flag ----------
 
   {
-    const BASE = 58, POLE = 26, HX = 27, HY = 11, FW = 26, FH = 15;
+    const BASE = 50, POLE = 26, HX = 27, HY = 11, FW = 26, FH = 15;
     const EMBLEMS = {
       crown: art(`
         E..E..E
@@ -815,11 +967,13 @@
         emblem: names[Math.floor(R('emblem', n) * names.length)],
       };
     };
-    const STRIKE = 84;
+    // A held breath first: the wind stops dead and the flag freezes for a
+    // beat before the bolt.
+    const PRE = 5, STRIKE = 84 + PRE;
 
     drollery('nations', {
-      span: [10, 0, 66, 58],
-      h: 64,
+      span: [7, 0, 70, 50],
+      h: 56,
       make: () => ({ design: { field: 'r', pattern: 'plain', emblem: 'crown' }, e: 0, strike: null, flags: 0 }),
       update(st, step, pointer) {
         const stir = (step % 110) < 16 ? 0.16 : 0;
@@ -837,8 +991,15 @@
         st.strike = { born: step, e: st.e, hit: Math.max(3, L - 2), next: pickDesign(st.design, ++st.flags) };
       },
       draw(p, st, { step, calm }) {
-        for (const [y, x0, x1] of [[57, 21, 31], [56, 23, 29], [55, 25, 27]]) for (let x = x0; x <= x1; x++) p.px(x, y, y === 55 || x === x0 || x === x1 ? '#' : 'f');
-        for (let y = 9; y < 55; y++) p.px(POLE, y, '#');
+        // The strike shakes everything for a few frames.
+        const a = st.strike ? step - st.strike.born - PRE : -99;
+        const shake = !calm && a >= 0 && a < 6 ? [2, -2, 1, -1, 1, 0][a] : 0;
+        const all = p.capture(() => this.scene(p, st, { step, calm }));
+        for (const [x, y, ink, al] of all) p.px(x + shake, y, ink, al);
+      },
+      scene(p, st, { step, calm }) {
+        for (const [y, x0, x1] of [[49, 21, 31], [48, 23, 29], [47, 25, 27]]) for (let x = x0; x <= x1; x++) p.px(x, y, y === 47 || x === x0 || x === x1 ? '#' : 'f');
+        for (let y = 9; y < 47; y++) p.px(POLE, y, '#');
         p.sprite(art(`
           .g.
           ggg
@@ -855,7 +1016,12 @@
           flag(p, st.design, calm ? 0 : st.e, step);
           return;
         }
-        const a = step - s.born, hx = HX + s.hit, hy = HY + 6;
+        const a = step - s.born - PRE, hx = HX + s.hit, hy = HY + 6;
+        if (a < 0) {
+          flag(p, st.design, s.e, s.born);
+          if (a === -1) p.glow(hx, hy, 18, 'g', 0.15);
+          return;
+        }
         // The bolt: a thick, forked zigzag from off the top of the frame to the
         // ground, through the end of the flag.
         if (a < 5 && a !== 2) {
@@ -897,9 +1063,13 @@
           for (const [ox, oy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) p.px(x + ox, y + oy, 'f', 1 - t / 40);
         }
         // The new flag goes up the pole.
+        // The new flag is hauled up the pole hand over hand, in four quick
+        // pulls, and at the top it snaps out once and falls back.
         if (a >= 44) {
-          const k = smooth(clamp((a - 44) / 30));
-          flag(p, s.next, 0, step, Math.round(lerp(40, HY, k)));
+          const u = clamp((a - 44) / 28) * 4, pull = Math.min(3, Math.floor(u));
+          const k = u >= 4 ? 1 : (pull + 1 - (1 - clamp((u - pull) / 0.4)) ** 3) / 4;
+          const top = a - 72, e = top < 0 ? 0 : Math.max(0, Math.sin((top / 12) * Math.PI) * 0.8);
+          flag(p, s.next, calm ? 0 : e, step, Math.round(lerp(30, HY, k)));
         }
       },
     });
@@ -908,45 +1078,42 @@
   // ---------- Qualities & Relationships: a portrait that is repainted ----------
 
   {
-    const BASE = 61, NAIL = [39.5, 2];
+    const BASE = 53, NAIL = [39.5, 2];
     // The portrait inside its frame, and the frame and plaque round it.
-    const PX = 28, PY = 13, PW = 24, PH = 30;
-    const FX0 = PX - 4, FY0 = PY - 4, FX1 = PX + PW + 3, FY1 = PY + PH + 3;
-    const PLAQUE = [25, 49, 54, 57];
+    const PX = 30, PY = 10, PW = 20, PH = 27;
+    const FX0 = PX - 3, FY0 = PY - 3, FX1 = PX + PW + 2, FY1 = PY + PH + 2;
+    const PLAQUE = [24, 42, 55, 49];
     // A head and shoulders against a background (B): hair (H), skin, eyes
     // (E, drawn on their own so they can follow you), a mouth (M), a robe
     // (R) and its collar (C).
     const BUST = art(`
-      BBBBBBBBBBBBBBBBBBBBBBBB
-      BBBBBBBBBBBBBBBBBBBBBBBB
-      BBBBBBBBBBBBBBBBBBBBBBBB
-      BBBBBBBBBBBBBBBBBBBBBBBB
-      BBBBBBBBBBBBBBBBBBBBBBBB
-      BBBBBBBBBBBBBBBBBBBBBBBB
-      BBBBBBBBB######BBBBBBBBB
-      BBBBBBB##HHHHHH##BBBBBBB
-      BBBBBB#HHHHHHHHHH#BBBBBB
-      BBBBBB#HppppppppH#BBBBBB
-      BBBBBB#pppppppppp#BBBBBB
-      BBBBBB#p###pp###p#BBBBBB
-      BBBBBB#pEEEppEEEp#BBBBBB
-      BBBBBB#pEEEppEEEp#BBBBBB
-      BBBBBB#ppppp#pppp#BBBBBB
-      BBBBBB#pppp##pppp#BBBBBB
-      BBBBBB#pppppppppp#BBBBBB
-      BBBBBBB#ppMMMMpp#BBBBBBB
-      BBBBBBB#pppppppp#BBBBBBB
-      BBBBBBBB#pppppp#BBBBBBBB
-      BBBBBBBBB#pppp#BBBBBBBBB
-      BBBBBBBBBB#pp#BBBBBBBBBB
-      BBBBBB##CCCCCCCC##BBBBBB
-      BBBB##RRCCCCCCCCRR##BBBB
-      BBB#RRRRRCCCCCCRRRRR#BBB
-      BB#RRRRRRRCCCCRRRRRRR#BB
-      B#RRRRRRRRRCCRRRRRRRRR#B
-      B#RRRRRRRRRRRRRRRRRRRR#B
-      #RRRRRRRRRRRRRRRRRRRRRR#
-      #RRRRRRRRRRRRRRRRRRRRRR#
+      BBBBBBBBBBBBBBBBBBBB
+      BBBBBBBBBBBBBBBBBBBB
+      BBBBBBBBBBBBBBBBBBBB
+      BBBBBBBBBBBBBBBBBBBB
+      BBBBBBBBBBBBBBBBBBBB
+      BBBBBBB######BBBBBBB
+      BBBBB##HHHHHH##BBBBB
+      BBBB#HHHHHHHHHH#BBBB
+      BBBB#HppppppppH#BBBB
+      BBBB#pppppppppp#BBBB
+      BBBB#p###pp###p#BBBB
+      BBBB#pEEEppEEEp#BBBB
+      BBBB#pEEEppEEEp#BBBB
+      BBBB#ppppp#pppp#BBBB
+      BBBB#pppp##pppp#BBBB
+      BBBB#pppppppppp#BBBB
+      BBBBB#ppMMMMpp#BBBBB
+      BBBBB#pppppppp#BBBBB
+      BBBBBB#pppppp#BBBBBB
+      BBBBBBB#pppp#BBBBBBB
+      BBBBBBBB#pp#BBBBBBBB
+      BBBB##CCCCCCCC##BBBB
+      BB##RRCCCCCCCCRR##BB
+      B#RRRRRCCCCCCRRRRR#B
+      #RRRRRRRCCCCRRRRRRR#
+      RRRRRRRRRCCRRRRRRRRR
+      RRRRRRRRRRRRRRRRRRRR
     `);
     // Painted over the bust: the king's crown and beard, the tyrant's spiky
     // crown and scowl, the saint's hands at prayer, and the chalk a vandal
@@ -1015,10 +1182,10 @@
     // the same sitter, repainted: the Wise king, the Holy saint, the Cruel
     // tyrant, and that tyrant's portrait defaced once they had Fallen.
     const SITTERS = [
-      { word: 'WISE', art: stamp(BUST, [[CROWN, 7, 2], [BEARD, 6, 16, { D: 'w' }]]), map: { B: 'v', H: 'w', R: 'r', C: 'w', M: 'm' }, eye: 'w', pupil: '#' },
-      { word: 'HOLY', art: stamp(BUST, [[PRAYER, 10, 24]]), map: { B: 'b', H: 'm', R: 'm', C: 'w', M: 'm' }, eye: 'w', pupil: '#', halo: true, up: true },
-      { word: 'CRUEL', art: stamp(BUST, [[SPIKES, 6, 1], [BEARD, 6, 16, { D: 'k' }], [SCOWL, 6, 10]]), map: { B: 'r', H: 'k', R: 'k', C: 'g', M: '#', '#': 'e' }, eye: 'k', pupil: 'r' },
-      { word: 'FALLEN', art: stamp(BUST, [[BEARD, 6, 16, { D: 'k' }], [SCOWL, 6, 10], [HORNS, 4, 1], [MOUSTACHE, 6, 14]]), map: { B: 'r', H: 'k', R: 'k', C: 'g', M: '#', '#': 'e' }, eye: 'k', pupil: 'r', torn: true },
+      { word: 'WISE', art: stamp(BUST, [[CROWN, 5, 1], [BEARD, 4, 15, { D: 'w' }]]), map: { B: 'v', H: 'w', R: 'r', C: 'w', M: 'm' }, eye: 'w', pupil: '#' },
+      { word: 'HOLY', art: stamp(BUST, [[PRAYER, 8, 21]]), map: { B: 'b', H: 'm', R: 'm', C: 'w', M: 'm' }, eye: 'w', pupil: '#', halo: true, up: true },
+      { word: 'CRUEL', art: stamp(BUST, [[SPIKES, 4, 0], [BEARD, 4, 15, { D: 'k' }], [SCOWL, 4, 9]]), map: { B: 'r', H: 'k', R: 'k', C: 'g', M: '#', '#': 'e' }, eye: 'k', pupil: 'r' },
+      { word: 'FALLEN', art: stamp(BUST, [[BEARD, 4, 15, { D: 'k' }], [SCOWL, 4, 9], [HORNS, 2, 0], [MOUSTACHE, 4, 13]]), map: { B: 'r', H: 'k', R: 'k', C: 'g', M: '#', '#': 'e' }, eye: 'k', pupil: 'r', torn: true },
     ];
     // A tiny capital alphabet, for the plaque.
     const FONT = {
@@ -1041,7 +1208,7 @@
     // The sitter, pixel by pixel, keeping only the rows `keep` allows.
     function sitter(p, s, look, keep = () => true) {
       const put = (x, y, ink) => { if (keep(y)) p.px(x, y, ink); };
-      const [hx, hy] = [PX + 11.5, PY + 9];
+      const [hx, hy] = [PX + 9.5, PY + 8];
       s.art.forEach((row, j) => [...row].forEach((ch, i) => {
         if (s.torn && torn(i, j)) return;
         const x = PX + i, y = PY + j;
@@ -1052,7 +1219,7 @@
           if (d < 9.5) return put(x, y, d > 8.5 ? '#' : 'o');
         }
         if (ch === 'E') {
-          const [ex, ey] = [i < 12 ? i - 8 : i - 13, j - 12];
+          const [ex, ey] = [i < 10 ? i - 6 : i - 11, j - 11];
           let c = s.eye;
           if (look.shut) c = ey === 1 ? '#' : 'p';
           else if (ex === look.x && (look.y === null || look.y === ey)) c = s.pupil;
@@ -1071,8 +1238,8 @@
       p.line(NAIL[0] + 1, NAIL[1] + 1, FX1 - 5, FY0 - 1, 'f');
       for (let y = FY0; y <= FY1; y++) for (let x = FX0; x <= FX1; x++) {
         const d = Math.min(x - FX0, FX1 - x, y - FY0, FY1 - y);
-        if (d > 3) continue;
-        if (d === 0 || d === 3) p.px(x, y, '#');
+        if (d > 2) continue;
+        if (d === 0 || d === 2) p.px(x, y, '#');
         else if (d === 1) p.px(x, y, (x + y) % 3 === 0 ? 'o' : 'g');
         else p.px(x, y, 'g');
       }
@@ -1087,14 +1254,15 @@
       .#oo#.
       #oggo#
     `);
-    const REPAINT = 14, SWING = 30, NAILED = art(`
+    const EASE_OUT = (t) => 1 - (1 - t) ** 3;
+    const REPAINT = 22, SWING = 30, NAILED = art(`
       ee
       ee
     `);
 
     drollery('qualities', {
-      span: [19, 0, 60, 59],
-      h: 64,
+      span: [23, 1, 61, 50],
+      h: 56,
       make: () => ({ at: 0, was: 0, paintAt: -999, blinkAt: 50 }),
       update(st, step) { if (step > st.blinkAt + 3) st.blinkAt = step + 60 + Math.floor(R('blink', step) * 90); },
       click(st, step) {
@@ -1104,34 +1272,46 @@
         st.paintAt = step;
       },
       draw(p, st, { step, calm, pointer }) {
-        const a = step - st.paintAt, painting = a >= 0 && a < REPAINT;
+        // A repaint: the brush comes in from the side, pulls back and dives;
+        // three quick strokes, each with a beat's pause, paint it top to
+        // bottom; then a flick off, which sets the frame swinging.
+        const a = step - st.paintAt, painting = a >= 0 && a < REPAINT && !calm;
+        const DIVE = 4, STROKES = 3, STROKE = 5, FLICK = DIVE + STROKES * STROKE;
+        const sN = Math.min(STROKES - 1, Math.floor((a - DIVE) / STROKE)), sF = (a - DIVE) - sN * STROKE;
+        const done = a < DIVE ? 0 : a >= FLICK ? 1 : (sN + Math.min(1, sF / 3)) / STROKES;
         const now = SITTERS[st.at], before = SITTERS[st.was];
         // Its eyes watch you, and follow the pointer; the saint's are raised
         // to heaven until you come near.
         const look = { x: 1, y: now.up ? 0 : null, shut: !calm && !painting && step - st.blinkAt >= 0 && step - st.blinkAt < 3 };
         if (pointer) {
-          const dx = pointer[0] - (PX + 11.5), dy = pointer[1] - (PY + 12.5);
+          const dx = pointer[0] - (PX + 9.5), dy = pointer[1] - (PY + 11.5);
           look.x = dx < -5 ? 0 : dx > 5 ? 2 : 1;
           look.y = dy < -6 ? 0 : dy > 6 ? 1 : null;
         }
+        // The old sitter watches the brush coming for them.
+        const wary = { x: 1, y: 0, shut: false };
         // A click: a brush repaints it top to bottom, and the frame swings
         // on its cord.
-        const wipe = PY + Math.floor(smooth(clamp(a / REPAINT)) * PH);
+        const wipe = PY + Math.floor(done * PH);
         const list = p.capture(() => {
           frame(p);
-          if (painting) {
-            sitter(p, before, look, (y) => y >= wipe);
+          if (painting && a < FLICK) {
+            sitter(p, before, wary, (y) => y >= wipe);
             sitter(p, now, look, (y) => y < wipe);
-          } else sitter(p, now, look);
+          } else sitter(p, painting || a < 0 || a >= REPAINT ? now : now, look);
         });
-        const th = !calm && a >= 0 && a < SWING ? 0.07 * Math.sin(a * 0.55) * (1 - a / SWING) : 0;
+        const sw = a - FLICK;
+        const th = !calm && sw >= 0 && sw < SWING ? 0.09 * Math.sin(sw * 0.55) * (1 - sw / SWING) : 0;
         p.turn(list, NAIL[0], NAIL[1], th);
         p.sprite(NAILED, Math.round(NAIL[0]) - 1, NAIL[1] - 1);
         if (painting) {
-          // The brush, zigzagging down: bristles in the new colour, a
-          // ferrule and a handle.
-          const u = (a / REPAINT) * 3, zig = u % 2 < 1 ? u % 1 : 1 - (u % 1);
-          const bx = Math.round(PX + 2 + zig * (PW - 5)), by = Math.min(wipe, PY + PH - 1);
+          // The brush: bristles in the new colour, a ferrule and a handle.
+          let bx, by;
+          if (a < DIVE) { bx = [PX + PW + 5, PX + PW + 6, PX + PW + 8, PX + 2][a]; by = PY + [5, 5, 4, 0][a]; }
+          else if (a < FLICK) {
+            const f = Math.min(1, sF / 3), across = sN % 2 ? 1 - f : f;
+            bx = Math.round(PX + 2 + EASE_OUT(across) * (PW - 5)); by = Math.min(wipe, PY + PH - 1);
+          } else { const f = a - FLICK; bx = PX + PW - 3 + f * 4; by = PY + PH - 1 - f * 6; }
           const bristle = now.map.B;
           for (let k = 0; k < 3; k++) { p.px(bx + k, by, bristle); p.px(bx + k, by - 1, bristle); }
           for (let k = 0; k < 3; k++) { p.px(bx + k, by - 2, 'e'); p.px(bx + k, by - 3, 'e'); }
@@ -1145,8 +1325,11 @@
           p.px(x, y, edge ? '#' : 'g');
         }
         for (const x of [x0 + 1, x1 - 1]) p.px(x, (y0 + y1) >> 1, 'e');
-        if (painting && a < REPAINT / 2) word(p, before.word, 'k', a / (REPAINT / 2));
-        else word(p, now.word, painting || (a >= 0 && a < REPAINT + 6) ? 'glint' : 'k');
+        // The old word is struck out as the strokes go; the new one stamps on
+        // with the flick, the plaque jolting, and shines.
+        if (painting && a < FLICK) word(p, before.word, 'k', clamp((a - DIVE) / (FLICK - DIVE - 4)));
+        else if (painting && a < FLICK + 2) { const jolt = p.capture(() => word(p, now.word, 'glint')); for (const q of jolt) p.px(q[0], q[1] + 1, q[2], q[3]); }
+        else word(p, now.word, a >= 0 && a < REPAINT + 8 ? 'glint' : 'k');
       },
     });
   }
@@ -1154,35 +1337,31 @@
   // ---------- Naming: a swaddled baby ----------
 
   {
-    const BASE = 66, MID = 39.5, HX = 29, HY = 20;
+    const BASE = 60, MID = 39.5, HX = 31, HY = 25;
     // A chubby sleeping baby: a tuft of dark hair (h), closed eyes (E), rosy
     // cheeks (C) and a little mouth (M).
     const HEAD = art(`
-      .........#..#.........
-      ........#h##h#........
-      ......##hhhhhh##......
-      ....##pphhhhhhpp##....
-      ...#pppppppppppppp#...
-      ..#pppppppppppppppp#..
-      ..#pppppppppppppppp#..
-      .#pppppppppppppppppp#.
-      .#pppppppppppppppppp#.
-      .#ppppEpEppppEpEpppp#.
-      .#pppppEppppppEppppp#.
-      .#ppCCppppppppppCCpp#.
-      .#ppCCppppppppppCCpp#.
-      ..#pppppppMMppppppp#..
-      ..#pppppppppppppppp#..
-      ...#pppppppppppppp#...
-      ....##pppppppppp##....
-      ......##########......
+      .......#..#.......
+      ......#h##h#......
+      ....##hhhhhh##....
+      ...#pphhhhhhpp#...
+      ..#pppppppppppp#..
+      .#pppppppppppppp#.
+      .#pppppppppppppp#.
+      .#ppEpEppppEpEpp#.
+      .#pppEppppppEppp#.
+      .#pCCppppppppCCp#.
+      ..#pppppMMppppp#..
+      ..#pppppppppppp#..
+      ...##pppppppp##...
+      .....########.....
     `);
     // The swaddle: a linen bundle from the chin down, round at the shoulders
     // and tapering to the feet, bound with criss-crossed vermilion bands.
-    const UY = HY + 15, UH = 26, CUSHION = UY + UH;
+    const UY = HY + 11, UH = 20, CUSHION = UY + UH;
     const half = (j) => {
       const t = j / (UH - 1);
-      return t < 0.15 ? 9 + (t / 0.15) * 4 : t < 0.7 ? 13 : 13 - ((t - 0.7) / 0.3) ** 2 * 7;
+      return t < 0.15 ? 7 + (t / 0.15) * 3 : t < 0.7 ? 10 : 10 - ((t - 0.7) / 0.3) ** 2 * 5;
     };
     const inBundle = (x, y) => y >= UY && y < UY + UH && Math.abs(x - MID) <= half(y - UY);
     function bundleInk(x, y) {
@@ -1193,7 +1372,7 @@
       return j > 4 && (a === 0 || b === 0) ? 'r' : 'w';
     }
     // Under it, crying, a little red gown with a gold hem, and bare feet.
-    const gownHalf = (j) => 7 + j * 0.2;
+    const gownHalf = (j) => 5.5 + j * 0.2;
     const inGown = (x, y) => y >= UY && y < UY + UH - 3 && Math.abs(x - MID) <= gownHalf(y - UY);
     function gownInk(x, y) {
       if (!inGown(x - 1, y) || !inGown(x + 1, y) || !inGown(x, y - 1) || !inGown(x, y + 1)) return '#';
@@ -1208,7 +1387,7 @@
     // A chubby arm in a red sleeve, with a little hand.
     function arm(p, [x0, y0], [x1, y1]) {
       const n = Math.ceil(Math.hypot(x1 - x0, y1 - y0) * 2);
-      for (const [r, ink] of [[2.8, '#'], [1.9, 'r']]) for (let k = 0; k <= n; k++) {
+      for (const [r, ink] of [[2.4, '#'], [1.6, 'r']]) for (let k = 0; k <= n; k++) {
         const x = lerp(x0, x1, k / n), y = lerp(y0, y1, k / n);
         for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) if (dx * dx + dy * dy <= r * r) p.px(x + dx, y + dy, ink);
       }
@@ -1277,15 +1456,18 @@
       gg......gg
     `)];
     // The carpet hovers here while the baby cries.
-    const HOVER = [MID, 11], BURST = 10, WRAP = 30, CLOTH = 36;
+    const HOVER = [MID, HY - 8], SQUIRM = 6, BURST = 10, WRAP = 30, CLOTH = 28;
 
     drollery('naming', {
-      span: [2, 1, 78, 66],
-      h: 70,
+      span: [11, 6, 70, 63],
+      h: 64,
       make: () => ({ mode: 'sleep', at: -999, soothed: false, starAt: -999, zs: [], tears: [], nextZ: 20 }),
       update(st, step, pointer) {
         const a = step - st.at;
-        if (st.mode === 'sleep' && pointer && !st.soothed) { st.mode = 'burst'; st.at = step; }
+        // Disturbed, it squirms in the swaddle for a moment before it bursts.
+        if (st.mode === 'sleep' && pointer && !st.soothed) { st.mode = 'squirm'; st.at = step; }
+        else if (st.mode === 'squirm' && !pointer) { st.mode = 'sleep'; st.at = step; }
+        else if (st.mode === 'squirm' && a >= SQUIRM) { st.mode = 'burst'; st.at = step; }
         else if (st.mode === 'burst' && a >= BURST) { st.mode = 'cry'; st.at = step; }
         else if (st.mode === 'wrap' && a >= WRAP) { st.mode = 'sleep'; st.at = step; if (st.star) st.starAt = step; }
         if (st.mode === 'sleep' && step >= st.nextZ && step - st.starAt > 30) {
@@ -1295,7 +1477,7 @@
         st.zs = st.zs.filter((z) => step - z.born < 80);
         if (st.mode === 'cry' && step % 4 === 0) {
           const side = (step / 4) % 2 ? 1 : -1;
-          st.tears.push({ x: HX + (side > 0 ? 15 : 6), y: HY + 10, vx: side * (0.7 + R('tear', step) * 0.6), vy: -0.8 });
+          st.tears.push({ x: HX + (side > 0 ? 13 : 4), y: HY + 8, vx: side * (0.7 + R('tear', step) * 0.6), vy: -0.8 });
         }
         for (const t of st.tears) { t.vy += 0.2; t.x += t.vx; t.y += t.vy; }
         st.tears = st.tears.filter((t) => t.y < BASE);
@@ -1310,13 +1492,27 @@
         st.mode = 'wrap'; st.at = step; st.star = true; st.soothed = true; st.nextZ = step + WRAP + 30;
       },
       draw(p, st, { step, calm }) {
+        // The baby itself shifts as a whole: jiggling as it squirms, popping
+        // up as it bursts free and landing with a bump, and settling with a
+        // squash once it's wrapped again.
+        const a = step - st.at, mode = st.mode;
+        let dx = 0, dy = 0;
+        if (!calm) {
+          if (mode === 'squirm') { dx = a % 2 ? 1 : -1; dy = a % 3 === 0 ? 1 : 0; }
+          else if (mode === 'burst') dy = [-1, -3, -3, -3, -1, 1, 1, 0, 0, 0][a] ?? 0;
+          else if (mode === 'wrap' && a >= WRAP - 3) dy = 1;
+        }
+        const all = p.capture(() => this.scene(p, st, { step, calm }));
+        for (const [x, y, ink, al] of all) p.px(x + (y < CUSHION ? dx : 0), y + (y < CUSHION ? dy : 0), ink, al);
+      },
+      scene(p, st, { step, calm }) {
         const a = step - st.at, mode = st.mode;
         // The cushion: lapis, edged and tasselled in gold.
-        for (let y = CUSHION; y < BASE; y++) for (let x = 15; x <= 64; x++) {
-          const edge = y === CUSHION || y === BASE - 1 || x === 15 || x === 64;
+        for (let y = CUSHION; y < BASE; y++) for (let x = 23; x <= 56; x++) {
+          const edge = y === CUSHION || y === BASE - 1 || x === 23 || x === 56;
           p.px(x, y, edge ? '#' : y === CUSHION + 1 ? 'g' : 'b');
         }
-        for (const x of [14, 65]) for (let y = CUSHION + 1; y <= CUSHION + 3; y++) p.px(x, y, 'g');
+        for (const x of [22, 57]) for (let y = CUSHION + 1; y <= CUSHION + 2; y++) p.px(x, y, 'g');
         // How much of it is swaddled, from the feet up, and where the carpet is.
         let wrapped = 1, cloth = null;
         const ph = step * 0.35;
@@ -1334,11 +1530,11 @@
           if (u < 0.25) {
             const s = smooth(u / 0.25);
             wrapped = 0;
-            cloth = { x: lerp(HOVER[0], MID - 17, s), y: lerp(HOVER[1], UY + UH - 4, s) - Math.sin(s * Math.PI) * 6, len: CLOTH, tilt: lerp(0, 10, s), front: true };
+            cloth = { x: lerp(HOVER[0], MID - 13, s), y: lerp(HOVER[1], UY + UH - 4, s) - Math.sin(s * Math.PI) * 6, len: CLOTH, tilt: lerp(0, 10, s), front: true };
           } else {
             const v = (u - 0.25) / 0.75, phi = v * TAU * 2.5;
             wrapped = smooth(v);
-            cloth = { x: MID - 17 * Math.cos(phi), y: UY + UH - 4 - wrapped * (UH - 6), len: 4 + (CLOTH - 4) * (1 - wrapped), tilt: 6 * Math.cos(phi), front: Math.sin(phi) > 0, phi };
+            cloth = { x: MID - 13 * Math.cos(phi), y: UY + UH - 4 - wrapped * (UH - 6), len: 4 + (CLOTH - 4) * (1 - wrapped), tilt: 6 * Math.cos(phi), front: Math.sin(phi) > 0, phi };
           }
         }
         const crying = mode === 'burst' || mode === 'cry';
@@ -1348,26 +1544,26 @@
         if (cloth && !cloth.front) carpet(p, cloth.x, cloth.y, cloth.len, ph, cloth.tilt);
         // Under the swaddle: the gown, kicking feet and flailing arms.
         if (wrapped < 1) {
-          for (let y = UY; y < UY + UH - 3; y++) for (let x = MID - 13; x <= MID + 13; x++) {
+          for (let y = UY; y < UY + UH - 3; y++) for (let x = MID - 10; x <= MID + 10; x++) {
             if (inGown(x, y) && y < line) p.px(x, y + hop, gownInk(x, y));
           }
           const kick = crying && !calm ? (step >> 2) % 2 : 0;
           if (line > UY + UH - 3) {
-            p.sprite(FOOT, Math.round(MID) - 7, UY + UH - 3 - kick);
-            p.sprite(FOOT, Math.round(MID) + 3, UY + UH - 3 - (1 - kick));
+            p.sprite(FOOT, Math.round(MID) - 6, UY + UH - 3 - kick);
+            p.sprite(FOOT, Math.round(MID) + 2, UY + UH - 3 - (1 - kick));
           }
-          if (line > UY + 8) {
+          if (line > UY + 6) {
             const tuck = clamp(wrapped / 0.6), flail = (step >> 2) % 2;
             for (const side of [-1, 1]) {
               const up = (side > 0) === !!flail;
-              const hx = lerp(MID + side * (up ? 15 : 17), MID + side * 5, tuck), hy = lerp(UY + (up ? -6 : 3), UY + 9, tuck);
-              arm(p, [MID + side * 6, UY + 4 + hop], [hx, hy + hop]);
+              const hx = lerp(MID + side * (up ? 12 : 13), MID + side * 4, tuck), hy = lerp(UY + (up ? -5 : 2), UY + 7, tuck);
+              arm(p, [MID + side * 5, UY + 3 + hop], [hx, hy + hop]);
             }
           }
         }
         // The swaddle itself.
         if (wrapped > 0) {
-          for (let y = Math.ceil(line); y < UY + UH; y++) for (let x = MID - 13; x <= MID + 13; x++) {
+          for (let y = Math.ceil(line); y < UY + UH; y++) for (let x = MID - 10; x <= MID + 10; x++) {
             if (inBundle(x, y)) p.px(x, y, bundleInk(x, y));
           }
         }
@@ -1376,7 +1572,7 @@
           // Mouth wide open, tears flying.
           for (let oy = 0; oy < 3; oy++) for (let ox = 0; ox < 4; ox++) {
             if ((ox === 0 || ox === 3) && oy !== 1) continue;
-            p.px(HX + 9 + ox, HY + 12 + oy + hop, 'm');
+            p.px(HX + 7 + ox, HY + 9 + oy + hop, 'm');
           }
           for (const t of st.tears) { p.px(t.x, t.y, 'b'); p.px(t.x, t.y - 1, 'b'); }
         }
@@ -1391,17 +1587,19 @@
           }
           if (!calm) for (let k = 1; k <= 4; k++) {
             const ph2 = cloth.phi - k * 0.5;
-            p.px(MID - 19 * Math.cos(ph2), cloth.y + k * 1.5 + Math.sin(k * 3 + step) * 2, k % 2 ? 'glint' : 'g', 1 - k / 5);
+            p.px(MID - 15 * Math.cos(ph2), cloth.y + k * 1.5 + Math.sin(k * 3 + step) * 2, k % 2 ? 'glint' : 'g', 1 - k / 5);
           }
         }
         for (const z of st.zs) {
           const t = step - z.born;
-          p.sprite(Z[z.big], HX + 23 + t * 0.15 + Math.sin(t * 0.1) * 3, HY - 2 - t * 0.2, { alpha: t < 10 ? t / 10 : clamp(1 - (t - 50) / 30) });
+          p.sprite(Z[z.big], HX + 19 + t * 0.15 + Math.sin(t * 0.1) * 3, HY - 2 - t * 0.2, { alpha: t < 10 ? t / 10 : clamp(1 - (t - 50) / 30) });
         }
         const s = step - st.starAt;
         if (s >= 0 && s < 72) {
           p.glow(MID, HY - 8, 12, 'g', 0.3 * clamp(1 - (s - 40) / 32));
-          p.sprite(STAR[(step >> 3) % 2], Math.round(MID) - 5, Math.round(HY - 4 - 12 * smooth(clamp(s / 12))), { alpha: clamp(1 - (s - 50) / 22) });
+          // The star pops up past its mark and settles back.
+          const u = clamp(s / 8), back = 1 + 2.7 * (u - 1) ** 3 + 1.7 * (u - 1) ** 2;
+          p.sprite(STAR[(step >> 3) % 2], Math.round(MID) - 5, Math.round(HY - 4 - 12 * back), { alpha: clamp(1 - (s - 50) / 22) });
         }
       },
     });
@@ -1543,59 +1741,84 @@
     // The pilgrim fades into the distance at the far end of the road rather
     // than walking out of the frame.
     const seen = (x) => clamp((FAR - x) / 12);
+    const READY = 5, TOSS = 15;
 
     drollery('journey', {
-      span: [4, 4, 74, 50],
+      span: [6, 1, 73, 50],
       h: 56,
-      make: () => ({ x: HOME, face: 1, phase: 'home', at: 0, item: 0, stack: [] }),
+      make: () => ({ x: HOME, face: 1, phase: 'home', at: -99, item: 0, stack: [] }),
+      // Off they go, eager: a crouch and a spring, then a walk that picks up
+      // speed. Back with a prize held high, they wind up and toss it onto the
+      // pile, which wobbles, then stroll home and settle.
       update(st, step) {
-        if (st.phase === 'out') {
-          st.x += SPEED;
+        if (st.phase === 'ready' && step - st.at >= READY) { st.phase = 'out'; st.at = step; }
+        else if (st.phase === 'out') {
+          st.x += Math.min(SPEED * 1.3, 0.3 + (step - st.at) * 0.12);
           if (st.x >= FAR) { st.phase = 'away'; st.at = step; }
         } else if (st.phase === 'away' && step - st.at > 36) {
           st.phase = 'back'; st.face = -1;
         } else if (st.phase === 'back') {
           st.x -= SPEED;
           if (st.x <= STOP) { st.x = STOP; st.phase = 'place'; st.at = step; }
-        } else if (st.phase === 'place' && step - st.at > 14) {
+        } else if (st.phase === 'place' && step - st.at >= TOSS) {
           st.stack = [...st.stack, st.item].slice(-3);
+          st.landed = step;
           st.phase = 'home-bound';
-        } else if (st.phase === 'home-bound') {
-          st.x -= SPEED;
-          if (st.x <= HOME) { st.x = HOME; st.phase = 'home'; st.face = 1; }
+        } else if (st.phase === 'home-bound' && step - st.landed > 6) {
+          st.x -= clamp((st.x - HOME) / 5, 0.35, SPEED);
+          if (st.x <= HOME + 0.2) { st.x = HOME; st.phase = 'home'; st.face = 1; st.at = step; }
         }
       },
       click(st, step) {
         if (st.phase !== 'home') return;
         const choices = ITEMS.map((_, i) => i).filter((i) => i !== st.stack[st.stack.length - 1]);
         st.item = choices[Math.floor(R('item', step) * choices.length)];
-        st.phase = 'out';
+        st.phase = 'ready';
+        st.at = step;
       },
       draw(p, st, { step, calm, pointer }) {
         // One waystone, with the souvenirs piled on it, newest on top.
         const [sw, sh] = size(WAYSTONE);
         p.sprite(WAYSTONE, STONE, BASE - sh);
         let top = BASE - sh;
-        for (const it of st.stack) {
-          const [w, h] = size(ITEMS[it]);
+        // A new prize lands squashed, and the pile wobbles under it.
+        const since = step - (st.landed ?? -99), wob = calm || since > 10 ? 0 : Math.round(Math.sin(since * 1.4) * 1.5 * (1 - since / 10));
+        st.stack.forEach((it, n) => {
+          let rows = ITEMS[it];
+          const newest = n === st.stack.length - 1;
+          if (newest && since >= 0 && since < 2) rows = squash(rows, 0.7);
+          const [w, h] = size(rows);
           top -= h;
-          p.sprite(ITEMS[it], STONE + (sw >> 1) - (w >> 1), top);
-        }
+          p.sprite(rows, STONE + (sw >> 1) - (w >> 1) + (newest || n > 0 ? wob * (n + 1) / st.stack.length : 0), top);
+        });
+        if (!calm && since >= 0 && since < 4) for (const s of [-1, 1]) p.px(STONE + (sw >> 1) + s * (sw / 2 + since), BASE - 1, 'f');
         if (st.phase === 'away') return;
         const alpha = seen(st.x);
         const walking = ['out', 'back', 'home-bound'].includes(st.phase);
         const look = st.phase === 'home' && pointer && !calm;
+        // Walking: a stride every six pixels, and the body rises as it passes
+        // over each foot.
         const striding = walking && Math.floor(st.x / 6) % 2;
-        let x = Math.round(st.x), rows = PILGRIM;
+        const bob = walking && !calm && Math.floor(st.x / 3) % 2 ? -1 : 0;
+        let x = Math.round(st.x), rows = PILGRIM, rise = bob;
         if (striding) rows = [...rows.slice(0, -5), ...STRIDE];
         if (st.phase === 'home' && !look && !calm && (step / 48) % 2 >= 1) x += 1;
-        const [pw] = size(PILGRIM), y = BASE - rows.length, flip = st.face < 0;
+        // Setting off: a crouch, then a spring up.
+        const r = step - st.at;
+        if (st.phase === 'ready') { if (r < 3) rows = squash(rows, 0.9); else rise = -2; }
+        // Home again: a lean forward as they stop, settling back.
+        if (st.phase === 'home' && !calm && r >= 0 && r < 4) x += r < 2 ? 1 : 0;
+        // Tossing the prize: a wind-up, up on their toes.
+        if (st.phase === 'place' && r >= 3 && r < 7) rise = -1;
+        const [pw] = size(PILGRIM), y = BASE - rows.length + rise, flip = st.face < 0;
         const fx = (i) => (flip ? x + pw - 1 - i : x + i);
-        // The staff, in the front hand.
-        const lean = striding ? 2 : 0;
-        p.line(fx(16 + lean), y - 4, fx(16), BASE - 1, '#', alpha);
-        p.px(fx(16 + lean), y - 5, 'g', alpha);
-        p.px(fx(16 + lean), y - 6, 'g', alpha);
+        // The staff, in the front hand: walking, its foot is planted ahead and
+        // stays put as they walk past it, then swings forward again.
+        const plant = walking ? 5 - (Math.abs(st.x) % 12) : 0;
+        const foot = flip ? fx(16) - plant : fx(16) + plant;
+        p.line(fx(16), y - 4, foot, BASE - 1, '#', alpha);
+        p.px(fx(16), y - 5, 'g', alpha);
+        p.px(fx(16), y - 6, 'g', alpha);
         // At a hover, it raises its hat to you with its other hand.
         if (look) {
           p.sprite(rows.slice(6), x, y + 6, { flip });
@@ -1605,16 +1828,22 @@
           p.line(fx(4), y + 14, fx(4), y + 3, 'b');
           p.px(fx(3), y + 2, 'p'); p.px(fx(4), y + 2, 'p');
         } else p.sprite(rows, x, y, { flip, alpha });
-        // A souvenir, carried home overhead and set on the pile.
+        // A souvenir, held high on the way back (bobbing a beat behind
+        // them), raised higher for the wind-up, and tossed in an arc onto the
+        // pile, spinning end over end.
         if (st.phase === 'back' || st.phase === 'place') {
           const it = ITEMS[st.item], [w, h] = size(it);
-          let ix = x + (pw >> 1) - (w >> 1), iy = y - h - 3;
+          let ix = x + (pw >> 1) - (w >> 1), iy = y - h - 3 - bob, flipIt = false;
           if (st.phase === 'place') {
-            const k = smooth(clamp((step - st.at) / 14));
-            ix = Math.round(lerp(ix, STONE + (sw >> 1) - (w >> 1), k));
-            iy = Math.round(lerp(iy, top - h, k));
+            if (r < 7) iy -= r < 3 ? 0 : 2;
+            else {
+              const k = clamp((r - 7) / (TOSS - 7));
+              ix = Math.round(lerp(ix, STONE + (sw >> 1) - (w >> 1), k));
+              iy = Math.round(lerp(iy - 2, top - h, k) - Math.sin(k * Math.PI) * 5);
+              flipIt = Math.floor(k * 4) % 2 === 1;
+            }
           }
-          p.sprite(it, ix, iy, { alpha });
+          p.sprite(flipIt ? [...it].reverse() : it, ix, iy, { alpha });
         }
       },
     });
@@ -1623,56 +1852,41 @@
   // ---------- Narration: a fortune-teller at a fire ----------
 
   {
-    const BASE = 66, FX = 46, TX = 8;
+    const BASE = 60, FX = 42, TX = 10;
     // A hooded fortune-teller in one long maroon cloak, standing in profile
     // with her hands held out to the fire. The cloak's reaching sleeve is
-    // rows 19 to 21.
+    // rows 16 to 19.
     const TELLER = art(`
-      ........eeeee.........
-      ......eemmmmmee.......
-      .....emmmmmmmmme......
-      ....emmmmmmmmmmme.....
-      ...emmmmmmmmmmmmme....
-      ...emmmmmmmkkkkkme....
-      ..emmmmmmmkkppppkme...
-      ..emmmmmmmkpp#pppme...
-      ..emmmmmmmkppppppppe..
-      ..emmmmmmmkpppppppe...
-      ..emmmmmmmkkppppme....
-      ..emmmmmmmmkkpppme....
-      ..emmmmmmmmmkkkmme....
-      ..emmmmmmmmmmmmmme....
-      ..emmmmmmmmmmmmmme....
-      ..emmmmmmmmmmmmmmme...
-      ..emmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmmeee.
-      .emmmmmmmmmmmmmmmmmmpp
-      .emmmmmmmmmmmmmmmmmmpp
-      .emmmmmmmmmmmmmmmmeee.
-      .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmme...
-      .emmmmmmmmmmmmmmmmme..
-      .emmmmmmmmmmmmmmmmme..
-      emmmmmmmmmmmmmmmmmme..
-      emmmmmmmmmmmmmmmmmme..
-      emmmmmmmmmmmmmmmmmme..
-      emmmmmmmmmmmmmmmmmmme.
-      emmmmmmmmmmmmmmmmmmme.
-      emmmmmmmmmmmmmmmmmmme.
-      emmmmmmmmmmmmmmmmmmme.
-      emmmmmmmmmmmmmmmmmmme.
-      emmmmmmmmmmmmmmmmmmmme
-      emmmmmmmmmmmmmmmmmmmme
-      eggggggggggggggggggggge
-      eeeeeeeeeeeeeeeeeeeeee
+      ......eeee.........
+      .....emmmmee.......
+      ....emmmmmmme......
+      ...emmmmmmmmme.....
+      ...emmmmmmmmmme....
+      ...emmmmkkkkkme....
+      ..emmmmkkppppkme...
+      ..emmmmkpp#pppme...
+      ..emmmmkppppppppe..
+      ..emmmmkpppppppe...
+      ..emmmmkkppppme....
+      ..emmmmmkkpppme....
+      ..emmmmmmkkkmme....
+      ..emmmmmmmmmmme....
+      ..emmmmmmmmmmmme...
+      .emmmmmmmmmmmmme...
+      .emmmmmmmmmmmmmeee.
+      .emmmmmmmmmmmmmmmpp
+      .emmmmmmmmmmmmmmmpp
+      .emmmmmmmmmmmmmeee.
+      .emmmmmmmmmmmmme...
+      .emmmmmmmmmmmmmme..
+      emmmmmmmmmmmmmmme..
+      emmmmmmmmmmmmmmmme.
+      emmmmmmmmmmmmmmmmme
+      eggggggggggggggggge
+      eeeeeeeeeeeeeeeeeee
     `);
-    const TY = BASE - TELLER.length;
-    const ARMSUP = [...TELLER.slice(0, 18), ...Array(4).fill('.emmmmmmmmmmmmmmmme...'), ...TELLER.slice(22)];
+    const TY = BASE - TELLER.length, FLING = 3;
+    const ARMSUP = [...TELLER.slice(0, 16), ...Array(4).fill(TELLER[20]), ...TELLER.slice(20)];
     // Her sleeve raised to the smoke, hand out of it.
     const RAISED = art(`
       .......pp.
@@ -1779,17 +1993,23 @@
     ];
 
     drollery('narration', {
-      span: [7, 2, 68, 66],
-      h: 70,
+      span: [10, 3, 63, 60],
+      h: 64,
       make: () => ({ puffs: [], raiseAt: -999, next: 0 }),
       update(st, step) { st.puffs = st.puffs.filter((q) => step - q.born < 74); },
+      // A click: she crouches, then flings up an arm; the fire answers with a
+      // roaring burst of sparks, and a picture puffs out of the smoke.
       click(st, step) {
-        st.puffs.push({ born: step, shape: SHAPES[st.next++ % SHAPES.length] });
+        if (step - st.raiseAt < 8) return;
+        st.puffs.push({ born: step + FLING, shape: SHAPES[st.next++ % SHAPES.length] });
         st.raiseAt = step;
       },
       draw(p, st, { step, calm, pointer }) {
-        // The fire: crossed logs, and flames that flare at a hover.
-        const flare = pointer ? 1.8 : 1;
+        const r = calm ? 99 : step - st.raiseAt;
+        // The fire: crossed logs, and flames that flare at a hover, and roar
+        // up when she raises her arm.
+        const roar = r >= FLING && r < FLING + 14 ? 1.3 * (1 - (r - FLING) / 14) : 0;
+        const flare = (pointer ? 1.8 : 1) + roar * (pointer ? 0.5 : 1);
         let crest = BASE;
         for (let x = FX - 7; x <= FX + 7; x++) {
           const base = 11 - Math.abs(x - FX) * 1.5, flick = calm ? 0.9 : 0.65 + 0.6 * R('fl', x, step >> 1);
@@ -1805,8 +2025,15 @@
           p.line(FX - 10, BASE - 6 - o, FX + 10, BASE - 1 - o, '#');
         }
         if (pointer && !calm) for (let k = 0; k < 8; k++) {
-          const t = (step + k * 7) % 28;
-          p.px(FX + Math.sin(t * 0.3 + k) * 5, crest - t * 1.2, 'o', 1 - t / 28);
+          const t = (step + k * 7) % 28, y = crest - t * 1.2;
+          if (y >= 3) p.px(FX + Math.sin(t * 0.3 + k) * 5, y, 'o', 1 - t / 28);
+        }
+        // The roar throws a fountain of sparks.
+        if (r >= FLING && r < FLING + 16) for (let k = 0; k < 12; k++) {
+          const t = r - FLING, vx = (R('sp', k, st.raiseAt) - 0.5) * 1.6, vy = 1.6 + R('spv', k, st.raiseAt) * 1.2;
+          const x = FX + vx * t, y = BASE - 10 - vy * t + 0.08 * t * t;
+          if (y < 4) continue;
+          p.px(x, y, k % 3 ? 'o' : 'glint', 1 - t / 16);
         }
         // A thread of smoke.
         if (!calm) for (let y = crest - 2; y > 8; y--) {
@@ -1816,21 +2043,30 @@
         // Pictures in the smoke, forming, rising and coming apart before the top.
         for (const q of st.puffs) {
           const a = step - q.born, [w, h] = size(q.shape);
-          const x0 = FX - (w >> 1) + a * 0.06, y0 = BASE - 34 - h - a * 0.12;
+          if (a < 0) continue;
+          // A ring of smoke puffs out as the picture appears.
+          if (a < 8 && !calm) for (let n = 0; n < 24; n++) {
+            const th = (n / 24) * TAU, rad = 4 + a * 2.2;
+            p.px(FX + Math.cos(th) * rad, BASE - 28 - h / 2 + Math.sin(th) * rad * 0.6, 'f', 1.2 * (1 - a / 8));
+          }
+          const x0 = FX - (w >> 1) + a * 0.06, y0 = BASE - 28 - h - a * 0.12;
           q.shape.forEach((row, j) => [...row].forEach((ch, i) => {
             if (ch === '.') return;
             const r = R('wisp', i, j, q.born);
-            if (a < 14 && r > a / 14) return;
+            if (a < 8 && r > a / 8) return;
             if (r < (a - 32) / 40) return;
             p.px(x0 + i + Math.round(Math.sin(j * 0.3 + a * 0.15) * 1.2), y0 + j, 'f', 1.3);
           }));
         }
-        // The teller, arms up while a picture forms.
-        const up = step - st.raiseAt < 30;
-        p.sprite(up ? ARMSUP : TELLER, TX, TY);
-        if (up) {
-          p.sprite(RAISED, TX + 16, TY + 3);
-        }
+        // The teller: a crouch, then up on her toes as the arm flies up past
+        // its mark and settles, held while the picture forms.
+        const crouch = r >= 0 && r < FLING, up = r >= FLING && r < 30;
+        let rows = up ? ARMSUP : TELLER, lift = 0, reach = 0;
+        if (crouch) rows = squash(rows, 0.9);
+        if (up && r < FLING + 2) { rows = squash(rows, 1.05); reach = -2; }
+        else if (up && r < FLING + 4) reach = 1;
+        p.sprite(rows, TX, BASE - rows.length - lift);
+        if (up) p.sprite(RAISED, TX + 13, BASE - rows.length + 1 + reach);
       },
     });
   }
@@ -1924,15 +2160,16 @@
       if (i >= CW - 5 && i < CW - 2 && j >= CH - 5 && j < CH - 2 && s[CH - 3 - j][CW - 3 - i] === '#') return SUIT_INK[suit];
       return 'w';
     }
-    const FLIP = 18, TURNS = 5, BURST = 24;
+    const FLIP = 18, TURNS = 5, BURST = 24, DIP = 3;
 
     drollery('card', {
-      span: [16, 0, 64, 60],
+      span: [17, 1, 63, 66],
       h: 68,
       make: () => ({ up: null, flip: null, peek: 'heart', fold: 0, draws: 0, shownAt: -999 }),
       update(st, step, pointer) {
         st.fold = clamp(st.fold + (pointer && !st.up && !st.flip ? 1 : -1), 0, 8);
         if (st.flip && step - st.flip.born >= FLIP) {
+          st.landAt = step;
           st.up = st.flip.to;
           if (st.up) st.shownAt = step;
           st.flip = null;
@@ -1941,10 +2178,11 @@
       },
       click(st, step) {
         if (st.flip) return;
-        st.flip = { born: step, from: st.up, to: st.up ? null : st.peek };
+        // It ducks and squashes for a beat before it springs up.
+        st.flip = { born: step + DIP, from: st.up, to: st.up ? null : st.peek };
       },
       draw(p, st, { step, calm }) {
-        const f = st.flip, t = f ? (step - f.born) / FLIP : 0;
+        const f = st.flip, t = f ? clamp((step - f.born) / FLIP) : 0, ducking = f && step < f.born;
         // Idle, it floats and turns a little, breathing light, with sparks
         // winking round it. A click spins it up into the air, turning over
         // and over, and it lands showing the other side.
@@ -1952,16 +2190,22 @@
         const side = f ? (Math.floor((Math.PI * TURNS * smooth(t)) / Math.PI + 0.5) % 2 ? f.to : f.from) : st.up;
         const wd = Math.max(1, Math.round(CW * Math.abs(Math.cos(spin))));
         const float = calm ? 0 : Math.round(2 + Math.sin((step / 48) * TAU) * 2);
-        const lift = (f ? Math.round(Math.sin(Math.PI * t) * 14) : 0) + float;
-        const x0 = CX + ((CW - wd) >> 1), y0 = CY - lift, n = st.fold;
-        const cx = CX + CW / 2, cy = y0 + CH / 2, ink = side ? SUIT_INK[side] : 'b';
+        const lift = (f ? Math.round(Math.sin(Math.PI * t) * 14) : 0) + float - (ducking ? 1 : 0);
+        // Squash and stretch: squashed as it ducks and as it lands, stretched
+        // as it leaves the ground. Its bottom edge stays put.
+        const l = step - (st.landAt ?? -99);
+        const k = calm ? 1 : ducking ? 0.86 : f && t < 0.15 ? 1.1 : l >= 0 && l < 4 ? [0.8, 0.9, 1.05, 1][l] : 1;
+        const H = Math.round(CH * k), ww = Math.max(1, Math.round(wd * (k < 1 ? 2 - k : 1)));
+        const x0 = CX + ((CW - ww) >> 1), y0 = CY - lift + (CH - H), n = st.fold;
+        const cx = CX + CW / 2, cy = CY - lift + CH / 2, ink = side ? SUIT_INK[side] : 'b';
         // Its shadow on the line, smaller the higher it goes.
         const sw = Math.max(3, 11 - (lift >> 1));
         for (let x = -sw; x <= sw; x++) p.px(cx + x, BASE - 1, 'f', 0.8);
         if (!calm) p.glow(cx, cy, 20, ink, 0.18 + 0.1 * Math.sin((step / 30) * TAU));
-        for (let k = 0; k < wd; k++) {
-          const i = Math.min(CW - 1, Math.floor(((k + 0.5) * CW) / wd));
-          for (let j = 0; j < CH; j++) {
+        for (let kx = 0; kx < ww; kx++) {
+          const i = Math.min(CW - 1, Math.floor(((kx + 0.5) * CW) / ww));
+          for (let jy = 0; jy < H; jy++) {
+            const j = Math.min(CH - 1, Math.floor(((jy + 0.5) * CH) / H));
             let c = side ? face(i, j, side) : back(i, j);
             // At a hover a corner lifts, to peek at the suit underneath.
             if (!side && !f && n > 0) {
@@ -1972,7 +2216,7 @@
                 else c = u <= 2 && v >= n - 3 ? SUIT_INK[st.peek] : 'w';
               }
             }
-            if (c) p.px(x0 + k, y0 + j, c);
+            if (c) p.px(x0 + kx, y0 + jy, c);
           }
         }
         if (!calm) for (let k = 0; k < 3; k++) {
@@ -2005,54 +2249,151 @@
   // ---------- Bonus Naming: a stork with a bundle ----------
 
   {
-    const BASE = 66;
+    const BASE = 50, GROUND = BASE - 1;
     // The stork, facing left: a white body with black flight feathers, an S
-    // of a neck, and a vermilion bill and legs. Body, neck and head are one
-    // shape, so a single outline runs round all three.
-    const NECK = [[50, 35], [41, 30], [44, 21]];
-    const STORK = [];
-    {
-      const inBody = (x, y) => ((x - 55) / 12) ** 2 + ((y - 40) / 6.5) ** 2 < 1;
-      const inTail = (x, y) => x >= 64 && x <= 71 && y >= 38 + (x - 64) * 0.55 && y <= 41 + (x - 64) * 0.45;
-      const neck = new Set();
-      for (let k = 0; k <= 40; k++) {
-        const t = k / 40, u = 1 - t;
-        const nx = u * u * NECK[0][0] + 2 * u * t * NECK[1][0] + t * t * NECK[2][0];
-        const ny = u * u * NECK[0][1] + 2 * u * t * NECK[1][1] + t * t * NECK[2][1];
-        for (let dy = -3; dy <= 3; dy++) for (let dx = -3; dx <= 3; dx++) {
-          if (dx * dx + dy * dy <= 2.4 * 2.4) neck.add(Math.round(nx + dx) + ',' + Math.round(ny + dy));
-        }
+    // of a neck, and a vermilion bill and legs. Its neck bends, so body, neck
+    // and head are worked out afresh each frame as one shape, with a single
+    // outline round all three.
+    const NECK = [51, 27], HEAD = 2.7, BILL = 10;
+    // A pose: where its head is (h), the bend of its neck (c), which way its
+    // bill points (a, radians, 0 is right, y is down), how far it's open (o),
+    // and how far its whole body is shifted (b).
+    const pose = (h, c, a, o = 0, b = [0, 0]) => ({ h, c, a, o, b });
+    const { PI } = Math;
+    const POSE = {
+      rest: pose([48, 15], [45, 23], PI - 0.3),
+      // Gathering itself before it moves: up and back.
+      antic: pose([53, 11], [48, 20], PI + 0.05, 0, [2, -1]),
+      dip: pose([38, 24], [44, 15], PI / 2 + 0.3, 0, [-1, 1]),
+      dipPast: pose([37, 26], [43, 16], PI / 2 + 0.22, 0, [-1, 2]),
+      clatter: pose([54, 17], [47, 23], -PI / 2 + 0.4),
+      peek: pose([46, 18], [45, 24], PI - 0.75),
+      stare: pose([40, 22], [44, 19], PI / 2 + 0.6, 0.25, [-1, 1]),
+      startle: pose([51, 15], [47, 21], PI + 0.3, 1, [0, -3]),
+      proud: pose([49, 12], [46, 21], PI - 0.05, 0, [0, -1]),
+      look0: pose([45, 17], [45, 24], PI - 1.05),
+      look1: pose([46, 16], [45, 23], PI - 0.7),
+    };
+    const lerp2 = (A, B, t) => [lerp(A[0], B[0], t), lerp(A[1], B[1], t)];
+    const mix = (A, B, t) => ({ h: lerp2(A.h, B.h, t), c: lerp2(A.c, B.c, t), a: lerp(A.a, B.a, t), o: lerp(A.o, B.o, t), b: lerp2(A.b, B.b, t) });
+    // Easing, the animator's spacing: ease in and out, slow in, fast out, and
+    // an overshoot that settles back.
+    const EASE = {
+      inOut: smooth,
+      in: (t) => t * t * t,
+      out: (t) => 1 - (1 - t) ** 3,
+      back: (t) => 1 + 2.7 * (t - 1) ** 3 + 1.7 * (t - 1) ** 2,
+      snap: (t) => (t < 1 ? 0 : 1),
+    };
+    // Keys: [frame, pose, easing into it].
+    const WITH_TWIN = [
+      [0, 'rest'], [3, 'antic', 'out'], [7, 'dipPast', 'in'], [9, 'dip', 'out'], [15, 'rest', 'back'],
+      [18, 'clatter', 'back'], [27, 'clatter'], [31, 'rest', 'inOut'],
+      [35, 'peek', 'out'], [37, 'peek'], [40, 'rest', 'out'], [42, 'rest'],
+      [44, 'stare', 'in'], [46, 'startle', 'back'], [52, 'startle'], [57, 'rest', 'inOut'],
+      [58, 'look1', 'out'], [61, 'look1'], [62, 'look0', 'out'], [64, 'look0'], [65, 'look1', 'out'], [66, 'look1'],
+      [68, 'antic', 'out'], [72, 'dip', 'in'], [74, 'dip'], [82, 'rest', 'back'],
+    ];
+    const NO_TWIN = [
+      ...WITH_TWIN.filter(([f]) => f <= 31),
+      [36, 'proud', 'back'], [50, 'proud'], [56, 'rest', 'inOut'], [66, 'rest'],
+      ...WITH_TWIN.filter(([f]) => f >= 68),
+    ];
+    const SET = 7, CLACK = [18, 27], POP = 35, TAKE = 46, GRAB = 74, END = 84;
+    function poseAt(a, twin) {
+      const keys = twin ? WITH_TWIN : NO_TWIN;
+      let i = 0;
+      while (i < keys.length - 1 && keys[i + 1][0] <= a) i++;
+      const [f0, n0] = keys[i], next = keys[i + 1];
+      let P = next ? mix(POSE[n0], POSE[next[1]], EASE[next[2] || 'snap']((a - f0) / (next[0] - f0))) : POSE[n0];
+      // Clattering, the bill snaps open and shut and the body bobs with it.
+      if (a >= CLACK[0] && a < CLACK[1]) {
+        const o = ((a - CLACK[0]) >> 1) % 2;
+        P = { ...P, o, b: [P.b[0], P.b[1] + o] };
       }
-      const inside = (x, y) => inBody(x, y) || inTail(x, y) || neck.has(x + ',' + y) || (x - 44) ** 2 + (y - 18) ** 2 < 3.6 * 3.6;
-      for (let y = 10; y < 50; y++) for (let x = 36; x < 74; x++) {
+      // Startled, it shakes.
+      if (twin && a >= TAKE && a < TAKE + 6) P = { ...P, b: [P.b[0] + (a % 2 ? 1 : -1), P.b[1]] };
+      return P;
+    }
+    // A pose placed: head and neck moved with the body.
+    const placed = (P) => ({ ...P, h: [P.h[0] + P.b[0], P.h[1] + P.b[1]], c: [P.c[0] + P.b[0], P.c[1] + P.b[1]] });
+    const tipOf = (P) => [P.h[0] + Math.cos(P.a) * (BILL + 2), P.h[1] + Math.sin(P.a) * (BILL + 2)];
+
+    function stork(p, P, eye) {
+      const [bx, by] = P.b;
+      const inBody = (x, y) => ((x - 57 - bx) / 9) ** 2 + ((y - 30 - by) / 5) ** 2 < 1;
+      const inTail = (x, y) => { const u = x - 63 - bx, v = y - by; return u >= 0 && u <= 6 && v >= 28 + u * 0.5 && v <= 31 + u * 0.4; };
+      const n0 = [NECK[0] + bx, NECK[1] + by], neck = new Set();
+      for (let k = 0; k <= 30; k++) {
+        const t = k / 30, u = 1 - t;
+        const nx = u * u * n0[0] + 2 * u * t * P.c[0] + t * t * P.h[0], ny = u * u * n0[1] + 2 * u * t * P.c[1] + t * t * P.h[1];
+        for (let dy = -2; dy <= 2; dy++) for (let dx = -2; dx <= 2; dx++) if (dx * dx + dy * dy <= 3.2) neck.add(Math.round(nx + dx) + ',' + Math.round(ny + dy));
+      }
+      const inside = (x, y) => inBody(x, y) || inTail(x, y) || neck.has(x + ',' + y) || (x - P.h[0]) ** 2 + (y - P.h[1]) ** 2 < HEAD * HEAD;
+      for (let y = 2; y < 40; y++) for (let x = 26; x < 74; x++) {
         if (!inside(x, y)) continue;
         const rim = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
-        // The flight feathers: the back and lower half of the folded wing,
-        // and its tips past the tail.
-        STORK.push([x, y, rim ? '#' : inTail(x, y) || (inBody(x, y) && x + (y - 40) * 1.5 > 59) ? 'k' : 'w']);
+        p.px(x, y, rim ? '#' : inTail(x, y) || (inBody(x, y) && x - bx + (y - by - 30) * 1.5 > 60) ? 'k' : 'w');
+      }
+      // The bill, two mandibles that part as it opens, and the eye above it:
+      // a dot, shut for a blink, wide when startled.
+      const d = [Math.cos(P.a), Math.sin(P.a)];
+      const s0 = [P.h[0] + d[0] * 1.5, P.h[1] + d[1] * 1.5];
+      const jaws = P.o > 0.05 ? [P.a + 0.32 * P.o, P.a - 0.32 * P.o] : [P.a];
+      for (const pass of ['#', 'r']) for (const j of jaws) {
+        const e = [Math.cos(j), Math.sin(j)];
+        for (let t = 0; t <= (pass === 'r' ? BILL - 1.5 : BILL); t += 0.5) {
+          const x = s0[0] + e[0] * t, y = s0[1] + e[1] * t;
+          if (pass === 'r') p.px(x, y, 'r');
+          else for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) p.px(x + ox, y + oy, '#');
+        }
+      }
+      const ex = Math.round(P.h[0] + (d[0] < 0 ? -1 : 1)), ey = Math.round(P.h[1] - 1);
+      if (eye === 'wide') for (const [ox, oy] of [[0, 0], [1, 0], [0, -1], [1, -1]]) p.px(ex + ox, ey + oy, '#');
+      else if (eye !== 'shut') p.px(ex, ey, '#');
+    }
+    // A wing flung open from the shoulder, up and back, by `k` (0 to 1): a
+    // fan of white coverts edged with long black primaries, fingered at the
+    // tip.
+    function wing(p, k, [bx, by]) {
+      if (k <= 0.05) return;
+      const S = [58 + bx, 26 + by], t0 = -1.7, t1 = t0 + 1.25 * Math.min(k, 1.1), L = 7 + 12 * Math.min(k, 1.1);
+      const reach = (th) => {
+        const f = (th - t0) / (t1 - t0);
+        return L * (1 - 0.25 * f) - (((th - t0) / 0.19) % 1 > 0.7 && f < 0.95 ? 2 : 0);
+      };
+      const inside = (x, y) => {
+        const dx = x - S[0], dy = y - S[1], th = Math.atan2(dy, dx), r = Math.hypot(dx, dy);
+        return th >= t0 && th <= t1 && r <= reach(th);
+      };
+      for (let y = S[1] - 22; y <= S[1] + 2; y++) for (let x = S[0] - 4; x <= S[0] + 22; x++) {
+        if (!inside(x, y)) continue;
+        const rim = !inside(x - 1, y) || !inside(x + 1, y) || !inside(x, y - 1) || !inside(x, y + 1);
+        p.px(x, y, rim ? '#' : Math.hypot(x - S[0], y - S[1]) > L * 0.68 ? 'k' : 'w');
       }
     }
-    // It stands on one leg, and puts the other down when you come near.
-    const STAND = [[53, 46], [54, 55], [53, BASE - 2]];
-    const TUCK = [[57, 46], [61, 52], [57, 54]];
-    const DOWN = [[57, 46], [59, 55], [59, BASE - 2]];
-    function leg(p, pts) {
-      for (let i = 1; i < pts.length; i++) p.line(...pts[i - 1], ...pts[i], 'r');
-      const [x, y] = pts[pts.length - 1];
-      if (y === BASE - 2) for (let dx = -3; dx <= 1; dx++) p.px(x + dx, BASE - 1, 'r');
+    // How open its wings are: lifted as it clatters, flapping with each snap;
+    // burst open in the take, quivering; folded again after.
+    function flareAt(a, twin) {
+      if (a >= CLACK[0] - 1 && a < CLACK[1] + 1) return ((a - CLACK[0]) >> 1) % 2 ? 0.5 : 0.3;
+      if (!twin || a < TAKE - 1) return 0;
+      if (a < TAKE + 1) return EASE.out((a - TAKE + 2) / 3) * 1.1;
+      if (a < TAKE + 6) return a % 2 ? 1 : 0.88;
+      return clamp(1 - (a - TAKE - 6) / 4);
     }
-    // The bill, from the head to its tip. Open, the lower half drops.
-    function bill(p, open) {
-      for (let x = 26; x <= 41; x++) {
-        const s = (41 - x) / 15, y = Math.round(19 + s * 4);
-        const low = y + (x > 35 ? 1 : 0) + Math.round(s * open * 5);
-        p.px(x, y - 1, '#');
-        p.px(x, y, 'r');
-        if (low === y) p.px(x, y + 1, '#');
-        else if (low === y + 1 && !open) { p.px(x, low, 'r'); p.px(x, low + 1, '#'); }
-        else { p.px(x, y + 1, '#'); p.px(x, low - 1, '#'); p.px(x, low, 'r'); p.px(x, low + 1, '#'); }
-      }
-      p.px(25, 23, '#');
+    // Its legs: one tucked up at rest, both down when it's busy or near you.
+    // The feet leave the ground when it jumps.
+    const HIPS = [[55, 34], [58, 34]];
+    function legs(p, b, down, air) {
+      const foot = BASE - 2 - air;
+      const one = (hip, knee, end, pad) => {
+        const h = [hip[0] + b[0], hip[1] + b[1]];
+        p.line(...h, ...knee, 'r'); p.line(...knee, ...end, 'r');
+        if (pad) for (let dx = -3; dx <= 1; dx++) p.px(end[0] + dx, end[1] + 1, 'r');
+      };
+      one(HIPS[0], [56 + b[0], 41 + Math.min(b[1], 0) - air], [55, foot], true);
+      if (down) one(HIPS[1], [60 + b[0], 41 + Math.min(b[1], 0) - air], [60, foot], true);
+      else one(HIPS[1], [61 + b[0], 38 + b[1]], [58 + b[0], 40 + b[1]], false);
     }
     // The bundle: the baby's banded linen, gathered into a gold knot with its
     // corners sticking up, and a little face peeking out.
@@ -2081,91 +2422,133 @@
         .#pmmmp#.
         ..#####..
       `),
+      glee: art(`
+        ..#####..
+        .#kkkpp#.
+        #ppppppp#
+        #p#ppp#p#
+        #rpppppr#
+        .#pmmmp#.
+        ..#mmm#..
+      `),
     };
-    const SH = 14;
-    const sling = (j) => (j < 3 ? 1.5 + j * 1.5 : j < 10 ? 6 : 6 - (j - 9) * 1.2);
-    const inSling = (x, j) => j >= 0 && j < SH && Math.abs(x) <= sling(j);
-    // Drawn from the knot at kx, ky.
-    function bundle(p, kx, ky, { awake = false, alpha = 1, wave = 0 } = {}) {
-      for (let j = 0; j < SH; j++) for (let x = -7; x <= 7; x++) {
-        if (!inSling(x, j)) continue;
-        const rim = !inSling(x - 1, j) || !inSling(x + 1, j) || !inSling(x, j - 1) || !inSling(x, j + 1);
-        const a = (((x + j) % 7) + 7) % 7, b = (((x - j) % 7) + 7) % 7;
-        p.px(kx + x, ky + 1 + j, rim ? '#' : j > 3 && (a === 0 || b === 0) ? 'r' : 'w', alpha);
+    // Squashed (sq > 0) it's shorter and wider; stretched (sq < 0), taller
+    // and thinner. Its height for a squash, so it can sit on the ground.
+    const SH = 11, tall = (sq) => Math.round(SH * (1 - sq * 0.4));
+    const sling = (j) => (j < 2 ? 1.5 + j * 2 : j < 8 ? 5 : 5 - (j - 7) * 1.2);
+    function bundle(p, kx, ky, { face = 'asleep', wave = 0, sq = 0 } = {}) {
+      kx = Math.round(kx); ky = Math.round(ky);
+      const H = tall(sq), wf = 1 + sq * 0.4;
+      const inS = (x, j) => j >= 0 && j < H && Math.abs(x) <= sling((j * SH) / H) * wf;
+      for (let j = 0; j < H; j++) for (let x = -8; x <= 8; x++) {
+        if (!inS(x, j)) continue;
+        const rim = !inS(x - 1, j) || !inS(x + 1, j) || !inS(x, j - 1) || !inS(x, j + 1);
+        const a = (((x + j) % 6) + 6) % 6, b = (((x - j) % 6) + 6) % 6;
+        p.px(kx + x, ky + 1 + j, rim ? '#' : j > 2 && (a === 0 || b === 0) ? 'r' : 'w');
       }
-      p.sprite(KNOT, kx - 4, ky - 3, { alpha });
-      p.sprite(awake ? FACE.awake : FACE.asleep, kx - 10, ky + 2, { alpha });
+      p.sprite(KNOT, kx - 4, ky - 3);
+      p.sprite(FACE[face], kx - 9, ky + 2 - Math.round(sq * 1.5));
       // Awake, a little hand waves from the top of the cloth.
-      if (awake) {
+      if (face !== 'asleep') {
         const hy = ky + 1 - wave;
-        p.px(kx - 3, ky + 3, 'r', alpha);
-        p.px(kx - 3, hy + 1, 'r', alpha);
-        p.px(kx - 3, hy, 'p', alpha); p.px(kx - 2, hy, 'p', alpha); p.px(kx - 3, hy - 1, 'p', alpha);
+        p.px(kx - 2, ky + 3, 'r'); p.px(kx - 2, hy + 1, 'r');
+        p.px(kx - 2, hy, 'p'); p.px(kx - 1, hy, 'p'); p.px(kx - 2, hy - 1, 'p');
       }
     }
-    const AT = [32, 23], GROUND = BASE - 1 - SH, FROM = [58, 36], TO = [14, GROUND];
-    const DROP = 16, TOSS = 22, TWINS = 100, FADE = 16;
+    // Where the babies are set down: the first under its bill, the others
+    // beside it.
+    const SPOTS = [35, 23, 11];
+    // A hop from x0 to x1 over `t` (0 to 1), `h` high: a crouch, a stretched
+    // leap, a squashed landing.
+    function hopAt(x0, x1, t, h) {
+      if (t <= 0) return { x: x0, y: 0, sq: 0 };
+      if (t < 0.15) return { x: x0, y: 0, sq: 0.5 };
+      if (t < 0.85) { const u = (t - 0.15) / 0.7; return { x: lerp(x0, x1, EASE.inOut(u)), y: -Math.sin(u * PI) * h, sq: -0.35 * Math.sin(u * PI) }; }
+      if (t < 1) return { x: x1, y: 0, sq: 0.5 };
+      return { x: x1, y: 0, sq: 0 };
+    }
 
     drollery('bonus', {
-      span: [4, 12, 72, 66],
-      h: 70,
-      make: () => ({ mode: 'hold', at: -999 }),
+      span: [2, 3, 72, 51],
+      h: 54,
+      make: () => ({ n: 1, from: 1, to: 1, at: -999, blinkAt: 30 }),
       update(st, step) {
-        const a = step - st.at;
-        if (st.mode === 'drop' && a >= DROP + TOSS) { st.mode = 'twins'; st.at = step; }
-        else if (st.mode === 'twins' && a >= TWINS) { st.mode = 'fade'; st.at = step; }
-        else if (st.mode === 'fade' && a >= FADE) { st.mode = 'hold'; st.at = step; }
+        if (step > st.blinkAt + 3) st.blinkAt = step + 50 + Math.floor(R('blink', step) * 80);
+        if (step - st.at === END) st.n = st.to;
       },
-      // A click and it drops the bundle, and out from behind it tumbles a
-      // second one: twins.
-      click(st, step) { if (st.mode === 'hold') { st.mode = 'drop'; st.at = step; } },
+      // A click and it sets the baby down, clatters its bill, and out pops
+      // another: twins, and then triplets. It gathers them all up again.
+      click(st, step) {
+        if (step - st.at < END) return;
+        st.at = step; st.from = st.n; st.to = Math.min(3, st.n + 1);
+      },
       draw(p, st, { step, calm, pointer }) {
-        const a = step - st.at, mode = st.mode;
-        for (let x = 46; x <= 64; x++) p.px(x, BASE - 1, 'f', 0.8);
-        const near = pointer && mode === 'hold';
-        leg(p, near ? DOWN : TUCK);
-        leg(p, STAND);
-        for (const q of STORK) p.px(...q);
-        if (calm || step % 110 >= 3) p.px(43, 17, '#');
-        // The bill goes on over the bundle, gripping its knot.
+        const a = step - st.at, on = a >= 0 && a < END, twin = on && st.to > st.from;
+        const n = on ? (a >= POP && twin ? st.to : st.from) : st.n;
+        const near = pointer && !on;
         const wave = calm ? 0 : (step >> 2) % 2;
-        if (mode === 'hold') {
-          // It sways from the bill; held near, it wriggles and wakes.
-          const th = calm ? 0 : near ? ((step >> 1) % 2 ? 0.08 : -0.08) : Math.sin((step / 60) * TAU) * 0.1;
-          const held = p.capture(() => bundle(p, AT[0], AT[1], { awake: near, wave }));
-          p.turn(held, AT[0], AT[1] - 1, th);
-          bill(p, 0);
-          return;
+        for (let x = 50; x <= 64; x++) p.px(x, BASE - 1, 'f');
+        let P = placed(on ? poseAt(a, twin) : POSE.rest);
+        // Near the pointer it tips its bill toward it.
+        if (near) P = { ...P, a: P.a + clamp((pointer[1] - P.h[1]) / 60, -0.25, 0.25) };
+        const air = twin && a >= TAKE && a < TAKE + 3 ? [2, 3, 1][a - TAKE] : 0;
+        legs(p, P.b, near || on, air);
+        wing(p, on && !calm ? flareAt(a, twin) : 0, P.b);
+        const eye = twin && a >= TAKE - 1 && a < TAKE + 8 ? 'wide' : !calm && step - st.blinkAt >= 0 && step - st.blinkAt < 3 ? 'shut' : 'open';
+        // On its fastest moves, a smear: a faint trail behind the bill.
+        if (on && !calm && a > 0) {
+          const now = tipOf(P), was = tipOf(placed(poseAt(a - 1, twin)));
+          if (Math.hypot(now[0] - was[0], now[1] - was[1]) > 3.5) p.line(was[0], was[1], now[0], now[1], 'f');
         }
-        if (mode === 'fade') {
-          const k = clamp(a / FADE);
-          bundle(p, AT[0], GROUND, { awake: true, alpha: 1 - k });
-          bundle(p, TO[0], TO[1], { awake: true, alpha: 1 - k });
-          bundle(p, AT[0], AT[1], { alpha: k });
-          bill(p, 0);
-          return;
-        }
-        // Down it falls, and wakes as it lands.
-        const d = mode === 'twins' ? DROP + TOSS : a;
-        const fall = Math.min(GROUND - AT[1], 0.11 * d * d);
-        bundle(p, AT[0], AT[1] + fall, { awake: d >= DROP, wave });
-        bill(p, mode === 'drop' ? clamp(1 - (a - 8) / 6) : 0);
-        // The second one bursts out in a shower of sparks and arcs over.
-        const b = d - DROP;
-        if (b >= 0) {
-          const k = clamp(b / TOSS);
-          bundle(p, Math.round(lerp(FROM[0], TO[0], k)), Math.round(lerp(FROM[1], TO[1], k) - Math.sin(k * Math.PI) * 18), { awake: k >= 1, wave: 1 - wave });
-          if (b < 10 && !calm) for (let r = 0; r < 8; r++) {
-            const th = (r / 8) * TAU, d = 3 + b;
-            p.px(FROM[0] + Math.cos(th) * d, FROM[1] + Math.sin(th) * d, r % 2 ? 'glint' : 'g', 1 - b / 10);
+        stork(p, P, eye);
+        // Held, the babies hang from its bill, splayed from one knot, and
+        // swing behind its moves.
+        const tip = tipOf(P), knot = [tip[0], tip[1] + 2];
+        if (!on || a < SET || a >= GRAB) {
+          let lag = 0;
+          if (on) { const prev = tipOf(placed(poseAt(Math.max(0, a - 2), twin))); lag = clamp((prev[0] - tip[0]) * 0.09, -0.6, 0.6); }
+          const sway = calm ? 0 : near ? ((step >> 1) % 2 ? 0.07 : -0.07) : Math.sin((step / 60) * TAU) * 0.08;
+          for (let i = 0; i < n; i++) {
+            const th = (i - (n - 1) / 2) * 0.5 + sway + lag;
+            p.turn(p.capture(() => bundle(p, knot[0], knot[1], { face: near ? 'awake' : 'asleep', wave: (wave + i) % 2 })), Math.round(knot[0]), Math.round(knot[1]), th);
+          }
+        } else {
+          for (let i = 0; i < n; i++) {
+            let m = { x: SPOTS[i], y: 0, sq: 0 };
+            // Set down with a bump.
+            if (i === 0 && a < SET + 4) m.sq = [0.45, 0.3, -0.15, 0][a - SET];
+            // Carried ones hop out to their spots, and back to be gathered.
+            if (i > 0 && i < st.from && a < 20) m = hopAt(SPOTS[0], SPOTS[i], (a - SET - 1 - i * 2) / 9, 6);
+            if (i > 0 && a >= 66) m = hopAt(SPOTS[i], SPOTS[0], (a - 66 - (i - 1) * 2) / 7, 6);
+            // The last one, before the pop: it wriggles and swells.
+            if (twin && i === st.from - 1 && a >= 31 && a < POP + 2) m.sq = a < POP ? (a % 2 ? 0.25 : -0.1) * (1 + (a - 31) / 3) : -0.4;
+            // The new one bursts out of it, stretched, and tumbles over.
+            if (twin && i === n - 1 && a >= POP) m = hopAt(SPOTS[i - 1], SPOTS[i], (a - POP + 2) / 14, 13);
+            const face = twin && a >= TAKE && a < 66 ? 'glee' : 'awake';
+            bundle(p, m.x, GROUND - tall(m.sq) + m.y, { face, wave: (wave + i) % 2, sq: m.sq });
           }
         }
-        // Twins! Sparks wink over them.
-        if (mode === 'twins' && !calm) for (let k = 0; k < 4; k++) {
-          const life = (step + k * 17) % 48, cyc = Math.floor((step + k * 17) / 48);
-          if (life > 16) continue;
-          const sx = 8 + R('twin', k, cyc) * 32, sy = GROUND - 12 + R('twin-y', k, cyc) * 8, al = 1 - Math.abs(life - 8) / 8;
-          for (const [ox, oy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) p.px(sx + ox, sy + oy, ox || oy ? 'g' : 'glint', al);
+        // The pop: a burst of sparks off the last bundle.
+        if (twin && a >= POP && a < POP + 10 && !calm) {
+          const sx = SPOTS[st.from - 1], b = a - POP;
+          for (let r = 0; r < 10; r++) {
+            const th = (r / 10) * TAU, d = 3 + b * 1.1;
+            p.px(sx + Math.cos(th) * d, GROUND - 7 + Math.sin(th) * d * 0.8, r % 2 ? 'glint' : 'o', 1 - b / 10);
+          }
+        }
+        // Clattering: little marks off the bill as it snaps.
+        if (on && a >= CLACK[0] && a < CLACK[1] && !calm && P.o > 0.5) {
+          for (const ox of [-3, 3]) p.px(tip[0] + ox, tip[1] - 1, 'f');
+          p.px(tip[0], tip[1] - 2, 'f');
+        }
+        // The take: a ! over its head, and a feather shaken loose.
+        if (twin && a >= TAKE && a < TAKE + 10) {
+          const [hx, hy] = P.h, pop = a < TAKE + 2 ? -1 : 0;
+          for (const oy of [-7, -6, -5, -3]) p.px(hx + 4, hy + oy + pop, 'r');
+        }
+        if (twin && a >= TAKE && !calm) {
+          const t = a - TAKE, fx = 62 + Math.sin(t * 0.35) * 3, fy = 20 + t * 0.55, tilt = Math.cos(t * 0.35) > 0 ? 1 : -1;
+          if (fy < GROUND - 1) { p.px(fx, fy, 'w'); p.px(fx + 1, fy + (tilt > 0 ? 0 : 1), 'w'); p.px(fx + 2, fy - tilt, 'k'); p.px(fx - 1, fy + tilt, '#'); }
         }
       },
     });
@@ -2275,8 +2658,10 @@
       b.to = to; b.mode = mode; b.at = step;
     }
 
+    const CRACK = 7;
+
     drollery('legacy', {
-      span: [15, 1, 74, 66],
+      span: [16, 2, 73, 66],
       h: 72,
       make: () => ({ form: 'hero', next: 'dove', anim: null, bird: { mode: 'away', x: ENTRY[0], y: ENTRY[1], alpha: 0 } }),
       update(st, step) {
@@ -2308,7 +2693,7 @@
             c.y = here; c.vy = 0;
             const roll = [-2, 2].map((dx) => [dx, floorAt(clamp(x + dx, 4, W - 10))]).filter(([, f]) => f > here + 2).sort((u, v) => v[1] - u[1])[0];
             if (roll) { c.tx = c.x = clamp(x + Math.sign(roll[0]), 4, W - 10); continue; }
-            c.x = x; c.rest = true;
+            c.x = x; c.rest = true; c.landed = step;
             for (const b of c.bits) an.hm[x + b.dx] = Math.min(an.hm[x + b.dx] ?? BASE, here + b.dy);
           }
           if (an.chunks.every((c) => c.rest)) {
@@ -2319,7 +2704,7 @@
             fly(b, 'land', [tx - 3, top - 6], step);
           }
         } else if (a > an.end) {
-          st.form = an.to; st.rubble = null; st.anim = null;
+          st.form = an.to; st.rubble = null; st.anim = null; st.doneAt = step;
           fly(b, 'land', perch(st.form), step);
         }
       },
@@ -2354,7 +2739,7 @@
           const bottom = Math.max(...qs.map((q) => q.y));
           const bits = qs.map((q) => ({ dx: q.x - x, dy: q.y - y, ink: q.ink })), low = {};
           for (const b of bits) low[b.dx] = Math.max(low[b.dx] ?? -1, b.dy);
-          return { x, y, tx: clamp(x + Math.round((R('vx', i, step) - 0.5) * 18), 4, W - 10), vy: 0, delay: Math.round((TOP - bottom) * 0.4 + R('d', i, step) * 2), bits, low };
+          return { x, y, tx: clamp(x + Math.round((R('vx', i, step) - 0.5) * 18), 4, W - 10), vy: 0, delay: CRACK + Math.round((TOP - bottom) * 0.4 + R('d', i, step) * 2), bits, low };
         });
         st.anim = { kind: 'crumble', born: step, chunks, hm };
       },
@@ -2364,9 +2749,29 @@
         for (let x = MID - 4; x <= MID + 4; x++) for (const y of [TOP + 4, TOP + 5]) p.px(x, y, 'g');
 
         const an = st.anim, a = an ? step - an.born : 0;
-        if (!an && st.form !== 'rubble') for (const q of pixels(st.form)) p.px(q.x, q.y, q.ink);
+        // Newly risen, it settles with a bounce, and a shine sweeps across it.
+        const d = step - (st.doneAt ?? -99), bounce = calm || d < 0 || d > 3 ? 0 : [1, 0, -1, 0][d];
+        if (!an && st.form !== 'rubble') for (const q of pixels(st.form)) p.px(q.x, q.y + bounce, d >= 0 && d < 12 && Math.abs(q.x + q.y - (TOP - 30 + d * 6)) < 2 ? 'glint' : q.ink);
         if (st.form === 'rubble' && !an) for (const q of st.rubble) p.px(q.x, q.y, q.ink);
-        if (an && an.kind === 'crumble') for (const c of an.chunks) for (const b of c.bits) p.px(Math.round(c.x) + b.dx, Math.round(c.y) + b.dy, b.ink);
+        // Before it falls, it trembles and cracks spread up it.
+        if (an && an.kind === 'crumble' && a < CRACK) {
+          const jit = calm ? 0 : a % 2 ? 1 : -1, [cx0, cy0] = corner(st.form);
+          for (const q of pixels(st.form)) {
+            const up = TOP - q.y, crack = [0, 1, 2].some((n) => {
+              const path = cx0 + 4 + n * 4 + Math.round(Math.sin(q.y * 0.9 + n * 2) * 1.5);
+              return q.x === path && up < (a + 1) * 9 - n * 6;
+            });
+            p.px(q.x + jit, q.y, crack ? 'k' : q.ink);
+          }
+        } else if (an && an.kind === 'crumble') for (const c of an.chunks) {
+          for (const b of c.bits) p.px(Math.round(c.x) + b.dx, Math.round(c.y) + b.dy, b.ink);
+          // A puff of dust where each chunk lands.
+          const l = c.landed !== undefined ? step - c.landed : -1;
+          if (l >= 0 && l < 4 && !calm) {
+            const w = Math.max(...c.bits.map((q) => q.dx)), yb = Math.round(c.y) + Math.max(...c.bits.map((q) => q.dy));
+            for (const sx of [-1 - l, w + 1 + l]) p.px(Math.round(c.x) + sx, yb - (l > 1), 'f');
+          }
+        }
         if (an && an.kind === 'assemble') {
           for (const q of an.spare) p.px(q.x, q.y, q.ink, clamp(1 - a / 20));
           for (const q of an.bits) {
