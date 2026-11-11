@@ -200,19 +200,16 @@
 <p>Starting an Era doesn't give out any Journeys; the passage above is an invitation, not a rule. Taking a <a href="#journey">Journey</a> action early in the Era is a great way to set your new Actor on their path.</p>
 </aside>
 <h3 id="turn-mechanics">Turn Mechanics</h3>
-<p>On your turn, do the following:</p>
+<p>Each turn has three steps:</p>
 <ol>
-  <li><strong>Take an Action:</strong> Choose between <a href="#naming">Naming</a>, <a href="#journey">Journey</a>, or <a href="#narration">Narration</a>.</li>
-  <li><strong>Draw an Era Card:</strong> Read its text aloud from the <a href="era-cards.html">Era Cards</a> page and follow its instructions.</li>
-  <li><strong>Bonus Naming (Optional):</strong> Name a new Entity of one of the current Era's <a href="#naming-options">Bonus types</a>. You get one per turn, and you choose when to take it, as long as it's before you roll for Journeys.</li>
-  <li><strong>Roll for Journeys:</strong> Every player rolls a d20 for each of their Journeys in progress, except any given this turn. See <a href="#journey">Journey</a>.</li>
+  <li><strong>You take an action:</strong> Choose <a href="#naming">Naming</a>, <a href="#journey">Journey</a>, or <a href="#narration">Narration</a>.</li>
+  <li><strong>You draw an Era Card:</strong> Read it aloud from the <a href="era-cards.html">Era Cards</a> page and follow it.</li>
+  <li><strong>Everyone rolls for their Journeys:</strong> A d20 for each Journey in progress. New ones start rolling next turn. See <a href="#journey">Journey</a>.</li>
 </ol>
-<aside class="todo">Shorten the Bonus Naming step above and its section below. Both grew long once Bonus Naming could be taken at any point in the turn. Consider splitting the text up, or moving details like the timing into a tooltip or a tip.</aside>
-<p>Each turn, you must take one action: <em>Naming</em>, <em>Journey</em>, or <em>Narration</em>. Each is detailed below.</p>
+<p><strong>Bonus Naming:</strong> Once on your turn, at any point, you may also Name a new Entity of a type the current Era <a href="#naming-options">favors</a>.</p>
 <h4 id="naming">Naming</h4>
 <figure class="marginal" aria-hidden="true" data-scene="m-naming"></figure>
-<p>You Name a new Entity into the game. The following Entities can be Named in their listed Eras below.</p>
-<p>As part of the Naming, describe the Entity in one to two sentences, then add the additional information listed for its type under <a href="#types-of-entities">Types of Entities</a> and give the Entity one Quality. Add any Relationships to this Entity that make sense.</p>
+<p>You Name a new Entity into the game, of any type the current Era allows. Describe it in a sentence or two, add what its type calls for under <a href="#types-of-entities">Types of Entities</a>, and give it one Quality. Add any Relationships that make sense.</p>
 <h5 id="naming-options">Naming Options</h5>
 <p>The types of Entities you can Name evolve with each Era. Early Eras focus on establishing the world's foundational elements (Places, Gods, Peoples), while later Eras emphasize the actions of Actors and the rise of Nations.</p>
 <div class="table-wrap">
@@ -263,17 +260,17 @@
   </tbody>
 </table>
 </div>
-<p class="table-note"><strong>Bonus</strong> = Yes, and can also be Named with your <a href="#bonus-naming">Bonus Naming</a>.</p>
+<p class="table-note"><strong>Bonus</strong> = Yes, and the Era favors it, so you can also Name it with your <a href="#bonus-naming">Bonus Naming</a>.</p>
 <p>Era Cards may Name any Entity, even one not normally allowed in the current Era.</p>
 <h4 id="journey">Journey</h4>
 <figure class="marginal" aria-hidden="true" data-scene="m-journey"></figure>
-<p>You give an existing Entity an undertaking to accomplish. A Journey may be anything, provided it takes a nontrivial amount of time to accomplish and that it has a chance of failure. For example:</p>
+<p>You give an existing Entity an undertaking. A Journey can be anything, as long as it takes time and could fail. For example:</p>
 <ul>
   <li>A People, driven by prophecy, seek a new home.</li>
   <li>An Actor is given a quest to slay a great beast.</li>
   <li>A Nation begins construction of a great wall to divide the realm.</li>
 </ul>
-<p>When you give a Journey, declare what is being undertaken, then choose a Journey size from the table below.</p>
+<p>When you give a Journey, say what it is, then choose its size:</p>
 <h5 id="journey-size">Journey Size</h5>
 <div class="table-wrap">
 <table>
@@ -308,7 +305,7 @@
   </tbody>
 </table>
 </div>
-<p>At the end of each subsequent turn, roll a d20 for each Journey, then update the remaining number of tasks by the modifier below. All players with Journeys can roll their dice at the same time, for speed of gameplay.</p>
+<p>Starting next turn, roll a d20 for the Journey at the end of every turn, and change its remaining tasks as shown below. Everyone can roll for their Journeys at once.</p>
 <h5 id="journey-tasks">Journey Tasks</h5>
 <div class="table-wrap">
 <table>
@@ -348,37 +345,39 @@
   </tbody>
 </table>
 </div>
-<p>When the remaining tasks reach zero, the Journey completes. You decide if a Journey ends in <strong>success</strong> or <strong>failure</strong> unless otherwise noted. If successful, at least half of the outcomes must be positive. If failure, at least half must be negative. You can choose the same option more than once.</p>
-<p>When a Journey completes, choose from these outcomes:</p>
+<p>When a Journey's tasks reach zero, it completes. Unless something says otherwise, you decide whether it ends in <strong>success</strong> or <strong>failure</strong>, then choose as many outcomes as its size gives it from the list below. On a success, at least half must be positive; on a failure, at least half must be negative. You can choose the same outcome more than once.</p>
 <ul>
-  <li>Add or remove a single Quality to a related Entity.</li>
+  <li>Add a Quality to a related Entity, or remove one.</li>
   <li>Add or remove a Relationship between a related Entity and another Entity.</li>
-  <li>Add or remove a task to/from another Journey (Costs 2 outcomes).</li>
+  <li>Add a task to another Journey, or remove one (Costs 2 outcomes).</li>
   <li>Name or remove a single Entity (Costs 2 outcomes).</li>
 </ul>
 <aside class="todo">Add a fuller worked example of a Journey from start to finish: who gives it and to whom, its tasks, how it completes, and how its outcomes are chosen, including a Relationship outcome. It replaces the one-line examples that used to sit in this list.</aside>
 <p>If two Journeys complete on the same turn, the one that was given first completes first.</p>
 <h4 id="narration">Narration</h4>
 <figure class="marginal" aria-hidden="true" data-scene="m-narration"></figure>
-<p>You Narrate an event that occurs in the world. An event may be anything, provided it occurs over a short period of time and is something that "happened" rather than a goal that was worked towards. When Narrating, include what happens and who it affects.</p>
-<p>In response to hearing the Narration, each player in turn order, starting with the next player and ending with you, may select one affected Entity. If they do, they perform one of the following, relating to the Narration:</p>
+<p>You Narrate an event in the world: something that happens over a short time, rather than a goal worked towards (that's a Journey). Say what happens and who it affects.</p>
+<p>Then each player in turn order, starting with the next player and ending with you, may select one affected Entity and do one of the following, in keeping with the Narration:</p>
 <ul>
-  <li>Add or remove a single Quality to that Entity.</li>
+  <li>Add a Quality to that Entity, or remove one.</li>
   <li>Add or remove a Relationship between that Entity and another related Entity (e.g. <em>Worships [God]</em>, <em>Enemy of [Nation]</em>, <em>Rival of [Actor]</em>).</li>
-  <li>Increase or decrease a related Journey's remaining task count by 1.</li>
+  <li>Increase or decrease a related Journey's remaining tasks by 1.</li>
   <li>Name or remove a single Entity (only if all players agree).</li>
 </ul>
-<p>Once a player selects an affected Entity for a Narration, further players cannot select the same Entity. If a player has nothing further to add for a given Narration, they can pass.</p>
+<p>Each Entity can be selected only once per Narration. A player with nothing to add can pass.</p>
 <aside class="tip">
-<p>While Narration is key to binding the world together, it can also take much longer than other actions. Players responding to Narration should try to keep their responses short to keep the game moving!</p>
+<p>Narration binds the world together, but it can take longer than other actions. Keep responses short to keep the game moving.</p>
 </aside>
 <h4 id="draw-a-card">Draw a Card</h4>
 <figure class="marginal" aria-hidden="true" data-scene="m-card"></figure>
-<p>After taking your action, draw an <a href="era-cards.html">Era Card</a>. Draw the top card of the Era deck and reveal it, then follow the instructions.</p>
+<p>After your action, draw the top card of the Era deck and find it on the <a href="era-cards.html">Era Cards</a> page. Read it aloud, then follow it.</p>
 <h4 id="bonus-naming">Bonus Naming</h4>
 <figure class="marginal" aria-hidden="true" data-scene="m-bonus"></figure>
-<p>In each Era, some types of Entities appear more often than others. These are that Era's Bonus types, marked <strong>Bonus</strong> in its row of the <a href="#naming-options">Naming Options</a> table.</p>
-<p>Once per turn, you may Name a new Entity of one of the current Era's Bonus types. Name it the same way as the <a href="#naming">Naming</a> action. Bonus Naming is optional and comes on top of your action, never instead of it. You choose when to take it: before your action, after it, or after you draw an Era Card, as long as it's before you roll for Journeys. Your action can still be a Naming, even of the same type.</p>
+<p>Each Era favors certain types of Entities. In the Era of Myth the world is taking shape, and new Places keep appearing on the map. The Era of Ruin belongs to Nations and the Actors who topple them. The <a href="#naming-options">Naming Options</a> table marks each favored type <strong>Bonus</strong>.</p>
+<p>Once on your turn, you may Name a new Entity of a type the current Era favors. You can do it at any point, even in the middle of your action or an Era Card. It's in addition to your action, so you can Name twice in one turn.</p>
+<aside class="tip">
+<p>There's no wrong time for it. Name an Actor and give them a Journey, or hold it until your Era Card is read. If nothing fits the story, skip it.</p>
+</aside>
 <h3 id="ending-an-era">Ending an Era</h3>
 <p>An Era ends after the turn in which its last card is drawn. Between it and the next Era, an undefined amount of time passes. At the end of every Era but the last, do the following, in order:</p>
 <ol>
@@ -396,7 +395,7 @@
 <h2 id="glossary">Glossary</h2>
 <dl class="glossary">
   <div id="g-actor"><dt data-forms="Actor, Actors">Actor</dt><dd>A person, group or creature who shapes history. Unless a card says otherwise, Actors die when their Era ends. <a href="#actors">Actors</a></dd></div>
-  <div id="g-bonus-naming"><dt data-forms="Bonus Naming">Bonus Naming</dt><dd>An optional extra Naming on your turn, of one of the current Era's Bonus types. Take it any time before you roll for Journeys. <a href="#bonus-naming">Bonus Naming</a></dd></div>
+  <div id="g-bonus-naming"><dt data-forms="Bonus Naming">Bonus Naming</dt><dd>Once on your turn, at any point, you may Name an extra Entity of a type the current Era favors. <a href="#bonus-naming">Bonus Naming</a></dd></div>
   <div id="g-entity"><dt data-forms="Entity, Entities">Entity</dt><dd>A named Place, God, People, Actor or Nation. Track each on its own card. <a href="#entities">Entities</a></dd></div>
   <div id="g-era"><dt data-forms="Era, Eras">Era</dt><dd>One of the four ages of history: Myth, Antiquity, Ruin and Promise. Each is played with its own deck. <a href="#the-four-eras">The Four Eras</a></dd></div>
   <div id="g-era-card"><dt data-forms="Era Card, Era Cards">Era Card</dt><dd>The card you draw after your action each turn. Read it aloud and follow it. <a href="era-cards.html">Era Cards</a></dd></div>
