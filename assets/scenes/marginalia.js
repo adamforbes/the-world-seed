@@ -201,7 +201,7 @@
   }
 
   // For the Era mascots in mascots.js, which are made the same way.
-  window.Margins = { drollery, art, size, R, W, INKS };
+  window.Margins = { drollery, art, size, squash, R, W, INKS };
 
   // ---------- Places: a mango tree ----------
 
@@ -408,7 +408,7 @@
     const CAST = 50, REACH = 26;
 
     drollery('gods', {
-      span: [14, 2, 69, 60],
+      span: [15, 1, 68, 59],
       h: 64,
       make: () => ({ blinkAt: 40, castAt: -999 }),
       update(st, step) {
@@ -416,11 +416,23 @@
       },
       click(st, step) { if (step - st.castAt > CAST) st.castAt = step; },
       draw(p, st, { step, calm, pointer }) {
-        const a = step - st.castAt, casting = a >= 0 && a < CAST;
+        const a = step - st.castAt, casting = a >= 0 && a < CAST && !calm;
         const bob = calm ? 0 : Math.round(Math.sin((step / 84) * TAU) * 2);
-        const lift = casting ? Math.round(2 * smooth(clamp(a / 8)) * (1 - smooth(clamp((a - 34) / 12)))) : 0;
+        // The miracle, keyed: it sinks and squashes, gathering power, then
+        // shoots up stretched past its mark, hovers trembling, and comes down,
+        // dipping past rest before it settles.
+        const KEYS = [[0, 0], [4, -2], [7, 5], [11, 2], [34, 2], [44, -1], [48, 0]];
+        let lift = 0, k = 1;
+        if (casting) {
+          let n = 0;
+          while (n < KEYS.length - 2 && KEYS[n + 1][0] <= a) n++;
+          const [f0, v0] = KEYS[n], [f1, v1] = KEYS[n + 1];
+          lift = Math.round(lerp(v0, v1, smooth(clamp((a - f0) / (f1 - f0)))));
+          k = a < 4 ? 1 - 0.12 * (a / 4) : a < 9 ? 1.12 : a < 12 ? lerp(1.12, 1, (a - 9) / 3) : a >= 43 && a < 46 ? 0.92 : 1;
+        }
         const tremble = casting && a > 3 && a < 26 ? (step % 2 ? 1 : -1) : 0;
-        const hx = 28 + tremble, hy = 12 + bob - lift;
+        const rows = k === 1 ? HAND : squash(HAND, k), grow = rows.length - HAND.length;
+        const hx = 28 + tremble, hy = 12 + bob - lift - grow;
         const cx = hx + CX, cy = hy + CY;
         const burst = casting && a >= 8 && a < 38 ? a - 8 : -1;
 
@@ -443,17 +455,19 @@
           }
         }
         // Its shadow on the line, smaller as it rises.
-        const sw = 8 - bob - lift * 2;
+        const sw = Math.max(2, 8 - bob - lift * 2);
         for (let x = -sw; x <= sw; x++) p.px(cx + x, 58, 'f', Math.abs(x) > sw - 2 ? 0.5 : 1);
 
         const burning = burst >= 0 && burst < 16 && (burst < 8 || step % 2 === 0);
-        p.sprite(HAND, hx, hy, burning ? { map: { '#': 'r' } } : {});
+        p.sprite(rows, hx, hy, burning ? { map: { '#': 'r' } } : {});
 
         // The eye: lids for blinks, an iris that follows the pointer, rolling
         // back for the miracle.
         let dx = 0, dy = 0, lid = 0;
         if (casting) {
-          dy = a < 8 ? -Math.round(a * 0.7) : a < 36 ? -6 : -Math.round(6 - (a - 36) * 0.45);
+          // A squint as it gathers itself, then the eye rolls back.
+          if (a < 4) lid = 1;
+          dy = a < 4 ? 0 : a < 8 ? -Math.round((a - 3) * 1.5) : a < 36 ? -6 : -Math.round(6 - (a - 36) * 0.45);
         } else if (pointer) {
           dx = clamp(Math.round((pointer[0] - cx) / 6), -3, 3);
           dy = clamp(Math.round((pointer[1] - cy) / 8), -2, 2);
@@ -468,7 +482,7 @@
           let ink = ch === 'w' ? whites : '#';
           if (ch === 'w' && LIDS[lid] && LIDS[lid][j]) ink = LIDS[lid][j];
           else if (ch === 'w' && Math.abs(i - (4 + dx)) <= 1 && Math.abs(j - (3 + dy)) <= 1) ink = i === 4 + dx && j === 3 + dy ? '#' : 'b';
-          p.px(hx + EX + i, hy + EY + j, ink);
+          p.px(hx + EX + i, hy + Math.round(EY * k) + j, ink);
         }));
 
         // Sparks thrown off.
@@ -764,8 +778,10 @@
     }
     // The helm on the knight's head (t = 0) and tucked under their arm (t = 1).
     const HEAD = [KX + 2, KY], ARM = [KX + 6, KY + 8];
+    // It's tugged down a pixel first, then pops up past where it settles.
     function helmAt(t) {
-      if (t < 0.3) return [HEAD[0], HEAD[1] - Math.round((t / 0.3) * 3)];
+      if (t < 0.1) return [HEAD[0], HEAD[1] + 1];
+      if (t < 0.3) { const u = (t - 0.1) / 0.2; return [HEAD[0], HEAD[1] - Math.round(u < 0.6 ? (u / 0.6) * 5 : 5 - ((u - 0.6) / 0.4) * 2)]; }
       const u = smooth((t - 0.3) / 0.7);
       return [Math.round(lerp(HEAD[0], ARM[0], u) + Math.sin(u * Math.PI) * 3), Math.round(lerp(HEAD[1] - 3, ARM[1], u))];
     }
@@ -789,7 +805,7 @@
     const glance = (a) => (a < GLANCE[0] || a >= GLANCE[3] ? 0 : a < GLANCE[1] ? (a - GLANCE[0]) / (GLANCE[1] - GLANCE[0]) : a < GLANCE[2] ? 1 : 1 - (a - GLANCE[2]) / (GLANCE[3] - GLANCE[2]));
 
     drollery('actors', {
-      span: [11, 4, 62, 50],
+      span: [12, 2, 61, 51],
       h: 56,
       make: () => ({ off: false, at: -999 }),
       click(st, step) {
@@ -798,6 +814,14 @@
         st.at = step;
       },
       draw(p, st, { step, calm, pointer }) {
+        // The whole mount jolts down a pixel as the lance bites, and again as
+        // the helm clunks back on.
+        const a0 = step - st.at;
+        const jolt = !calm && ((st.off && a0 >= PLANT && a0 < PLANT + 2) || (!st.off && a0 >= TUCK - 1 && a0 < TUCK + 1)) ? 1 : 0;
+        const all = p.capture(() => this.scene(p, st, { step, calm, pointer }));
+        for (const [x, y, ink, al] of all) p.px(x, y + (ink === 'f' && y >= BASE - 2 ? 0 : jolt), ink, al);
+      },
+      scene(p, st, { step, calm, pointer }) {
         const d = calm ? 0 : Math.floor(step / 36) % 2;
         p.region(inBody(d), [10, 34, 56, 49], 'f', '#');
         const a = step - st.at, w = st.off && !calm ? smooth(glance(a)) : 0;
@@ -844,7 +868,8 @@
         const k = smooth(clamp((step - st.at) / TUCK)), t = st.off ? k : 1 - k;
         if (t > 0.05) {
           p.sprite(SNAILHEAD, KX + 2, KY + 2);
-          const len = Math.round(6 * clamp((t - 0.35) / 0.35));
+          // Its eyestalks spring out, overshooting a little.
+          const e = clamp((t - 0.35) / 0.35), len = Math.round(6 * (e < 1 ? e * (1 + 0.5 * Math.sin(e * Math.PI)) : 1));
           if (len > 1) { stalk(p, KX + 3, KY + 2, len, pointer, -1); stalk(p, KX + 6, KY + 2, len, pointer, 1); }
         }
         p.sprite(HELM, ...helmAt(t));
@@ -942,10 +967,12 @@
         emblem: names[Math.floor(R('emblem', n) * names.length)],
       };
     };
-    const STRIKE = 84;
+    // A held breath first: the wind stops dead and the flag freezes for a
+    // beat before the bolt.
+    const PRE = 5, STRIKE = 84 + PRE;
 
     drollery('nations', {
-      span: [7, 0, 69, 50],
+      span: [7, 0, 70, 50],
       h: 56,
       make: () => ({ design: { field: 'r', pattern: 'plain', emblem: 'crown' }, e: 0, strike: null, flags: 0 }),
       update(st, step, pointer) {
@@ -964,6 +991,13 @@
         st.strike = { born: step, e: st.e, hit: Math.max(3, L - 2), next: pickDesign(st.design, ++st.flags) };
       },
       draw(p, st, { step, calm }) {
+        // The strike shakes everything for a few frames.
+        const a = st.strike ? step - st.strike.born - PRE : -99;
+        const shake = !calm && a >= 0 && a < 6 ? [2, -2, 1, -1, 1, 0][a] : 0;
+        const all = p.capture(() => this.scene(p, st, { step, calm }));
+        for (const [x, y, ink, al] of all) p.px(x + shake, y, ink, al);
+      },
+      scene(p, st, { step, calm }) {
         for (const [y, x0, x1] of [[49, 21, 31], [48, 23, 29], [47, 25, 27]]) for (let x = x0; x <= x1; x++) p.px(x, y, y === 47 || x === x0 || x === x1 ? '#' : 'f');
         for (let y = 9; y < 47; y++) p.px(POLE, y, '#');
         p.sprite(art(`
@@ -982,7 +1016,12 @@
           flag(p, st.design, calm ? 0 : st.e, step);
           return;
         }
-        const a = step - s.born, hx = HX + s.hit, hy = HY + 6;
+        const a = step - s.born - PRE, hx = HX + s.hit, hy = HY + 6;
+        if (a < 0) {
+          flag(p, st.design, s.e, s.born);
+          if (a === -1) p.glow(hx, hy, 18, 'g', 0.15);
+          return;
+        }
         // The bolt: a thick, forked zigzag from off the top of the frame to the
         // ground, through the end of the flag.
         if (a < 5 && a !== 2) {
@@ -1024,9 +1063,13 @@
           for (const [ox, oy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) p.px(x + ox, y + oy, 'f', 1 - t / 40);
         }
         // The new flag goes up the pole.
+        // The new flag is hauled up the pole hand over hand, in four quick
+        // pulls, and at the top it snaps out once and falls back.
         if (a >= 44) {
-          const k = smooth(clamp((a - 44) / 30));
-          flag(p, s.next, 0, step, Math.round(lerp(30, HY, k)));
+          const u = clamp((a - 44) / 28) * 4, pull = Math.min(3, Math.floor(u));
+          const k = u >= 4 ? 1 : (pull + 1 - (1 - clamp((u - pull) / 0.4)) ** 3) / 4;
+          const top = a - 72, e = top < 0 ? 0 : Math.max(0, Math.sin((top / 12) * Math.PI) * 0.8);
+          flag(p, s.next, calm ? 0 : e, step, Math.round(lerp(30, HY, k)));
         }
       },
     });
@@ -1211,13 +1254,14 @@
       .#oo#.
       #oggo#
     `);
-    const REPAINT = 14, SWING = 30, NAILED = art(`
+    const EASE_OUT = (t) => 1 - (1 - t) ** 3;
+    const REPAINT = 22, SWING = 30, NAILED = art(`
       ee
       ee
     `);
 
     drollery('qualities', {
-      span: [23, 1, 57, 50],
+      span: [23, 1, 61, 50],
       h: 56,
       make: () => ({ at: 0, was: 0, paintAt: -999, blinkAt: 50 }),
       update(st, step) { if (step > st.blinkAt + 3) st.blinkAt = step + 60 + Math.floor(R('blink', step) * 90); },
@@ -1228,7 +1272,13 @@
         st.paintAt = step;
       },
       draw(p, st, { step, calm, pointer }) {
-        const a = step - st.paintAt, painting = a >= 0 && a < REPAINT;
+        // A repaint: the brush comes in from the side, pulls back and dives;
+        // three quick strokes, each with a beat's pause, paint it top to
+        // bottom; then a flick off, which sets the frame swinging.
+        const a = step - st.paintAt, painting = a >= 0 && a < REPAINT && !calm;
+        const DIVE = 4, STROKES = 3, STROKE = 5, FLICK = DIVE + STROKES * STROKE;
+        const sN = Math.min(STROKES - 1, Math.floor((a - DIVE) / STROKE)), sF = (a - DIVE) - sN * STROKE;
+        const done = a < DIVE ? 0 : a >= FLICK ? 1 : (sN + Math.min(1, sF / 3)) / STROKES;
         const now = SITTERS[st.at], before = SITTERS[st.was];
         // Its eyes watch you, and follow the pointer; the saint's are raised
         // to heaven until you come near.
@@ -1238,24 +1288,30 @@
           look.x = dx < -5 ? 0 : dx > 5 ? 2 : 1;
           look.y = dy < -6 ? 0 : dy > 6 ? 1 : null;
         }
+        // The old sitter watches the brush coming for them.
+        const wary = { x: 1, y: 0, shut: false };
         // A click: a brush repaints it top to bottom, and the frame swings
         // on its cord.
-        const wipe = PY + Math.floor(smooth(clamp(a / REPAINT)) * PH);
+        const wipe = PY + Math.floor(done * PH);
         const list = p.capture(() => {
           frame(p);
-          if (painting) {
-            sitter(p, before, look, (y) => y >= wipe);
+          if (painting && a < FLICK) {
+            sitter(p, before, wary, (y) => y >= wipe);
             sitter(p, now, look, (y) => y < wipe);
-          } else sitter(p, now, look);
+          } else sitter(p, painting || a < 0 || a >= REPAINT ? now : now, look);
         });
-        const th = !calm && a >= 0 && a < SWING ? 0.07 * Math.sin(a * 0.55) * (1 - a / SWING) : 0;
+        const sw = a - FLICK;
+        const th = !calm && sw >= 0 && sw < SWING ? 0.09 * Math.sin(sw * 0.55) * (1 - sw / SWING) : 0;
         p.turn(list, NAIL[0], NAIL[1], th);
         p.sprite(NAILED, Math.round(NAIL[0]) - 1, NAIL[1] - 1);
         if (painting) {
-          // The brush, zigzagging down: bristles in the new colour, a
-          // ferrule and a handle.
-          const u = (a / REPAINT) * 3, zig = u % 2 < 1 ? u % 1 : 1 - (u % 1);
-          const bx = Math.round(PX + 2 + zig * (PW - 5)), by = Math.min(wipe, PY + PH - 1);
+          // The brush: bristles in the new colour, a ferrule and a handle.
+          let bx, by;
+          if (a < DIVE) { bx = [PX + PW + 5, PX + PW + 6, PX + PW + 8, PX + 2][a]; by = PY + [5, 5, 4, 0][a]; }
+          else if (a < FLICK) {
+            const f = Math.min(1, sF / 3), across = sN % 2 ? 1 - f : f;
+            bx = Math.round(PX + 2 + EASE_OUT(across) * (PW - 5)); by = Math.min(wipe, PY + PH - 1);
+          } else { const f = a - FLICK; bx = PX + PW - 3 + f * 4; by = PY + PH - 1 - f * 6; }
           const bristle = now.map.B;
           for (let k = 0; k < 3; k++) { p.px(bx + k, by, bristle); p.px(bx + k, by - 1, bristle); }
           for (let k = 0; k < 3; k++) { p.px(bx + k, by - 2, 'e'); p.px(bx + k, by - 3, 'e'); }
@@ -1269,8 +1325,11 @@
           p.px(x, y, edge ? '#' : 'g');
         }
         for (const x of [x0 + 1, x1 - 1]) p.px(x, (y0 + y1) >> 1, 'e');
-        if (painting && a < REPAINT / 2) word(p, before.word, 'k', a / (REPAINT / 2));
-        else word(p, now.word, painting || (a >= 0 && a < REPAINT + 6) ? 'glint' : 'k');
+        // The old word is struck out as the strokes go; the new one stamps on
+        // with the flick, the plaque jolting, and shines.
+        if (painting && a < FLICK) word(p, before.word, 'k', clamp((a - DIVE) / (FLICK - DIVE - 4)));
+        else if (painting && a < FLICK + 2) { const jolt = p.capture(() => word(p, now.word, 'glint')); for (const q of jolt) p.px(q[0], q[1] + 1, q[2], q[3]); }
+        else word(p, now.word, a >= 0 && a < REPAINT + 8 ? 'glint' : 'k');
       },
     });
   }
@@ -1397,15 +1456,18 @@
       gg......gg
     `)];
     // The carpet hovers here while the baby cries.
-    const HOVER = [MID, HY - 8], BURST = 10, WRAP = 30, CLOTH = 28;
+    const HOVER = [MID, HY - 8], SQUIRM = 6, BURST = 10, WRAP = 30, CLOTH = 28;
 
     drollery('naming', {
-      span: [11, 8, 70, 63],
+      span: [11, 6, 70, 63],
       h: 64,
       make: () => ({ mode: 'sleep', at: -999, soothed: false, starAt: -999, zs: [], tears: [], nextZ: 20 }),
       update(st, step, pointer) {
         const a = step - st.at;
-        if (st.mode === 'sleep' && pointer && !st.soothed) { st.mode = 'burst'; st.at = step; }
+        // Disturbed, it squirms in the swaddle for a moment before it bursts.
+        if (st.mode === 'sleep' && pointer && !st.soothed) { st.mode = 'squirm'; st.at = step; }
+        else if (st.mode === 'squirm' && !pointer) { st.mode = 'sleep'; st.at = step; }
+        else if (st.mode === 'squirm' && a >= SQUIRM) { st.mode = 'burst'; st.at = step; }
         else if (st.mode === 'burst' && a >= BURST) { st.mode = 'cry'; st.at = step; }
         else if (st.mode === 'wrap' && a >= WRAP) { st.mode = 'sleep'; st.at = step; if (st.star) st.starAt = step; }
         if (st.mode === 'sleep' && step >= st.nextZ && step - st.starAt > 30) {
@@ -1430,6 +1492,20 @@
         st.mode = 'wrap'; st.at = step; st.star = true; st.soothed = true; st.nextZ = step + WRAP + 30;
       },
       draw(p, st, { step, calm }) {
+        // The baby itself shifts as a whole: jiggling as it squirms, popping
+        // up as it bursts free and landing with a bump, and settling with a
+        // squash once it's wrapped again.
+        const a = step - st.at, mode = st.mode;
+        let dx = 0, dy = 0;
+        if (!calm) {
+          if (mode === 'squirm') { dx = a % 2 ? 1 : -1; dy = a % 3 === 0 ? 1 : 0; }
+          else if (mode === 'burst') dy = [-1, -3, -3, -3, -1, 1, 1, 0, 0, 0][a] ?? 0;
+          else if (mode === 'wrap' && a >= WRAP - 3) dy = 1;
+        }
+        const all = p.capture(() => this.scene(p, st, { step, calm }));
+        for (const [x, y, ink, al] of all) p.px(x + (y < CUSHION ? dx : 0), y + (y < CUSHION ? dy : 0), ink, al);
+      },
+      scene(p, st, { step, calm }) {
         const a = step - st.at, mode = st.mode;
         // The cushion: lapis, edged and tasselled in gold.
         for (let y = CUSHION; y < BASE; y++) for (let x = 23; x <= 56; x++) {
@@ -1521,7 +1597,9 @@
         const s = step - st.starAt;
         if (s >= 0 && s < 72) {
           p.glow(MID, HY - 8, 12, 'g', 0.3 * clamp(1 - (s - 40) / 32));
-          p.sprite(STAR[(step >> 3) % 2], Math.round(MID) - 5, Math.round(HY - 4 - 12 * smooth(clamp(s / 12))), { alpha: clamp(1 - (s - 50) / 22) });
+          // The star pops up past its mark and settles back.
+          const u = clamp(s / 8), back = 1 + 2.7 * (u - 1) ** 3 + 1.7 * (u - 1) ** 2;
+          p.sprite(STAR[(step >> 3) % 2], Math.round(MID) - 5, Math.round(HY - 4 - 12 * back), { alpha: clamp(1 - (s - 50) / 22) });
         }
       },
     });
@@ -1807,7 +1885,7 @@
       eggggggggggggggggge
       eeeeeeeeeeeeeeeeeee
     `);
-    const TY = BASE - TELLER.length;
+    const TY = BASE - TELLER.length, FLING = 3;
     const ARMSUP = [...TELLER.slice(0, 16), ...Array(4).fill(TELLER[20]), ...TELLER.slice(20)];
     // Her sleeve raised to the smoke, hand out of it.
     const RAISED = art(`
@@ -1919,13 +1997,19 @@
       h: 64,
       make: () => ({ puffs: [], raiseAt: -999, next: 0 }),
       update(st, step) { st.puffs = st.puffs.filter((q) => step - q.born < 74); },
+      // A click: she crouches, then flings up an arm; the fire answers with a
+      // roaring burst of sparks, and a picture puffs out of the smoke.
       click(st, step) {
-        st.puffs.push({ born: step, shape: SHAPES[st.next++ % SHAPES.length] });
+        if (step - st.raiseAt < 8) return;
+        st.puffs.push({ born: step + FLING, shape: SHAPES[st.next++ % SHAPES.length] });
         st.raiseAt = step;
       },
       draw(p, st, { step, calm, pointer }) {
-        // The fire: crossed logs, and flames that flare at a hover.
-        const flare = pointer ? 1.8 : 1;
+        const r = calm ? 99 : step - st.raiseAt;
+        // The fire: crossed logs, and flames that flare at a hover, and roar
+        // up when she raises her arm.
+        const roar = r >= FLING && r < FLING + 14 ? 1.3 * (1 - (r - FLING) / 14) : 0;
+        const flare = (pointer ? 1.8 : 1) + roar * (pointer ? 0.5 : 1);
         let crest = BASE;
         for (let x = FX - 7; x <= FX + 7; x++) {
           const base = 11 - Math.abs(x - FX) * 1.5, flick = calm ? 0.9 : 0.65 + 0.6 * R('fl', x, step >> 1);
@@ -1941,8 +2025,15 @@
           p.line(FX - 10, BASE - 6 - o, FX + 10, BASE - 1 - o, '#');
         }
         if (pointer && !calm) for (let k = 0; k < 8; k++) {
-          const t = (step + k * 7) % 28;
-          p.px(FX + Math.sin(t * 0.3 + k) * 5, crest - t * 1.2, 'o', 1 - t / 28);
+          const t = (step + k * 7) % 28, y = crest - t * 1.2;
+          if (y >= 3) p.px(FX + Math.sin(t * 0.3 + k) * 5, y, 'o', 1 - t / 28);
+        }
+        // The roar throws a fountain of sparks.
+        if (r >= FLING && r < FLING + 16) for (let k = 0; k < 12; k++) {
+          const t = r - FLING, vx = (R('sp', k, st.raiseAt) - 0.5) * 1.6, vy = 1.6 + R('spv', k, st.raiseAt) * 1.2;
+          const x = FX + vx * t, y = BASE - 10 - vy * t + 0.08 * t * t;
+          if (y < 4) continue;
+          p.px(x, y, k % 3 ? 'o' : 'glint', 1 - t / 16);
         }
         // A thread of smoke.
         if (!calm) for (let y = crest - 2; y > 8; y--) {
@@ -1952,21 +2043,30 @@
         // Pictures in the smoke, forming, rising and coming apart before the top.
         for (const q of st.puffs) {
           const a = step - q.born, [w, h] = size(q.shape);
+          if (a < 0) continue;
+          // A ring of smoke puffs out as the picture appears.
+          if (a < 8 && !calm) for (let n = 0; n < 24; n++) {
+            const th = (n / 24) * TAU, rad = 4 + a * 2.2;
+            p.px(FX + Math.cos(th) * rad, BASE - 28 - h / 2 + Math.sin(th) * rad * 0.6, 'f', 1.2 * (1 - a / 8));
+          }
           const x0 = FX - (w >> 1) + a * 0.06, y0 = BASE - 28 - h - a * 0.12;
           q.shape.forEach((row, j) => [...row].forEach((ch, i) => {
             if (ch === '.') return;
             const r = R('wisp', i, j, q.born);
-            if (a < 14 && r > a / 14) return;
+            if (a < 8 && r > a / 8) return;
             if (r < (a - 32) / 40) return;
             p.px(x0 + i + Math.round(Math.sin(j * 0.3 + a * 0.15) * 1.2), y0 + j, 'f', 1.3);
           }));
         }
-        // The teller, arms up while a picture forms.
-        const up = step - st.raiseAt < 30;
-        p.sprite(up ? ARMSUP : TELLER, TX, TY);
-        if (up) {
-          p.sprite(RAISED, TX + 13, TY + 1);
-        }
+        // The teller: a crouch, then up on her toes as the arm flies up past
+        // its mark and settles, held while the picture forms.
+        const crouch = r >= 0 && r < FLING, up = r >= FLING && r < 30;
+        let rows = up ? ARMSUP : TELLER, lift = 0, reach = 0;
+        if (crouch) rows = squash(rows, 0.9);
+        if (up && r < FLING + 2) { rows = squash(rows, 1.05); reach = -2; }
+        else if (up && r < FLING + 4) reach = 1;
+        p.sprite(rows, TX, BASE - rows.length - lift);
+        if (up) p.sprite(RAISED, TX + 13, BASE - rows.length + 1 + reach);
       },
     });
   }
@@ -2060,15 +2160,16 @@
       if (i >= CW - 5 && i < CW - 2 && j >= CH - 5 && j < CH - 2 && s[CH - 3 - j][CW - 3 - i] === '#') return SUIT_INK[suit];
       return 'w';
     }
-    const FLIP = 18, TURNS = 5, BURST = 24;
+    const FLIP = 18, TURNS = 5, BURST = 24, DIP = 3;
 
     drollery('card', {
-      span: [16, 0, 64, 60],
+      span: [17, 1, 63, 66],
       h: 68,
       make: () => ({ up: null, flip: null, peek: 'heart', fold: 0, draws: 0, shownAt: -999 }),
       update(st, step, pointer) {
         st.fold = clamp(st.fold + (pointer && !st.up && !st.flip ? 1 : -1), 0, 8);
         if (st.flip && step - st.flip.born >= FLIP) {
+          st.landAt = step;
           st.up = st.flip.to;
           if (st.up) st.shownAt = step;
           st.flip = null;
@@ -2077,10 +2178,11 @@
       },
       click(st, step) {
         if (st.flip) return;
-        st.flip = { born: step, from: st.up, to: st.up ? null : st.peek };
+        // It ducks and squashes for a beat before it springs up.
+        st.flip = { born: step + DIP, from: st.up, to: st.up ? null : st.peek };
       },
       draw(p, st, { step, calm }) {
-        const f = st.flip, t = f ? (step - f.born) / FLIP : 0;
+        const f = st.flip, t = f ? clamp((step - f.born) / FLIP) : 0, ducking = f && step < f.born;
         // Idle, it floats and turns a little, breathing light, with sparks
         // winking round it. A click spins it up into the air, turning over
         // and over, and it lands showing the other side.
@@ -2088,16 +2190,22 @@
         const side = f ? (Math.floor((Math.PI * TURNS * smooth(t)) / Math.PI + 0.5) % 2 ? f.to : f.from) : st.up;
         const wd = Math.max(1, Math.round(CW * Math.abs(Math.cos(spin))));
         const float = calm ? 0 : Math.round(2 + Math.sin((step / 48) * TAU) * 2);
-        const lift = (f ? Math.round(Math.sin(Math.PI * t) * 14) : 0) + float;
-        const x0 = CX + ((CW - wd) >> 1), y0 = CY - lift, n = st.fold;
-        const cx = CX + CW / 2, cy = y0 + CH / 2, ink = side ? SUIT_INK[side] : 'b';
+        const lift = (f ? Math.round(Math.sin(Math.PI * t) * 14) : 0) + float - (ducking ? 1 : 0);
+        // Squash and stretch: squashed as it ducks and as it lands, stretched
+        // as it leaves the ground. Its bottom edge stays put.
+        const l = step - (st.landAt ?? -99);
+        const k = calm ? 1 : ducking ? 0.86 : f && t < 0.15 ? 1.1 : l >= 0 && l < 4 ? [0.8, 0.9, 1.05, 1][l] : 1;
+        const H = Math.round(CH * k), ww = Math.max(1, Math.round(wd * (k < 1 ? 2 - k : 1)));
+        const x0 = CX + ((CW - ww) >> 1), y0 = CY - lift + (CH - H), n = st.fold;
+        const cx = CX + CW / 2, cy = CY - lift + CH / 2, ink = side ? SUIT_INK[side] : 'b';
         // Its shadow on the line, smaller the higher it goes.
         const sw = Math.max(3, 11 - (lift >> 1));
         for (let x = -sw; x <= sw; x++) p.px(cx + x, BASE - 1, 'f', 0.8);
         if (!calm) p.glow(cx, cy, 20, ink, 0.18 + 0.1 * Math.sin((step / 30) * TAU));
-        for (let k = 0; k < wd; k++) {
-          const i = Math.min(CW - 1, Math.floor(((k + 0.5) * CW) / wd));
-          for (let j = 0; j < CH; j++) {
+        for (let kx = 0; kx < ww; kx++) {
+          const i = Math.min(CW - 1, Math.floor(((kx + 0.5) * CW) / ww));
+          for (let jy = 0; jy < H; jy++) {
+            const j = Math.min(CH - 1, Math.floor(((jy + 0.5) * CH) / H));
             let c = side ? face(i, j, side) : back(i, j);
             // At a hover a corner lifts, to peek at the suit underneath.
             if (!side && !f && n > 0) {
@@ -2108,7 +2216,7 @@
                 else c = u <= 2 && v >= n - 3 ? SUIT_INK[st.peek] : 'w';
               }
             }
-            if (c) p.px(x0 + k, y0 + j, c);
+            if (c) p.px(x0 + kx, y0 + jy, c);
           }
         }
         if (!calm) for (let k = 0; k < 3; k++) {
@@ -2550,8 +2658,10 @@
       b.to = to; b.mode = mode; b.at = step;
     }
 
+    const CRACK = 7;
+
     drollery('legacy', {
-      span: [15, 1, 74, 66],
+      span: [16, 2, 73, 66],
       h: 72,
       make: () => ({ form: 'hero', next: 'dove', anim: null, bird: { mode: 'away', x: ENTRY[0], y: ENTRY[1], alpha: 0 } }),
       update(st, step) {
@@ -2583,7 +2693,7 @@
             c.y = here; c.vy = 0;
             const roll = [-2, 2].map((dx) => [dx, floorAt(clamp(x + dx, 4, W - 10))]).filter(([, f]) => f > here + 2).sort((u, v) => v[1] - u[1])[0];
             if (roll) { c.tx = c.x = clamp(x + Math.sign(roll[0]), 4, W - 10); continue; }
-            c.x = x; c.rest = true;
+            c.x = x; c.rest = true; c.landed = step;
             for (const b of c.bits) an.hm[x + b.dx] = Math.min(an.hm[x + b.dx] ?? BASE, here + b.dy);
           }
           if (an.chunks.every((c) => c.rest)) {
@@ -2594,7 +2704,7 @@
             fly(b, 'land', [tx - 3, top - 6], step);
           }
         } else if (a > an.end) {
-          st.form = an.to; st.rubble = null; st.anim = null;
+          st.form = an.to; st.rubble = null; st.anim = null; st.doneAt = step;
           fly(b, 'land', perch(st.form), step);
         }
       },
@@ -2629,7 +2739,7 @@
           const bottom = Math.max(...qs.map((q) => q.y));
           const bits = qs.map((q) => ({ dx: q.x - x, dy: q.y - y, ink: q.ink })), low = {};
           for (const b of bits) low[b.dx] = Math.max(low[b.dx] ?? -1, b.dy);
-          return { x, y, tx: clamp(x + Math.round((R('vx', i, step) - 0.5) * 18), 4, W - 10), vy: 0, delay: Math.round((TOP - bottom) * 0.4 + R('d', i, step) * 2), bits, low };
+          return { x, y, tx: clamp(x + Math.round((R('vx', i, step) - 0.5) * 18), 4, W - 10), vy: 0, delay: CRACK + Math.round((TOP - bottom) * 0.4 + R('d', i, step) * 2), bits, low };
         });
         st.anim = { kind: 'crumble', born: step, chunks, hm };
       },
@@ -2639,9 +2749,29 @@
         for (let x = MID - 4; x <= MID + 4; x++) for (const y of [TOP + 4, TOP + 5]) p.px(x, y, 'g');
 
         const an = st.anim, a = an ? step - an.born : 0;
-        if (!an && st.form !== 'rubble') for (const q of pixels(st.form)) p.px(q.x, q.y, q.ink);
+        // Newly risen, it settles with a bounce, and a shine sweeps across it.
+        const d = step - (st.doneAt ?? -99), bounce = calm || d < 0 || d > 3 ? 0 : [1, 0, -1, 0][d];
+        if (!an && st.form !== 'rubble') for (const q of pixels(st.form)) p.px(q.x, q.y + bounce, d >= 0 && d < 12 && Math.abs(q.x + q.y - (TOP - 30 + d * 6)) < 2 ? 'glint' : q.ink);
         if (st.form === 'rubble' && !an) for (const q of st.rubble) p.px(q.x, q.y, q.ink);
-        if (an && an.kind === 'crumble') for (const c of an.chunks) for (const b of c.bits) p.px(Math.round(c.x) + b.dx, Math.round(c.y) + b.dy, b.ink);
+        // Before it falls, it trembles and cracks spread up it.
+        if (an && an.kind === 'crumble' && a < CRACK) {
+          const jit = calm ? 0 : a % 2 ? 1 : -1, [cx0, cy0] = corner(st.form);
+          for (const q of pixels(st.form)) {
+            const up = TOP - q.y, crack = [0, 1, 2].some((n) => {
+              const path = cx0 + 4 + n * 4 + Math.round(Math.sin(q.y * 0.9 + n * 2) * 1.5);
+              return q.x === path && up < (a + 1) * 9 - n * 6;
+            });
+            p.px(q.x + jit, q.y, crack ? 'k' : q.ink);
+          }
+        } else if (an && an.kind === 'crumble') for (const c of an.chunks) {
+          for (const b of c.bits) p.px(Math.round(c.x) + b.dx, Math.round(c.y) + b.dy, b.ink);
+          // A puff of dust where each chunk lands.
+          const l = c.landed !== undefined ? step - c.landed : -1;
+          if (l >= 0 && l < 4 && !calm) {
+            const w = Math.max(...c.bits.map((q) => q.dx)), yb = Math.round(c.y) + Math.max(...c.bits.map((q) => q.dy));
+            for (const sx of [-1 - l, w + 1 + l]) p.px(Math.round(c.x) + sx, yb - (l > 1), 'f');
+          }
+        }
         if (an && an.kind === 'assemble') {
           for (const q of an.spare) p.px(q.x, q.y, q.ink, clamp(1 - a / 20));
           for (const q of an.bits) {
